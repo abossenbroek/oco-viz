@@ -36,8 +36,10 @@ def test_ffprobe_h264(tmp_path):
     probe = subprocess.run(  # noqa: S603
         [
             "ffprobe",
-            "-v", "quiet",
-            "-print_format", "json",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
             "-show_streams",
             str(output),
         ],

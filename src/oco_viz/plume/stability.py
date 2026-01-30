@@ -1,5 +1,7 @@
 """Pasquill-Gifford stability classes and dispersion coefficients."""
 
+from __future__ import annotations
+
 # Pasquill-Gifford dispersion parameters: sigma_y = a * x^b, sigma_z = c * x^d
 # x in meters, sigma in meters
 # Reference: Turner (1970), Workbook of Atmospheric Dispersion Estimates

@@ -71,3 +71,4 @@ reportUnnecessaryContains = false
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["-ra", "--strict-markers"]
+markers = ["skipci: skip on CI (VTK rendering)"]

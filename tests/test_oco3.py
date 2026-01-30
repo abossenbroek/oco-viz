@@ -40,13 +40,17 @@ def test_search_granules_returns_entries():
 
 def test_granule_download_urls_extracts_nc4():
     entries = [
-        {"links": [
-            {"href": "https://opendap.example.com/file.nc4"},
-            {"href": "https://data.example.com/file.nc4"},
-        ]},
-        {"links": [
-            {"href": "https://data.example.com/other.nc4"},
-        ]},
+        {
+            "links": [
+                {"href": "https://opendap.example.com/file.nc4"},
+                {"href": "https://data.example.com/file.nc4"},
+            ]
+        },
+        {
+            "links": [
+                {"href": "https://data.example.com/other.nc4"},
+            ]
+        },
     ]
     urls = granule_download_urls(entries)
     assert len(urls) == 2

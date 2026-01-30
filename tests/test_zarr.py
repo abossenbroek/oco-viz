@@ -35,9 +35,7 @@ def test_round_trip_preserves_data(tmp_path):
     zarr_path = tmp_path / "test.zarr"
     write_zarr(ds, zarr_path)
     ds_read = read_zarr(zarr_path)
-    np.testing.assert_allclose(
-        ds.concentration.values, ds_read.concentration.values, rtol=1e-6
-    )
+    np.testing.assert_allclose(ds.concentration.values, ds_read.concentration.values, rtol=1e-6)
 
 
 def test_validation_rejects_missing_var(tmp_path):

@@ -78,7 +78,8 @@ def extract_wind_profile(
     speed: NDArray[np.float64] = np.sqrt(u**2 + v**2)
     # Meteorological direction: direction wind is coming FROM
     direction: NDArray[np.float64] = np.asarray(
-        np.degrees(np.arctan2(-u, -v)) % 360, dtype=np.float64,
+        np.degrees(np.arctan2(-u, -v)) % 360,
+        dtype=np.float64,
     )
     return speed, direction
 

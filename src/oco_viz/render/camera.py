@@ -35,9 +35,7 @@ class FixedCamera:
         focal_point: tuple[float, float, float],
         view_up: tuple[float, float, float] = (0.0, 0.0, 1.0),
     ) -> None:
-        self._state = CameraState(
-            position=position, focal_point=focal_point, view_up=view_up
-        )
+        self._state = CameraState(position=position, focal_point=focal_point, view_up=view_up)
 
     def evaluate(self, t: float) -> CameraState:  # noqa: ARG002
         return self._state

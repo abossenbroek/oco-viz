@@ -1013,8 +1013,6 @@ packages:
   - python >=3.12,<3.13.0a0
   - python_abi 3.12.* *_cp312
   - tomli
-  arch: x86_64
-  platform: linux
   license: Apache-2.0
   license_family: APACHE
   purls:
@@ -1030,8 +1028,6 @@ packages:
   - python >=3.12,<3.13.0a0 *_cpython
   - python_abi 3.12.* *_cp312
   - tomli
-  arch: arm64
-  platform: osx
   license: Apache-2.0
   license_family: APACHE
   purls:
@@ -4863,7 +4859,7 @@ packages:
 - pypi: .
   name: oco-viz
   version: 0.1.0
-  sha256: 5526ef7b3d597959dbe137f490166c8db5c0a8f9d07ff506852b5ce064d0a344
+  sha256: 9f36722294c6861bb7904ad1bc35a0ac91d2ac11cd2c4960a69fae77f46d35b7
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/opencl-headers-2025.06.13-h5888daf_0.conda

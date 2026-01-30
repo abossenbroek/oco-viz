@@ -7,11 +7,16 @@ from oco_viz.sequencer.controller import render_sequence
 
 
 def test_render_sequence_produces_frames(tmp_path):
-    config = load_config("dev_mac", overrides={"output": {
-        "width": 64,
-        "height": 64,
-        "frames_dir": str(tmp_path / "frames"),
-    }})
+    config = load_config(
+        "dev_mac",
+        overrides={
+            "output": {
+                "width": 64,
+                "height": 64,
+                "frames_dir": str(tmp_path / "frames"),
+            }
+        },
+    )
 
     zarr_path = tmp_path / "plume.zarr"
     ds = generate_sequence(config.plume, config.grid, num_timesteps=3)
@@ -25,11 +30,16 @@ def test_render_sequence_produces_frames(tmp_path):
 
 
 def test_resume_skips_existing(tmp_path):
-    config = load_config("dev_mac", overrides={"output": {
-        "width": 64,
-        "height": 64,
-        "frames_dir": str(tmp_path / "frames"),
-    }})
+    config = load_config(
+        "dev_mac",
+        overrides={
+            "output": {
+                "width": 64,
+                "height": 64,
+                "frames_dir": str(tmp_path / "frames"),
+            }
+        },
+    )
 
     zarr_path = tmp_path / "plume.zarr"
     ds = generate_sequence(config.plume, config.grid, num_timesteps=2)

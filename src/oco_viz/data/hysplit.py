@@ -136,6 +136,8 @@ def hysplit_or_gaussian(
     # Fallback: Gaussian plume generator
     gaussian = importlib.import_module("oco_viz.plume.gaussian")
     result: xr.Dataset = gaussian.generate_sequence(
-        config.plume, config.grid, num_timesteps=num_timesteps,
+        config.plume,
+        config.grid,
+        num_timesteps=num_timesteps,
     )
     return result

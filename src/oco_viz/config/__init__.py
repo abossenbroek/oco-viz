@@ -1,5 +1,7 @@
 """Configuration system with YAML layering."""
 
+from __future__ import annotations
+
 from oco_viz.config.schema import (
     AppConfig,
     CameraConfig,
