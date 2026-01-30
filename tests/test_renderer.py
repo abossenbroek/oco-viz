@@ -1,5 +1,3 @@
-import os
-
 import numpy as np
 import pytest
 
@@ -8,13 +6,8 @@ from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.render.camera import CameraState
 from oco_viz.render.renderer import VolumeRenderer
 
-_skip_ci = pytest.mark.skipif(
-    os.environ.get("CI") == "true",
-    reason="VTK EGL segfaults on headless CI",
-)
 
-
-@_skip_ci
+@pytest.mark.skipci
 def test_configure_and_render():
     config = load_config("dev_mac", overrides={"output": {"width": 128, "height": 128}})
     renderer = VolumeRenderer(config)
@@ -36,7 +29,7 @@ def test_configure_and_render():
     renderer.finalize()
 
 
-@_skip_ci
+@pytest.mark.skipci
 def test_second_render_works():
     config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
     renderer = VolumeRenderer(config)
@@ -55,7 +48,7 @@ def test_second_render_works():
     renderer.finalize()
 
 
-@_skip_ci
+@pytest.mark.skipci
 def test_render_with_postprocessing():
     config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
     renderer = VolumeRenderer(config)

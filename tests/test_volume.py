@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 import numpy as np
@@ -12,11 +11,6 @@ from oco_viz.render.volume import (
     make_gaussian_blob,
     numpy_to_vtk_image,
     render_blob_to_png,
-)
-
-_skip_ci = pytest.mark.skipif(
-    os.environ.get("CI") == "true",
-    reason="VTK EGL segfaults on headless CI",
 )
 
 
@@ -72,7 +66,7 @@ def test_create_volume_with_scattering():
     assert volume.GetProperty().GetShade() == 1
 
 
-@_skip_ci
+@pytest.mark.skipci
 def test_render_blob_to_png(tmp_path):
     output = tmp_path / "test_blob.png"
     render_blob_to_png(output, width=256, height=256, shape=(30, 50, 50))
@@ -85,7 +79,7 @@ def test_render_blob_to_png(tmp_path):
     assert arr.max() > 10
 
 
-@_skip_ci
+@pytest.mark.skipci
 def test_render_blob_to_output_dir():
     output = Path("output/test_blob.png")
     output.parent.mkdir(parents=True, exist_ok=True)
