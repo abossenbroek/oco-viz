@@ -9,7 +9,7 @@ import pytest
 _ON_CI = os.environ.get("CI") == "true"
 
 
-def pytest_collection_modifyitems(_config: pytest.Config, items: list[pytest.Item]) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """Auto-skip tests marked with @pytest.mark.skipci on CI."""
     if not _ON_CI:
         return
