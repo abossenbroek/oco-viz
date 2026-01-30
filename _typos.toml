@@ -12,6 +12,10 @@ tonemap = "tonemap"
 pasquill = "pasquill"
 gifford = "gifford"
 azimuth = "azimuth"
+arange = "arange"
+
+[default.extend-identifiers]
+GES_DISC = "GES_DISC"
 
 [files]
 extend-exclude = ["pixi.lock", ".pixi/"]

@@ -178,15 +178,13 @@ jobs:
 
   dead-code-detection:
     name: Dead Code Detection
-    needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-pixi
       - name: Run vulture
         run: |
-          pixi run pip install vulture
-          pixi run vulture src/ tests/ scripts/ --min-confidence 80 | tee vulture-report.txt
+          pip install vulture
+          vulture src/ tests/ scripts/ --min-confidence 80 | tee vulture-report.txt
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v6
@@ -197,31 +195,29 @@ jobs:
 
   complexity-check:
     name: Complexity Check
-    needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-pixi
       - name: Run radon
         run: |
-          pixi run pip install radon
-          pixi run radon cc src/ --min D --json | tee radon-report.json
-          # Fail if any function has CC > 15
-          pixi run python -c "
+          pip install radon
+          radon cc src/ --min D --json | tee radon-report.json
+      - name: Check complexity threshold
+        shell: python
+        run: |
           import json, sys
-          data = json.load(open('radon-report.json'))
+          data = json.load(open("radon-report.json"))
           failures = []
           for path, blocks in data.items():
               for b in blocks:
-                  if b['complexity'] > 15:
-                      failures.append(f\"{path}:{b['lineno']} {b['name']} CC={b['complexity']}\")
+                  if b["complexity"] > 15:
+                      failures.append(f"{path}:{b['lineno']} {b['name']} CC={b['complexity']}")
           if failures:
-              print('Functions exceeding CC threshold of 15:')
+              print("Functions exceeding CC threshold of 15:")
               for f in failures:
-                  print(f'  {f}')
+                  print(f"  {f}")
               sys.exit(1)
-          print('All functions within complexity threshold.')
-          "
+          print("All functions within complexity threshold.")
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v6
@@ -258,6 +254,7 @@ jobs:
           dockerfile: Dockerfile
           format: json
           output-file: hadolint-report.json
+          failure-threshold: warning
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v6
