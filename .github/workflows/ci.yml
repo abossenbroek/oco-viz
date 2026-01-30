@@ -16,7 +16,7 @@ jobs:
     name: Lockfile Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
 
   # ── Quality gates (depend on lockfile) ─────────────────────
@@ -25,13 +25,13 @@ jobs:
     needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Check formatting
         run: pixi run ruff format --check --diff src/ tests/ scripts/ > ruff-format.diff 2>&1 || (cat ruff-format.diff && exit 1)
       - name: Upload diff
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ruff-format-diff
           path: ruff-format.diff
@@ -42,13 +42,13 @@ jobs:
     needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Run ruff
         run: pixi run ruff check --output-format json src/ tests/ > ruff-report.json 2>&1 || (pixi run ruff check src/ tests/ && exit 1)
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ruff-lint-report
           path: ruff-report.json
@@ -59,7 +59,7 @@ jobs:
     needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Check import sorting
         run: pixi run ruff check --select I src/ tests/ scripts/
@@ -69,13 +69,13 @@ jobs:
     needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Run mypy
         run: pixi run mypy src/ | tee mypy-report.txt
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: mypy-report
           path: mypy-report.txt
@@ -86,13 +86,13 @@ jobs:
     needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Run pyright
         run: pixi run pyright src/ --outputjson | tee pyright-report.json
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pyright-report
           path: pyright-report.json
@@ -103,7 +103,7 @@ jobs:
     needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Run tests with coverage
         run: >-
@@ -114,7 +114,7 @@ jobs:
           --junitxml=pytest-report.xml
       - name: Upload results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-results
           path: |
@@ -131,13 +131,13 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Download test results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: test-results
       - name: Coverage comment
-        uses: MishaKav/pytest-coverage-comment@main
+        uses: MishaKav/pytest-coverage-comment@v1.2.0
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: pytest-report.xml
@@ -147,7 +147,7 @@ jobs:
     name: Future Annotations Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check future annotations
         run: |
           failed=0
@@ -172,7 +172,7 @@ jobs:
     name: Spell Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run typos
         uses: crate-ci/typos@v1
 
@@ -181,7 +181,7 @@ jobs:
     needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Run vulture
         run: |
@@ -189,7 +189,7 @@ jobs:
           pixi run vulture src/ tests/ scripts/ --min-confidence 80 | tee vulture-report.txt
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vulture-report
           path: vulture-report.txt
@@ -200,7 +200,7 @@ jobs:
     needs: lockfile-check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Run radon
         run: |
@@ -224,7 +224,7 @@ jobs:
           "
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: complexity-report
           path: radon-report.json
@@ -234,14 +234,14 @@ jobs:
     name: YAML Validation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install yamllint
         run: pip install yamllint
       - name: Run yamllint
         run: yamllint -c .yamllint.yml configs/ plan/ .github/ | tee yamllint-report.txt
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: yamllint-report
           path: yamllint-report.txt
@@ -251,16 +251,16 @@ jobs:
     name: Dockerfile Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run hadolint
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: Dockerfile
           format: json
           output-file: hadolint-report.json
       - name: Upload report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: hadolint-report
           path: hadolint-report.json
@@ -270,7 +270,7 @@ jobs:
     name: File Size Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Check file sizes
@@ -289,7 +289,7 @@ jobs:
     name: py.typed Marker
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check py.typed exists
         run: test -f src/oco_viz/py.typed
 
