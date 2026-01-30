@@ -1,0 +1,12 @@
+name: "Setup Pixi"
+description: "Install pixi, cache .pixi directory, and run pixi install"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install pixi
+      uses: prefix-dev/setup-pixi@v0.8.1
+      with:
+        pixi-version: v0.39.5
+        cache: true
+        locked: true

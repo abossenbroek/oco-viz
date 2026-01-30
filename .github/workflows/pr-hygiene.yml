@@ -1,0 +1,48 @@
+name: PR Hygiene
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+    branches: [main, develop]
+
+concurrency:
+  group: pr-hygiene-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pr-title-check:
+    name: PR Title (Conventional Commits)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr-body-check:
+    name: PR Body Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR body length
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          body_length=${#PR_BODY}
+          if [ "$body_length" -lt 50 ]; then
+            echo "PR body is too short ($body_length chars). Minimum 50 characters required."
+            echo "Please describe what this PR does, why, and how it was tested."
+            exit 1
+          fi
+          echo "PR body length OK ($body_length chars)."
+
+  commit-message-lint:
+    name: Commit Message Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Lint commit messages
+        uses: wagoid/commitlint-github-action@v6
+        with:
+          configFile: .commitlintrc.yml
