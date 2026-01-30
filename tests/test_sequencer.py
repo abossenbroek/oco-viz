@@ -1,11 +1,20 @@
+import os
 import time
+
+import pytest
 
 from oco_viz.config import load_config
 from oco_viz.data.zarr_store import write_zarr
 from oco_viz.plume.gaussian import generate_sequence
 from oco_viz.sequencer.controller import render_sequence
 
+_skip_ci = pytest.mark.skipif(
+    os.environ.get("CI") == "true",
+    reason="VTK EGL segfaults on headless CI",
+)
 
+
+@_skip_ci
 def test_render_sequence_produces_frames(tmp_path):
     config = load_config(
         "dev_mac",
@@ -29,6 +38,7 @@ def test_render_sequence_produces_frames(tmp_path):
         assert p.stat().st_size > 0
 
 
+@_skip_ci
 def test_resume_skips_existing(tmp_path):
     config = load_config(
         "dev_mac",
