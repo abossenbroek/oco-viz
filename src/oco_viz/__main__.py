@@ -1,0 +1,97 @@
+"""CLI entry points for oco_viz."""
+
+from __future__ import annotations
+
+import argparse
+from pathlib import Path
+
+from oco_viz.config import load_config
+from oco_viz.data.zarr_store import write_zarr
+from oco_viz.plume.gaussian import generate_sequence
+from oco_viz.sequencer.controller import render_sequence
+from oco_viz.sequencer.encode import encode_video
+
+
+def cmd_generate_plume(args: argparse.Namespace) -> None:
+    """Generate synthetic plume to Zarr."""
+    config = load_config(args.profile)
+    output = Path(args.output)
+    ds = generate_sequence(config.plume, config.grid, num_timesteps=args.timesteps)
+    write_zarr(ds, output)
+    print(f"Wrote {args.timesteps} timesteps to {output}")
+
+
+def cmd_render(args: argparse.Namespace) -> None:
+    """Render frames from Zarr."""
+    config = load_config(args.profile)
+    zarr_path = Path(args.zarr)
+    paths = render_sequence(config, zarr_path, num_frames=args.num_frames)
+    print(f"Rendered {len(paths)} frames to {config.output.frames_dir}")
+
+
+def cmd_encode(args: argparse.Namespace) -> None:
+    """Encode frames to video."""
+    config = load_config(args.profile)
+    frames_dir = Path(config.output.frames_dir)
+    video_dir = Path(config.output.video_dir)
+    output_path = video_dir / "synthetic_plume.mp4"
+    encode_video(frames_dir, output_path, fps=config.output.fps)
+    print(f"Encoded video: {output_path}")
+
+
+def cmd_pipeline(args: argparse.Namespace) -> None:
+    """Run full pipeline: generate -> render -> encode."""
+    config = load_config(args.profile)
+    zarr_path = Path("output/plume.zarr")
+
+    # Generate
+    ds = generate_sequence(config.plume, config.grid, num_timesteps=args.num_frames)
+    write_zarr(ds, zarr_path)
+    print(f"Generated plume: {zarr_path}")
+
+    # Render
+    paths = render_sequence(config, zarr_path, num_frames=args.num_frames)
+    print(f"Rendered {len(paths)} frames")
+
+    # Encode
+    video_dir = Path(config.output.video_dir)
+    output_path = video_dir / "synthetic_plume.mp4"
+    encode_video(Path(config.output.frames_dir), output_path, fps=config.output.fps)
+    print(f"Video: {output_path}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="oco_viz", description="OCO-3 CO2 Plume Visualization")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # generate-plume
+    p_gen = sub.add_parser("generate-plume", help="Generate synthetic plume to Zarr")
+    p_gen.add_argument("--profile", default="dev_mac")
+    p_gen.add_argument("--output", default="output/plume.zarr")
+    p_gen.add_argument("--timesteps", type=int, default=48)
+    p_gen.set_defaults(func=cmd_generate_plume)
+
+    # render
+    p_render = sub.add_parser("render", help="Render frames from Zarr")
+    p_render.add_argument("--profile", default="dev_mac")
+    p_render.add_argument("--zarr", default="output/plume.zarr")
+    p_render.add_argument("--num-frames", type=int, default=None)
+    p_render.set_defaults(func=cmd_render)
+
+    # encode
+    p_encode = sub.add_parser("encode", help="Encode frames to video")
+    p_encode.add_argument("--profile", default="dev_mac")
+    p_encode.set_defaults(func=cmd_encode)
+
+    # pipeline
+    p_pipe = sub.add_parser("pipeline", help="Full pipeline: generate -> render -> encode")
+    p_pipe.add_argument("--profile", default="dev_mac")
+    p_pipe.add_argument("--num-frames", type=int, default=48)
+    p_pipe.set_defaults(func=cmd_pipeline)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()
