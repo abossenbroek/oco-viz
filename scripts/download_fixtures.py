@@ -2,10 +2,10 @@
 
 Requires:
 - CDS API credentials (~/.cdsapirc) for ERA5 download
-- NASA Earthdata token (EARTHDATA_TOKEN env var) for OCO-3 download
+- NASA Earthdata token (EARTHDATA_TOKEN env var) for OCO-2/OCO-3 download
 
 Usage:
-    python scripts/download_fixtures.py [--era5-only | --oco3-only]
+    python scripts/download_fixtures.py [--era5-only | --oco3-only | --oco2-only]
 """
 
 from __future__ import annotations
@@ -32,6 +32,32 @@ def download_era5_fixture(dest: Path) -> None:
     )
     download_era5(request, dest)
     print(f"ERA5 fixture saved: {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
+
+
+def download_oco2_fixture(dest: Path) -> None:
+    """Download OCO-2 L2 Lite granule covering Secunda."""
+    from oco_viz.data.oco import download_granule, granule_download_urls  # noqa: PLC0415
+    from oco_viz.data.oco2 import search_granules  # noqa: PLC0415
+
+    token = os.environ.get("EARTHDATA_TOKEN")
+    if not token:
+        print("ERROR: Set EARTHDATA_TOKEN environment variable")
+        sys.exit(1)
+
+    print("Searching for OCO-2 granules over Secunda...")
+    entries = search_granules("2025-10-01", "2025-12-31")
+    if not entries:
+        print("ERROR: No OCO-2 granules found")
+        sys.exit(1)
+
+    urls = granule_download_urls(entries)
+    if not urls:
+        print("ERROR: No download URLs found")
+        sys.exit(1)
+
+    print(f"Found {len(urls)} granules, downloading first: {urls[0]}")
+    download_granule(urls[0], dest, token=token)
+    print(f"OCO-2 fixture saved: {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
 
 
 def download_oco3_fixture(dest: Path) -> None:
@@ -64,16 +90,22 @@ def main() -> None:
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--era5-only", action="store_true", help="Download ERA5 only")
     group.add_argument("--oco3-only", action="store_true", help="Download OCO-3 only")
+    group.add_argument("--oco2-only", action="store_true", help="Download OCO-2 only")
     args = parser.parse_args()
 
     fixtures_dir = Path(__file__).resolve().parents[1] / "tests" / "fixtures"
     fixtures_dir.mkdir(parents=True, exist_ok=True)
 
-    if not args.oco3_only:
+    if args.era5_only:
         download_era5_fixture(fixtures_dir / "era5_secunda_sample.nc")
-
-    if not args.era5_only:
+    elif args.oco3_only:
         download_oco3_fixture(fixtures_dir / "oco3_sample.nc4")
+    elif args.oco2_only:
+        download_oco2_fixture(fixtures_dir / "oco2_sample.nc4")
+    else:
+        download_era5_fixture(fixtures_dir / "era5_secunda_sample.nc")
+        download_oco3_fixture(fixtures_dir / "oco3_sample.nc4")
+        download_oco2_fixture(fixtures_dir / "oco2_sample.nc4")
 
     print("Done!")
 
