@@ -6,6 +6,10 @@ Requires:
 
 Usage:
     python scripts/download_fixtures.py [--era5-only | --oco3-only | --oco2-only]
+
+The OCO-2 and OCO-3 downloaders use ``find_nearest_passes`` to pick the
+granule closest to a reference date (default 2025-10-15) so that both
+satellites cover the same period.
 """
 
 from __future__ import annotations
@@ -18,10 +22,15 @@ from pathlib import Path
 # Add src to path so we can import oco_viz
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
+# Reference date: both OCO-2 V11.2r and OCO-3 V11r have Secunda data here
+_REFERENCE_DATE = "2025-10-15"
+_SECUNDA_LAT = -26.52
+_SECUNDA_LON = 29.17
+
 
 def download_era5_fixture(dest: Path) -> None:
     """Download ERA5 sample: 1 day over Sasol Secunda bbox."""
-    from oco_viz.data.era5 import build_cds_request, download_era5
+    from oco_viz.data.era5 import build_cds_request, download_era5  # noqa: PLC0415
 
     print(f"Downloading ERA5 fixture to {dest}")
     request = build_cds_request(
@@ -34,55 +43,67 @@ def download_era5_fixture(dest: Path) -> None:
     print(f"ERA5 fixture saved: {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
 
 
-def download_oco2_fixture(dest: Path) -> None:
-    """Download OCO-2 L2 Lite granule covering Secunda."""
-    from oco_viz.data.oco import download_granule, granule_download_urls  # noqa: PLC0415
-    from oco_viz.data.oco2 import search_granules  # noqa: PLC0415
+def _download_satellite_fixture(
+    satellite: str,
+    dest: Path,
+    *,
+    reference_date: str = _REFERENCE_DATE,
+) -> None:
+    """Download the nearest granule for *satellite* ('oco2' or 'oco3')."""
+    from oco_viz.data.oco import (  # noqa: PLC0415
+        SATELLITE_COLLECTION_IDS,
+        download_granule,
+        find_nearest_passes,
+        granule_download_urls,
+        search_granules,
+    )
 
     token = os.environ.get("EARTHDATA_TOKEN")
     if not token:
         print("ERROR: Set EARTHDATA_TOKEN environment variable")
         sys.exit(1)
 
-    print("Searching for OCO-2 granules over Secunda...")
-    entries = search_granules("2025-10-01", "2025-12-31")
-    if not entries:
-        print("ERROR: No OCO-2 granules found")
+    label = satellite.upper()
+    print(f"Finding nearest {label} pass to {reference_date} over Secunda...")
+    passes = find_nearest_passes(
+        _SECUNDA_LAT,
+        _SECUNDA_LON,
+        reference_date,
+        radius_km=50.0,
+        search_window_days=30,
+        satellites=(satellite,),
+    )
+    if not passes:
+        print(f"ERROR: No {label} passes found")
         sys.exit(1)
 
+    best = passes[0]
+    print(f"Closest pass: {best['date']} ({best['days_from_target']:+d} days) — {best['title']}")
+
+    # Search for that specific date to get the download URL
+    entries = search_granules(
+        best["date"],
+        best["date"],
+        collection_id=SATELLITE_COLLECTION_IDS[satellite],
+    )
     urls = granule_download_urls(entries)
     if not urls:
-        print("ERROR: No download URLs found")
+        print(f"ERROR: No download URLs found for {label} on {best['date']}")
         sys.exit(1)
 
-    print(f"Found {len(urls)} granules, downloading first: {urls[0]}")
+    print(f"Downloading: {urls[0]}")
     download_granule(urls[0], dest, token=token)
-    print(f"OCO-2 fixture saved: {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
+    print(f"{label} fixture saved: {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
+
+
+def download_oco2_fixture(dest: Path) -> None:
+    """Download the nearest OCO-2 L2 Lite granule for Secunda."""
+    _download_satellite_fixture("oco2", dest)
 
 
 def download_oco3_fixture(dest: Path) -> None:
-    """Download OCO-3 L2 Lite granule covering Secunda."""
-    from oco_viz.data.oco3 import download_granule, granule_download_urls, search_granules
-
-    token = os.environ.get("EARTHDATA_TOKEN")
-    if not token:
-        print("ERROR: Set EARTHDATA_TOKEN environment variable")
-        sys.exit(1)
-
-    print("Searching for OCO-3 granules over Secunda...")
-    entries = search_granules("2025-10-01", "2025-12-31")
-    if not entries:
-        print("ERROR: No granules found")
-        sys.exit(1)
-
-    urls = granule_download_urls(entries)
-    if not urls:
-        print("ERROR: No download URLs found")
-        sys.exit(1)
-
-    print(f"Found {len(urls)} granules, downloading first: {urls[0]}")
-    download_granule(urls[0], dest, token=token)
-    print(f"OCO-3 fixture saved: {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
+    """Download the nearest OCO-3 L2 Lite granule for Secunda."""
+    _download_satellite_fixture("oco3", dest)
 
 
 def main() -> None:
