@@ -14,6 +14,7 @@ from oco_viz.data.pipeline import (
     build_wind_driven_plume,
     run_data_pipeline,
 )
+from oco_viz.data.zarr_store import read_zarr
 
 _FIXTURES = Path(__file__).parent / "fixtures"
 _ERA5_PATH = _FIXTURES / "era5_secunda_sample.nc"
@@ -98,8 +99,6 @@ def test_run_data_pipeline_writes_zarr(config, tmp_path):
     run_data_pipeline(config, num_timesteps=3, output_zarr=zarr_path)
     assert zarr_path.exists()
     # Verify readable
-    from oco_viz.data.zarr_store import read_zarr
-
     ds = read_zarr(zarr_path)
     assert "concentration" in ds
 

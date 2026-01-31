@@ -5,14 +5,15 @@ from __future__ import annotations
 import json
 import urllib.parse
 import urllib.request
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import xarray as xr
 
-if TYPE_CHECKING:
-    from pathlib import Path
+from oco_viz.data.transform import latlon_to_local_km, local_km_to_latlon, regrid_to_cartesian
 
+if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from oco_viz.config.schema import DomainConfig, GridConfig, OCO3Config
@@ -124,8 +125,6 @@ def load_and_grid_granules(
     Returns xr.Dataset with {xco2_observed} on dims (y, x), float32.
     Empty cells are NaN.
     """
-    from oco_viz.data.transform import latlon_to_local_km, regrid_to_cartesian
-
     # Load and concatenate all granules
     datasets = [load_granule(p) for p in paths]
     combined = xr.concat(datasets, dim="sounding_id")
@@ -176,10 +175,6 @@ def search_and_download(
 
     Returns list of downloaded file paths.
     """
-    from pathlib import Path as PathCls
-
-    from oco_viz.data.transform import local_km_to_latlon
-
     half_x = domain.extent_x_km / 2.0
     half_y = domain.extent_y_km / 2.0
     lat_s, lon_w = local_km_to_latlon(
@@ -200,7 +195,7 @@ def search_and_download(
     downloaded: list[Path] = []
     for url in urls:
         filename = url.rsplit("/", 1)[-1]
-        dest = PathCls(dest_dir) / filename
+        dest = Path(dest_dir) / filename
         download_granule(url, dest, token=token)
         downloaded.append(dest)
 

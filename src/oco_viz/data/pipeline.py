@@ -8,6 +8,11 @@ from typing import TYPE_CHECKING
 import numpy as np
 import xarray as xr
 
+from oco_viz.data.era5 import load_era5_winds
+from oco_viz.data.oco3 import load_and_grid_granules
+from oco_viz.data.zarr_store import write_zarr
+from oco_viz.plume.gaussian import generate_sequence, generate_timestep
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -26,9 +31,6 @@ def build_wind_driven_plume(
 
     Returns xr.Dataset with {concentration, u_wind, v_wind} on dims (time, z, y, x).
     """
-    from oco_viz.data.era5 import load_era5_winds
-    from oco_viz.plume.gaussian import generate_timestep
-
     grid = config.grid
     domain = config.data_source.domain
 
@@ -90,8 +92,6 @@ def attach_oco3_overlay(
     grid: GridConfig,
 ) -> xr.Dataset:
     """Add xco2_observed variable from OCO-3 data to an existing dataset."""
-    from oco_viz.data.oco3 import load_and_grid_granules
-
     oco3_ds = load_and_grid_granules(oco3_paths, domain, grid)
     ds["xco2_observed"] = oco3_ds["xco2_observed"]
     return ds
@@ -115,9 +115,6 @@ def run_data_pipeline(
     if era5_path is not None:
         ds = build_wind_driven_plume(config, era5_path, num_timesteps)
     else:
-        # Fallback: standard Gaussian plume
-        from oco_viz.plume.gaussian import generate_sequence
-
         ds = generate_sequence(config.plume, config.grid, num_timesteps)
 
     if oco3_paths:
@@ -133,8 +130,6 @@ def run_data_pipeline(
 
 def _write_pipeline_zarr(ds: xr.Dataset, path: Path) -> None:
     """Write pipeline output to Zarr, handling auxiliary variables."""
-    from oco_viz.data.zarr_store import write_zarr
-
     # write_zarr validates 'concentration' exists — strip auxiliary vars for validation,
     # then write the full dataset
     conc_ds = ds[["concentration"]].copy()

@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import xarray as xr
+from scipy.interpolate import RegularGridInterpolator
+
+from oco_viz.data.transform import latlon_to_local_km, local_km_to_latlon, pressure_to_altitude_m
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -103,8 +106,6 @@ def build_era5_request_for_domain(
     date: str,
 ) -> dict[str, Any]:
     """Derive CDS API request from DomainConfig and ERA5Config."""
-    from oco_viz.data.transform import local_km_to_latlon
-
     # Compute bounding box from domain extents
     half_x = domain.extent_x_km / 2.0
     half_y = domain.extent_y_km / 2.0
@@ -132,10 +133,6 @@ def load_era5_winds(
 
     Returns xr.Dataset with {u_wind, v_wind} on dims (time, z, y, x), float32.
     """
-    from scipy.interpolate import RegularGridInterpolator
-
-    from oco_viz.data.transform import latlon_to_local_km, pressure_to_altitude_m
-
     ds: xr.Dataset = xr.open_dataset(str(path))
 
     # Source coordinates

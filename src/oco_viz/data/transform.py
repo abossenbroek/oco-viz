@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -24,8 +24,8 @@ _R = 8.31447  # universal gas constant (J/(mol·K))
 
 
 def latlon_to_local_km(
-    lat: float | NDArray[np.floating[object]],
-    lon: float | NDArray[np.floating[object]],
+    lat: float | NDArray[np.floating[Any]],
+    lon: float | NDArray[np.floating[Any]],
     *,
     origin_lat: float,
     origin_lon: float,
@@ -44,8 +44,8 @@ def latlon_to_local_km(
 
 
 def local_km_to_latlon(
-    x_km: float | NDArray[np.floating[object]],
-    y_km: float | NDArray[np.floating[object]],
+    x_km: float | NDArray[np.floating[Any]],
+    y_km: float | NDArray[np.floating[Any]],
     *,
     origin_lat: float,
     origin_lon: float,
@@ -61,7 +61,7 @@ def local_km_to_latlon(
 
 
 def pressure_to_altitude_m(
-    pressure_hpa: float | NDArray[np.floating[object]],
+    pressure_hpa: float | NDArray[np.floating[Any]],
 ) -> NDArray[np.float64] | float:
     """Convert pressure (hPa) to altitude (m) using the barometric formula.
 

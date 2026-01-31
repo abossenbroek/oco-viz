@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import numpy as np
-import pytest
 
 from oco_viz.config.schema import GridConfig
 from oco_viz.data.transform import (
@@ -12,7 +11,6 @@ from oco_viz.data.transform import (
     pressure_to_altitude_m,
     regrid_to_cartesian,
 )
-
 
 # --- latlon_to_local_km / local_km_to_latlon round-trip ---
 
