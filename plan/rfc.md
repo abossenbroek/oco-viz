@@ -9,7 +9,7 @@
 
 ## Context
 
-We need to create a 3D video visualization of CO2 transport above Sasol Secunda using OCO-3 satellite data. The visualization must show physically plausible plume behavior with atmospheric rendering quality suitable for artistic/public communication.
+We need to create a 3D video visualization of CO2 transport above Sasol Secunda using OCO-2/OCO-3 satellite data. The visualization must show physically plausible plume behavior with atmospheric rendering quality suitable for artistic/public communication.
 
 **Key constraint**: OCO-3 provides column-integrated measurements only. 3D reconstruction requires atmospheric transport modeling.
 
@@ -132,7 +132,7 @@ Raw frame → Depth fog → ACES tonemap → Bloom → Output
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        DATA ACQUISITION                              │
 │                                                                      │
-│  OCO-3 (NASA)     ERA5 (Copernicus)     HYSPLIT (local)            │
+│  OCO-2/3 (NASA)   ERA5 (Copernicus)     HYSPLIT (local)            │
 │       │                  │                    │                     │
 │       └──────────────────┼────────────────────┘                     │
 │                          │                                          │
@@ -362,7 +362,7 @@ Pre-computed global CO2 fields, no model setup required. Rejected because:
 |------|-------------|--------|------------|
 | HYSPLIT setup exceeds time budget | Medium | High | Synthetic Gaussian plume generator as standalone path to visualization |
 | VTK scattering quality insufficient | Low | Medium | Post-processing pipeline provides quality floor |
-| OCO-3 coverage sparse in chosen period | Medium | Medium | Pre-screen dates before committing; extend window |
+| OCO-3 coverage sparse in chosen period | Medium | Medium | Pre-screen dates before committing; extend window; fuse OCO-2 + OCO-3 for improved temporal coverage |
 | Memory pressure at 90-day scale | Low | Medium | Zarr streaming; process in temporal batches |
 | EGL/headless rendering fails | Low | High | OSMesa software fallback (slower but works) |
 
