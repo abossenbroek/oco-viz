@@ -69,8 +69,7 @@ def main() -> None:
     for p in passes:
         sign = "+" if p["days_from_target"] >= 0 else ""
         print(
-            f"{p['satellite']:<10} {p['date']:<12} {sign}{p['days_from_target']:>15}  "
-            f"{p['title']}"
+            f"{p['satellite']:<10} {p['date']:<12} {sign}{p['days_from_target']:>15}  {p['title']}"
         )
 
     # Summary

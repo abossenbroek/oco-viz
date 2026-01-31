@@ -119,9 +119,8 @@ def main() -> None:
         lats = ds["latitude"].values
         lons = ds["longitude"].values
 
-        near = (
-            (np.abs(lats - SECUNDA_LAT) < args.radius_deg)
-            & (np.abs(lons - SECUNDA_LON) < args.radius_deg)
+        near = (np.abs(lats - SECUNDA_LAT) < args.radius_deg) & (
+            np.abs(lons - SECUNDA_LON) < args.radius_deg
         )
         n_near = int(np.sum(near))
 

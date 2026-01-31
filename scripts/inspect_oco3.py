@@ -50,9 +50,11 @@ def _section_temporal(ds: xr.Dataset) -> None:
         print(f"  Max time:       {np.nanmax(t)}")
     if "date" in ds:
         dates = ds["date"].values
-        unique_count = len(np.unique(dates[~np.isnan(dates)])) if np.issubdtype(
-            dates.dtype, np.floating
-        ) else len(np.unique(dates))
+        unique_count = (
+            len(np.unique(dates[~np.isnan(dates)]))
+            if np.issubdtype(dates.dtype, np.floating)
+            else len(np.unique(dates))
+        )
         print(f"  Unique dates:   {unique_count}")
     print()
 
@@ -84,9 +86,7 @@ def _section_secunda(ds: xr.Dataset, radius_deg: float) -> None:
     print("=" * 60)
     lat = ds["latitude"].values
     lon = ds["longitude"].values
-    mask = (np.abs(lat - _SECUNDA_LAT) < radius_deg) & (
-        np.abs(lon - _SECUNDA_LON) < radius_deg
-    )
+    mask = (np.abs(lat - _SECUNDA_LAT) < radius_deg) & (np.abs(lon - _SECUNDA_LON) < radius_deg)
     n = mask.sum()
     print(f"  Soundings within radius: {n}")
     if n > 0:
@@ -95,8 +95,10 @@ def _section_secunda(ds: xr.Dataset, radius_deg: float) -> None:
         sub_xco2 = ds["xco2"].values[mask]
         print(f"  Latitude:  [{sub_lat.min():.4f}, {sub_lat.max():.4f}]")
         print(f"  Longitude: [{sub_lon.min():.4f}, {sub_lon.max():.4f}]")
-        print(f"  XCO2:      min={sub_xco2.min():.2f} max={sub_xco2.max():.2f} "
-              f"mean={sub_xco2.mean():.2f}")
+        print(
+            f"  XCO2:      min={sub_xco2.min():.2f} max={sub_xco2.max():.2f} "
+            f"mean={sub_xco2.mean():.2f}"
+        )
     else:
         print("  No soundings in this region.")
     print()
@@ -110,11 +112,15 @@ def _section_xco2(ds: xr.Dataset) -> None:
     xco2 = ds["xco2"].values
     valid = xco2[~np.isnan(xco2)]
     print(f"  All soundings (n={len(valid)}):")
-    print(f"    min={valid.min():.2f}  max={valid.max():.2f}  "
-          f"mean={valid.mean():.2f}  std={valid.std():.2f}")
+    print(
+        f"    min={valid.min():.2f}  max={valid.max():.2f}  "
+        f"mean={valid.mean():.2f}  std={valid.std():.2f}"
+    )
     pcts = np.percentile(valid, [5, 25, 50, 75, 95])
-    print(f"    P5={pcts[0]:.2f}  P25={pcts[1]:.2f}  P50={pcts[2]:.2f}  "
-          f"P75={pcts[3]:.2f}  P95={pcts[4]:.2f}")
+    print(
+        f"    P5={pcts[0]:.2f}  P25={pcts[1]:.2f}  P50={pcts[2]:.2f}  "
+        f"P75={pcts[3]:.2f}  P95={pcts[4]:.2f}"
+    )
 
     if "xco2_quality_flag" in ds:
         qf = ds["xco2_quality_flag"].values
@@ -122,11 +128,15 @@ def _section_xco2(ds: xr.Dataset) -> None:
         good_xco2 = xco2[good_mask & ~np.isnan(xco2)]
         if len(good_xco2) > 0:
             print(f"  Quality-filtered (n={len(good_xco2)}):")
-            print(f"    min={good_xco2.min():.2f}  max={good_xco2.max():.2f}  "
-                  f"mean={good_xco2.mean():.2f}  std={good_xco2.std():.2f}")
+            print(
+                f"    min={good_xco2.min():.2f}  max={good_xco2.max():.2f}  "
+                f"mean={good_xco2.mean():.2f}  std={good_xco2.std():.2f}"
+            )
             pcts2 = np.percentile(good_xco2, [5, 25, 50, 75, 95])
-            print(f"    P5={pcts2[0]:.2f}  P25={pcts2[1]:.2f}  P50={pcts2[2]:.2f}  "
-                  f"P75={pcts2[3]:.2f}  P95={pcts2[4]:.2f}")
+            print(
+                f"    P5={pcts2[0]:.2f}  P25={pcts2[1]:.2f}  P50={pcts2[2]:.2f}  "
+                f"P75={pcts2[3]:.2f}  P95={pcts2[4]:.2f}"
+            )
     print()
 
 
