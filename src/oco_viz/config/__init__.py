@@ -5,7 +5,11 @@ from __future__ import annotations
 from oco_viz.config.schema import (
     AppConfig,
     CameraConfig,
+    DataSourceConfig,
+    DomainConfig,
+    ERA5Config,
     GridConfig,
+    OCO3Config,
     OutputConfig,
     PlumeConfig,
     PostProcessConfig,
@@ -17,7 +21,11 @@ from oco_viz.config.schema import (
 __all__ = [
     "AppConfig",
     "CameraConfig",
+    "DataSourceConfig",
+    "DomainConfig",
+    "ERA5Config",
     "GridConfig",
+    "OCO3Config",
     "OutputConfig",
     "PlumeConfig",
     "PostProcessConfig",
