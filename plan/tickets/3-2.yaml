@@ -1,10 +1,10 @@
-id: "3-1"
-title: "Sky Gradient Background"
-status: done
+id: "3-2"
+title: "Ground Plane Grid"
+status: in_progress
 wave: 3
 produces:
-  - src/oco_viz/render/sky_gradient.py
-  - tests/test_sky_gradient.py
+  - src/oco_viz/render/ground_plane.py
+  - tests/test_ground_plane.py
 depends: []
 gates: [lint, typecheck, test]
 context:
