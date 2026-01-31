@@ -1,0 +1,15 @@
+id: "3-7"
+title: "Sequencer Integration"
+status: in_progress
+wave: 3
+produces:
+  - tests/test_renderer_integration.py
+depends: ["3-1", "3-2", "3-3", "3-4", "3-5", "3-6"]
+gates: [lint, typecheck, test]
+context:
+  related_files:
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/sequencer/controller.py
+    - src/oco_viz/config/schema.py
+    - configs/base.yaml
+    - configs/dev_mac.yaml

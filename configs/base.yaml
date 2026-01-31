@@ -6,12 +6,26 @@ grid:
   dy: 1000.0
   dz: 500.0
 
+sky:
+  enabled: true
+  top_color: [0.01, 0.01, 0.04]
+  bottom_color: [0.08, 0.08, 0.12]
+
+ground_plane:
+  enabled: true
+  opacity: 0.08
+  grid_spacing_km: 10.0
+  color: [0.3, 0.3, 0.3]
+
 scattering:
   global_illumination_reach: 0.5
   volumetric_scattering_blending: 0.5
   anisotropy: 0.3
   jittering: true
   shade: true
+  ambient: 0.3
+  diffuse: 0.7
+  specular: 0.2
 
 camera:
   rig: orbit
@@ -28,6 +42,7 @@ postprocess:
   bloom_threshold: 0.8
   bloom_intensity: 0.3
   bloom_passes: 3
+  exposure: 0.6
 
 output:
   width: 1920
@@ -36,6 +51,7 @@ output:
   video_dir: output/video
   vdb_dir: output/vdb
   fps: 24
+  bit_depth: 16
 
 plume:
   source_x: 50.0

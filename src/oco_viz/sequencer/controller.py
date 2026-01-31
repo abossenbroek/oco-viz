@@ -7,10 +7,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
-from PIL import Image
 
 from oco_viz.data.zarr_store import read_zarr
 from oco_viz.render.camera import OrbitCamera
+from oco_viz.render.frame_sidecar import write_sidecar
+from oco_viz.render.frame_writer import save_frame_8bit, save_frame_16bit
 from oco_viz.render.renderer import VolumeRenderer
 
 if TYPE_CHECKING:
@@ -28,6 +29,8 @@ def render_sequence(
     """Render all timesteps from a Zarr store to PNG frames.
 
     Supports resume: skips frames that already exist.
+    Uses 16-bit or 8-bit PNG output based on ``config.output.bit_depth``.
+    Writes a YAML sidecar file per frame with metadata.
     """
     ds = read_zarr(zarr_path)
     total_timesteps = ds.sizes["time"]
@@ -47,6 +50,9 @@ def render_sequence(
     renderer = VolumeRenderer(config)
     renderer.configure()
 
+    use_16bit = config.output.bit_depth == 16
+    save_frame = save_frame_16bit if use_16bit else save_frame_8bit
+
     output_paths: list[Path] = []
 
     for i in range(n):
@@ -63,9 +69,22 @@ def render_sequence(
         concentration = ds["concentration"].isel(time=i).values.astype(np.float32)
         rgb_pp = renderer.render_frame_postprocessed(concentration, camera_state)
 
-        # Quantize and save
-        img_arr = np.clip(rgb_pp * 255, 0, 255).astype(np.uint8)
-        Image.fromarray(img_arr).save(frame_path)
+        save_frame(rgb_pp, frame_path)
+
+        # Write sidecar YAML with concentration statistics
+        sidecar_path = frame_path.with_suffix(".yaml")
+        write_sidecar(
+            sidecar_path,
+            frame_index=i,
+            timestamp=float(i) / max(n - 1, 1),
+            camera_state=camera_state,
+            concentration_stats={
+                "min": float(concentration.min()),
+                "max": float(concentration.max()),
+                "mean": float(concentration.mean()),
+            },
+        )
+
         logger.info("Rendered frame %d/%d -> %s", i + 1, n, frame_path)
 
     renderer.finalize()

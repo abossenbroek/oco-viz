@@ -9,7 +9,9 @@ import vtk
 from oco_viz.postprocess.pipeline import PostProcessPipeline
 from oco_viz.render.camera import CameraState, apply_camera
 from oco_viz.render.depth import extract_depth, extract_rgb
+from oco_viz.render.ground_plane import create_ground_plane
 from oco_viz.render.lighting import apply_lighting
+from oco_viz.render.sky_gradient import apply_sky_gradient
 from oco_viz.render.transfer import TransferFunction
 from oco_viz.render.volume import create_volume, numpy_to_vtk_image
 from oco_viz.render.window import create_render_window
@@ -44,10 +46,14 @@ class VolumeRenderer:
         self._color_tf, self._opacity_tf = tf.to_vtk()
 
         self._renderer = vtk.vtkRenderer()
-        self._renderer.SetBackground(0.1, 0.1, 0.15)
+        apply_sky_gradient(self._renderer, self._config.sky)
 
         if lighting:
             apply_lighting(self._renderer)
+
+        if self._config.ground_plane.enabled:
+            ground_actor = create_ground_plane(self._config.ground_plane, self._config.grid)
+            self._renderer.AddActor(ground_actor)
 
         self._win = create_render_window(
             width=self._config.output.width,

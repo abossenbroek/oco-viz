@@ -1,6 +1,6 @@
 id: "3-6"
 title: "Sidecar YAML Metadata"
-status: in_progress
+status: done
 wave: 3
 produces:
   - src/oco_viz/render/frame_sidecar.py
