@@ -125,14 +125,24 @@ def test_load_and_grid_granules_has_nan_cells(
 
 @pytest.fixture
 def secunda_domain() -> DomainConfig:
-    """Domain centered on Secunda (default DomainConfig)."""
-    return DomainConfig()
+    """Domain shifted SW so the good-quality OCO-3 soundings land in the grid.
+
+    The 3 good-quality soundings in oco3_secunda_2025-10-26.nc4 are at
+    ~(-80 km, +88 km) relative to Secunda center (-26.52, 29.17).
+    Shifting the origin SW captures them in the positive quadrant.
+    """
+    return DomainConfig(
+        origin_lat=-27.5,
+        origin_lon=28.2,
+        extent_x_km=200.0,
+        extent_y_km=200.0,
+    )
 
 
 @pytest.fixture
 def secunda_grid() -> GridConfig:
-    """Coarse grid covering the Secunda domain."""
-    return GridConfig(nx=100, ny=100, nz=5, dx=1000.0, dy=1000.0, dz=500.0)
+    """Grid covering 200 km with 2 km cells."""
+    return GridConfig(nx=100, ny=100, nz=5, dx=2000.0, dy=2000.0, dz=500.0)
 
 
 @pytest.mark.skipif(
