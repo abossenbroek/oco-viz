@@ -33,7 +33,7 @@ class PostProcessPipeline:
             density=self._config.fog_density,
             fog_color=self._config.fog_color,
         )
-        result = aces_tonemap(result)
+        result = aces_tonemap(result, exposure=self._config.exposure)
         return apply_bloom(
             result,
             threshold=self._config.bloom_threshold,

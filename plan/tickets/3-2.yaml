@@ -1,6 +1,6 @@
 id: "3-2"
 title: "Ground Plane Grid"
-status: in_progress
+status: done
 wave: 3
 produces:
   - src/oco_viz/render/ground_plane.py

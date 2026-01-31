@@ -1,0 +1,13 @@
+id: "3-3"
+title: "Exposure Control on ACES Tonemapper"
+status: in_progress
+wave: 3
+produces: []
+depends: []
+gates: [lint, typecheck, test]
+context:
+  related_files:
+    - src/oco_viz/postprocess/tonemap.py
+    - src/oco_viz/postprocess/pipeline.py
+    - src/oco_viz/config/schema.py
+    - tests/test_postprocess.py
