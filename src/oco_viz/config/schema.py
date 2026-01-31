@@ -28,6 +28,23 @@ class GridConfig(BaseModel):
         return (self.nz, self.ny, self.nx)
 
 
+class SkyConfig(BaseModel):
+    """Sky gradient background configuration."""
+
+    enabled: bool = True
+    top_color: tuple[float, float, float] = (0.01, 0.01, 0.04)
+    bottom_color: tuple[float, float, float] = (0.08, 0.08, 0.12)
+
+
+class GroundPlaneConfig(BaseModel):
+    """Translucent ground plane grid configuration."""
+
+    enabled: bool = True
+    opacity: float = Field(default=0.08, ge=0, le=1)
+    grid_spacing_km: float = Field(default=10.0, gt=0)
+    color: tuple[float, float, float] = (0.3, 0.3, 0.3)
+
+
 class ScatteringConfig(BaseModel):
     """Volume scattering parameters for VTK."""
 
@@ -36,6 +53,9 @@ class ScatteringConfig(BaseModel):
     anisotropy: float = Field(default=0.3, ge=-1, le=1)
     jittering: bool = True
     shade: bool = True
+    ambient: float = Field(default=0.3, ge=0, le=1)
+    diffuse: float = Field(default=0.7, ge=0, le=1)
+    specular: float = Field(default=0.2, ge=0, le=1)
 
 
 class CameraConfig(BaseModel):
@@ -65,6 +85,7 @@ class PostProcessConfig(BaseModel):
     bloom_threshold: float = Field(default=0.8, ge=0, le=1)
     bloom_intensity: float = Field(default=0.3, ge=0)
     bloom_passes: int = Field(default=3, ge=1)
+    exposure: float = Field(default=0.6, gt=0)
 
 
 class OutputConfig(BaseModel):
@@ -76,6 +97,7 @@ class OutputConfig(BaseModel):
     video_dir: str = "output/video"
     vdb_dir: str = "output/vdb"
     fps: int = Field(default=24, gt=0)
+    bit_depth: int = Field(default=16, ge=8, le=16)
 
     @field_validator("width", "height")
     @classmethod
@@ -112,6 +134,8 @@ class AppConfig(BaseModel):
     """Top-level application configuration."""
 
     grid: GridConfig = Field(default_factory=GridConfig)
+    sky: SkyConfig = Field(default_factory=SkyConfig)
+    ground_plane: GroundPlaneConfig = Field(default_factory=GroundPlaneConfig)
     scattering: ScatteringConfig = Field(default_factory=ScatteringConfig)
     camera: CameraConfig = Field(default_factory=CameraConfig)
     transfer_function: TransferFunctionConfig = Field(default_factory=TransferFunctionConfig)

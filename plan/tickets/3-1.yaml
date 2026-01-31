@@ -1,0 +1,13 @@
+id: "3-1"
+title: "Sky Gradient Background"
+status: in_progress
+wave: 3
+produces:
+  - src/oco_viz/render/sky_gradient.py
+  - tests/test_sky_gradient.py
+depends: []
+gates: [lint, typecheck, test]
+context:
+  related_files:
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/config/schema.py
