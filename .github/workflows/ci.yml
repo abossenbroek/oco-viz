@@ -1,0 +1,362 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Foundation ──────────────────────────────────────────────
+  lockfile-check:
+    name: Lockfile Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pixi
+
+  # ── Quality gates (depend on lockfile) ─────────────────────
+  format-check:
+    name: Format Check
+    needs: lockfile-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pixi
+      - name: Check formatting
+        run: pixi run ruff format --check --diff src/ tests/ scripts/ > ruff-format.diff 2>&1 || (cat ruff-format.diff && exit 1)
+      - name: Upload diff
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ruff-format-diff
+          path: ruff-format.diff
+          retention-days: 5
+
+  lint:
+    name: Lint
+    needs: lockfile-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pixi
+      - name: Run ruff
+        run: pixi run ruff check --output-format json src/ tests/ > ruff-report.json 2>&1 || (pixi run ruff check src/ tests/ && exit 1)
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ruff-lint-report
+          path: ruff-report.json
+          retention-days: 5
+
+  import-sort-check:
+    name: Import Sort Check
+    needs: lockfile-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pixi
+      - name: Check import sorting
+        run: pixi run ruff check --select I src/ tests/ scripts/
+
+  mypy:
+    name: mypy
+    needs: lockfile-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pixi
+      - name: Run mypy
+        run: pixi run mypy src/ | tee mypy-report.txt
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: mypy-report
+          path: mypy-report.txt
+          retention-days: 5
+
+  pyright:
+    name: pyright
+    needs: lockfile-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-pixi
+      - name: Run pyright
+        run: pixi run pyright src/ --outputjson | tee pyright-report.json
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: pyright-report
+          path: pyright-report.json
+          retention-days: 5
+
+  test:
+    name: Test
+    needs: lockfile-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: true
+      - uses: ./.github/actions/setup-pixi
+      - name: Run tests with coverage
+        run: >-
+          pixi run pytest tests/ -x
+          --cov=oco_viz
+          --cov-report=xml
+          --cov-report=term-missing
+          --junitxml=pytest-report.xml
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: test-results
+          path: |
+            coverage.xml
+            pytest-report.xml
+          retention-days: 5
+
+  # ── Coverage PR comment ────────────────────────────────────
+  coverage-report:
+    name: Coverage Report
+    needs: test
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - name: Download test results
+        uses: actions/download-artifact@v7
+        with:
+          name: test-results
+      - name: Coverage comment
+        uses: MishaKav/pytest-coverage-comment@v1.2.0
+        with:
+          pytest-xml-coverage-path: coverage.xml
+          junitxml-path: pytest-report.xml
+
+  # ── Analysis jobs (no pixi dependency) ─────────────────────
+  future-annotations-check:
+    name: Future Annotations Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check future annotations
+        run: |
+          failed=0
+          while IFS= read -r -d '' file; do
+            if ! head -20 "$file" | grep -q 'from __future__ import annotations'; then
+              echo "MISSING: $file"
+              failed=1
+            fi
+          done < <(find src/ -name '*.py' -not -name '__init__.py' -print0)
+          # Also check __init__.py files that have content beyond comments/whitespace
+          while IFS= read -r -d '' file; do
+            if [ "$(grep -cve '^\s*#' -e '^\s*$' "$file")" -gt 0 ]; then
+              if ! head -20 "$file" | grep -q 'from __future__ import annotations'; then
+                echo "MISSING: $file"
+                failed=1
+              fi
+            fi
+          done < <(find src/ -name '__init__.py' -print0)
+          exit $failed
+
+  spell-check:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run typos
+        uses: crate-ci/typos@v1
+
+  dead-code-detection:
+    name: Dead Code Detection
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run vulture
+        run: |
+          pip install vulture
+          vulture src/ tests/ scripts/ --min-confidence 80 | tee vulture-report.txt
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: vulture-report
+          path: vulture-report.txt
+          retention-days: 5
+
+  complexity-check:
+    name: Complexity Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run radon
+        run: |
+          pip install radon
+          radon cc src/ --min D --json | tee radon-report.json
+      - name: Check complexity threshold
+        shell: python
+        run: |
+          import json, sys
+          data = json.load(open("radon-report.json"))
+          failures = []
+          for path, blocks in data.items():
+              for b in blocks:
+                  if b["complexity"] > 15:
+                      failures.append(f"{path}:{b['lineno']} {b['name']} CC={b['complexity']}")
+          if failures:
+              print("Functions exceeding CC threshold of 15:")
+              for f in failures:
+                  print(f"  {f}")
+              sys.exit(1)
+          print("All functions within complexity threshold.")
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: complexity-report
+          path: radon-report.json
+          retention-days: 5
+
+  yaml-validation:
+    name: YAML Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install yamllint
+        run: pip install yamllint
+      - name: Run yamllint
+        run: yamllint -c .yamllint.yml configs/ plan/ .github/ | tee yamllint-report.txt
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: yamllint-report
+          path: yamllint-report.txt
+          retention-days: 5
+
+  dockerfile-lint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: Dockerfile
+          format: json
+          output-file: hadolint-report.json
+          failure-threshold: warning
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: hadolint-report
+          path: hadolint-report.json
+          retention-days: 5
+
+  file-size-check:
+    name: File Size Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Check file sizes
+        run: |
+          large_files=$(find . -not -path './.git/*' -not -path './.pixi/*' -not -path './pixi.lock' -not -path './tests/fixtures/*' -type f -size +1M)
+          if [ -n "$large_files" ]; then
+            echo "Files exceeding 1MB limit:"
+            echo "$large_files" | while read -r f; do
+              echo "  $f ($(du -h "$f" | cut -f1))"
+            done
+            exit 1
+          fi
+          echo "All files within size limit."
+
+  py-typed-marker:
+    name: py.typed Marker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check py.typed exists
+        run: test -f src/oco_viz/py.typed
+
+  # ── Gate keeper ────────────────────────────────────────────
+  gate-keeper:
+    name: All Checks Pass
+    if: always()
+    needs:
+      - lockfile-check
+      - format-check
+      - lint
+      - import-sort-check
+      - mypy
+      - pyright
+      - test
+      - coverage-report
+      - future-annotations-check
+      - spell-check
+      - dead-code-detection
+      - complexity-check
+      - yaml-validation
+      - dockerfile-lint
+      - file-size-check
+      - py-typed-marker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check all jobs
+        run: |
+          echo "Job results:"
+          echo "  lockfile-check: ${{ needs.lockfile-check.result }}"
+          echo "  format-check: ${{ needs.format-check.result }}"
+          echo "  lint: ${{ needs.lint.result }}"
+          echo "  import-sort-check: ${{ needs.import-sort-check.result }}"
+          echo "  mypy: ${{ needs.mypy.result }}"
+          echo "  pyright: ${{ needs.pyright.result }}"
+          echo "  test: ${{ needs.test.result }}"
+          echo "  coverage-report: ${{ needs.coverage-report.result }}"
+          echo "  future-annotations-check: ${{ needs.future-annotations-check.result }}"
+          echo "  spell-check: ${{ needs.spell-check.result }}"
+          echo "  dead-code-detection: ${{ needs.dead-code-detection.result }}"
+          echo "  complexity-check: ${{ needs.complexity-check.result }}"
+          echo "  yaml-validation: ${{ needs.yaml-validation.result }}"
+          echo "  dockerfile-lint: ${{ needs.dockerfile-lint.result }}"
+          echo "  file-size-check: ${{ needs.file-size-check.result }}"
+          echo "  py-typed-marker: ${{ needs.py-typed-marker.result }}"
+
+          # coverage-report is allowed to skip (only runs on PRs)
+          results=( \
+            "${{ needs.lockfile-check.result }}" \
+            "${{ needs.format-check.result }}" \
+            "${{ needs.lint.result }}" \
+            "${{ needs.import-sort-check.result }}" \
+            "${{ needs.mypy.result }}" \
+            "${{ needs.pyright.result }}" \
+            "${{ needs.test.result }}" \
+            "${{ needs.future-annotations-check.result }}" \
+            "${{ needs.spell-check.result }}" \
+            "${{ needs.dead-code-detection.result }}" \
+            "${{ needs.complexity-check.result }}" \
+            "${{ needs.yaml-validation.result }}" \
+            "${{ needs.dockerfile-lint.result }}" \
+            "${{ needs.file-size-check.result }}" \
+            "${{ needs.py-typed-marker.result }}" \
+          )
+          for r in "${results[@]}"; do
+            if [[ "$r" == "failure" || "$r" == "cancelled" ]]; then
+              echo "One or more required jobs did not succeed."
+              exit 1
+            fi
+          done
+          echo "All required checks passed."

@@ -1,0 +1,22 @@
+[default]
+extend-ignore-re = ["(?i)oco"]
+
+[default.extend-words]
+hysplit = "hysplit"
+vtk = "vtk"
+zarr = "zarr"
+xarray = "xarray"
+openvdb = "openvdb"
+cdsapi = "cdsapi"
+tonemap = "tonemap"
+pasquill = "pasquill"
+gifford = "gifford"
+azimuth = "azimuth"
+arange = "arange"
+precessing = "precessing"
+
+[default.extend-identifiers]
+GES_DISC = "GES_DISC"
+
+[files]
+extend-exclude = ["pixi.lock", ".pixi/"]
