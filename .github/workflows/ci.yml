@@ -110,6 +110,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          lfs: true
       - uses: ./.github/actions/setup-pixi
       - name: Run tests with coverage
         run: >-
@@ -279,7 +281,7 @@ jobs:
       - name: Check file sizes
         run: |
           large_files=$(find . -not -path './.git/*' \
-            -not -path './.pixi/*' -not -path './pixi.lock' \
+            -not -path './.pixi/*' -not -name 'pixi.lock' \
             -not -path './tests/fixtures/*' -type f -size +1M)
           if [ -n "$large_files" ]; then
             echo "Files exceeding 1MB limit:"

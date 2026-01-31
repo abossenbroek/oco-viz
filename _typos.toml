@@ -13,6 +13,7 @@ pasquill = "pasquill"
 gifford = "gifford"
 azimuth = "azimuth"
 arange = "arange"
+precessing = "precessing"
 
 [default.extend-identifiers]
 GES_DISC = "GES_DISC"

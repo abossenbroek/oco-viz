@@ -1,0 +1,2 @@
+tests/fixtures/*.nc filter=lfs diff=lfs merge=lfs -text
+tests/fixtures/*.nc4 filter=lfs diff=lfs merge=lfs -text

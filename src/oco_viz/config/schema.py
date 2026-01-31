@@ -130,6 +130,46 @@ class PlumeConfig(BaseModel):
         return v.upper()
 
 
+class DomainConfig(BaseModel):
+    """Geographic domain centered on a facility."""
+
+    origin_lat: float = Field(default=-26.52, description="Facility latitude")
+    origin_lon: float = Field(default=29.17, description="Facility longitude")
+    extent_x_km: float = Field(default=100.0, gt=0, description="East-west extent in km")
+    extent_y_km: float = Field(default=100.0, gt=0, description="North-south extent in km")
+    extent_z_km: float = Field(default=15.0, gt=0, description="Vertical extent in km")
+
+
+class ERA5Config(BaseModel):
+    """ERA5 reanalysis data configuration."""
+
+    pressure_levels: list[int] = Field(
+        default=[1000, 975, 950, 925, 900, 850, 800, 700, 600, 500],
+    )
+    variables: list[str] = Field(
+        default=["u_component_of_wind", "v_component_of_wind"],
+    )
+    cache_dir: str = "data/era5"
+
+
+class OCO3Config(BaseModel):
+    """OCO-3 L2 Lite observation configuration."""
+
+    collection_id: str = "C2237486636-GES_DISC"
+    cache_dir: str = "data/oco3"
+    quality_threshold: int = Field(default=0, ge=0, description="Max quality flag to accept")
+
+
+class DataSourceConfig(BaseModel):
+    """Data ingestion configuration."""
+
+    start_date: str = "2024-01-15"
+    end_date: str = "2024-01-15"
+    domain: DomainConfig = Field(default_factory=DomainConfig)
+    era5: ERA5Config = Field(default_factory=ERA5Config)
+    oco3: OCO3Config = Field(default_factory=OCO3Config)
+
+
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
@@ -142,6 +182,7 @@ class AppConfig(BaseModel):
     postprocess: PostProcessConfig = Field(default_factory=PostProcessConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
     plume: PlumeConfig = Field(default_factory=PlumeConfig)
+    data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
 
 
 def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:

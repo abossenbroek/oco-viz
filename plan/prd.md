@@ -103,6 +103,7 @@ An artistic visualization showing CO2 plume behavior in 3D over time would commu
 | Dependency | Source | Risk | Mitigation |
 |------------|--------|------|------------|
 | OCO-3 L2 Lite | NASA Earthdata | Low — public, stable API | Cache downloaded files |
+| OCO-2 L2 Lite | NASA Earthdata | Low — public, stable API | Cache downloaded files; same format as OCO-3 |
 | ERA5 winds | Copernicus CDS | Medium — rate limits, queue times | Pre-download full period; allow 48hr |
 | HYSPLIT model | NOAA ARL | Medium — setup complexity | Synthetic plume as fallback |
 
@@ -124,7 +125,7 @@ An artistic visualization showing CO2 plume behavior in 3D over time would commu
 | ID | Risk | Likelihood | Impact | Mitigation |
 |----|------|------------|--------|------------|
 | R1 | HYSPLIT setup takes >1 week | Medium | High | Synthetic plume generator works standalone; can ship POC without real transport |
-| R2 | OCO-3 coverage over Secunda sparse in chosen period | Medium | Medium | Pre-check coverage before committing to date range; extend window if needed |
+| R2 | OCO-3 coverage over Secunda sparse in chosen period | Medium | Medium | Pre-check coverage before committing to date range; extend window if needed; fuse OCO-2 (sun-synchronous, predictable repeats) with OCO-3 (ISS precessing) for improved coverage |
 | R3 | VTK scattering quality insufficient | Low | Medium | Post-processing pipeline (haze, bloom, tonemapping) as quality floor |
 | R4 | pyopenvdb installation issues on Linux | Medium | Low | VDB export is P1, not P0; can defer |
 | R5 | ERA5 download queue exceeds 48hr | Low | Medium | Submit request on day 1; synthetic wind as interim |
@@ -161,7 +162,7 @@ An artistic visualization showing CO2 plume behavior in 3D over time would commu
 
 | ID | Question | Owner | Status |
 |----|----------|-------|--------|
-| OQ1 | What specific 30-90 day period has best OCO-3 coverage over Secunda? | Data | Open |
+| OQ1 | What specific 30-90 day period has best OCO-2/OCO-3 coverage over Secunda? | Data | Open — multi-satellite search across OCO-2 + OCO-3 addresses sparse coverage |
 | OQ2 | Is HYSPLIT or CAMS reanalysis faster path to 3D concentrations? | Eng | Open |
 | OQ3 | Should we use VAPOR for exploration before committing to VTK render pipeline? | Eng | Open |
 | OQ4 | What frame rate / time compression ratio produces best artistic result? | Art | Open |

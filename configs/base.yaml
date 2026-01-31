@@ -63,3 +63,21 @@ plume:
   wind_direction: 270.0
   mixing_height: 1500.0
   stack_height: 200.0
+
+data_source:
+  start_date: "2024-01-15"
+  end_date: "2024-01-15"
+  domain:
+    origin_lat: -26.52
+    origin_lon: 29.17
+    extent_x_km: 100.0
+    extent_y_km: 100.0
+    extent_z_km: 15.0
+  era5:
+    pressure_levels: [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500]
+    variables: [u_component_of_wind, v_component_of_wind]
+    cache_dir: data/era5
+  oco3:
+    collection_id: C2237486636-GES_DISC
+    cache_dir: data/oco3
+    quality_threshold: 0
