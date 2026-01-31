@@ -1,0 +1,49 @@
+grid:
+  nx: 100
+  ny: 100
+  nz: 60
+  dx: 1000.0
+  dy: 1000.0
+  dz: 500.0
+
+scattering:
+  global_illumination_reach: 0.5
+  volumetric_scattering_blending: 0.5
+  anisotropy: 0.3
+  jittering: true
+  shade: true
+
+camera:
+  rig: orbit
+  azimuth_start: 0.0
+  azimuth_end: 360.0
+  elevation: 30.0
+  distance: 300.0
+  focal_point: [50.0, 50.0, 30.0]
+
+postprocess:
+  fog_density: 0.02
+  fog_color: [0.7, 0.75, 0.85]
+  tonemap: aces
+  bloom_threshold: 0.8
+  bloom_intensity: 0.3
+  bloom_passes: 3
+
+output:
+  width: 1920
+  height: 1080
+  frames_dir: output/frames
+  video_dir: output/video
+  vdb_dir: output/vdb
+  fps: 24
+
+plume:
+  source_x: 50.0
+  source_y: 10.0
+  source_z: 5.0
+  emission_rate: 1000.0
+  stability_class: D
+  wind_speed: 5.0
+  wind_direction: 270.0
+  mixing_height: 1500.0
+  stack_height: 200.0

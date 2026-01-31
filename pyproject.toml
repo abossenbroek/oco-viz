@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oco-viz"
+version = "0.1.0"
+description = "3D volumetric CO2 plume visualization for OCO-3 data"
+requires-python = ">=3.11"
+dependencies = []
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oco_viz"]
+
+[tool.ruff]
+src = ["src", "tests"]
+line-length = 99
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",        # pydocstyle — skip docstring enforcement
+    "COM812",   # trailing comma (conflicts with formatter)
+    "ISC001",   # implicit string concat (conflicts with formatter)
+    "T20",      # flake8-print — allow print in scripts
+    "FIX002",   # line contains TODO
+    "TD",       # flake8-todos
+    "S101",     # assert used — needed in tests
+    "PLR0913",  # too many arguments
+    "PLR2004",  # magic value comparison
+    "ERA001",   # commented-out code
+    "FBT003",   # boolean positional arg — VTK API convention
+    "TRY300",   # try-consider-else — not useful for probing patterns
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["ANN", "S101", "PLR2004", "S607"]
+"scripts/**/*.py" = ["ANN", "INP001"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+mypy_path = "src"
+packages = ["oco_viz"]
+
+[[tool.mypy.overrides]]
+module = ["vtk", "vtk.*", "vtkmodules.*", "scipy.*", "xarray", "zarr", "openvdb", "cdsapi"]
+ignore_missing_imports = true
+
+
+[tool.pyright]
+pythonVersion = "3.11"
+typeCheckingMode = "strict"
+pythonPlatform = "All"
+venvPath = "."
+venv = ".pixi/envs/default"
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownParameterType = false
+reportAttributeAccessIssue = false
+reportReturnType = false
+reportUnknownArgumentType = false
+reportMissingImports = "warning"
+reportUnknownLambdaType = false
+reportOptionalMemberAccess = false
+reportUnnecessaryContains = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers"]
+markers = ["skipci: skip on CI (VTK rendering)"]
