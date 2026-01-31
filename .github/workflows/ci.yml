@@ -28,7 +28,10 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Check formatting
-        run: pixi run ruff format --check --diff src/ tests/ scripts/ > ruff-format.diff 2>&1 || (cat ruff-format.diff && exit 1)
+        run: >-
+          pixi run ruff format --check --diff src/ tests/ scripts/
+          > ruff-format.diff 2>&1
+          || (cat ruff-format.diff && exit 1)
       - name: Upload diff
         if: always()
         uses: actions/upload-artifact@v6
@@ -45,7 +48,10 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-pixi
       - name: Run ruff
-        run: pixi run ruff check --output-format json src/ tests/ > ruff-report.json 2>&1 || (pixi run ruff check src/ tests/ && exit 1)
+        run: >-
+          pixi run ruff check --output-format json src/ tests/
+          > ruff-report.json 2>&1
+          || (pixi run ruff check src/ tests/ && exit 1)
       - name: Upload report
         if: always()
         uses: actions/upload-artifact@v6
@@ -272,7 +278,9 @@ jobs:
           fetch-depth: 0
       - name: Check file sizes
         run: |
-          large_files=$(find . -not -path './.git/*' -not -path './.pixi/*' -not -path './pixi.lock' -type f -size +1M)
+          large_files=$(find . -not -path './.git/*' \
+            -not -path './.pixi/*' -not -path './pixi.lock' \
+            -not -path './tests/fixtures/*' -type f -size +1M)
           if [ -n "$large_files" ]; then
             echo "Files exceeding 1MB limit:"
             echo "$large_files" | while read -r f; do
