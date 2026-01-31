@@ -29,12 +29,8 @@ def create_era5_fixture(dest: Path) -> None:
     rng = np.random.default_rng(42)
 
     # Wind components: u ~ 3-8 m/s, v ~ -3 to 3 m/s (typical boundary layer)
-    u_data = rng.uniform(3.0, 8.0, (n_times, n_levels, len(lats), len(lons))).astype(
-        np.float32
-    )
-    v_data = rng.uniform(-3.0, 3.0, (n_times, n_levels, len(lats), len(lons))).astype(
-        np.float32
-    )
+    u_data = rng.uniform(3.0, 8.0, (n_times, n_levels, len(lats), len(lons))).astype(np.float32)
+    v_data = rng.uniform(-3.0, 3.0, (n_times, n_levels, len(lats), len(lons))).astype(np.float32)
 
     ds = xr.Dataset(
         {

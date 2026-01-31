@@ -176,9 +176,7 @@ def load_era5_winds(
     v_out = np.zeros((n_times, grid.nz, grid.ny, grid.nx), dtype=np.float32)
 
     # Target meshgrid for interpolation
-    tgt_pts = np.stack(
-        np.meshgrid(tgt_z, tgt_y, tgt_x, indexing="ij"), axis=-1
-    ).reshape(-1, 3)
+    tgt_pts = np.stack(np.meshgrid(tgt_z, tgt_y, tgt_x, indexing="ij"), axis=-1).reshape(-1, 3)
 
     for t in range(n_times):
         for var_name, out_arr in [("u", u_out), ("v", v_out)]:

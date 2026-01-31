@@ -64,9 +64,7 @@ def test_load_config_has_datasource_section():
 
 
 def test_datasource_overrides():
-    cfg = load_config(
-        overrides={"data_source": {"domain": {"extent_x_km": 200.0}}}
-    )
+    cfg = load_config(overrides={"data_source": {"domain": {"extent_x_km": 200.0}}})
     assert cfg.data_source.domain.extent_x_km == pytest.approx(200.0)
     # Other defaults preserved
     assert cfg.data_source.domain.origin_lat == pytest.approx(-26.52)

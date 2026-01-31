@@ -79,9 +79,7 @@ def test_load_and_grid_granules_shape(domain: DomainConfig, grid: GridConfig) ->
     assert ds["xco2_observed"].shape == (grid.ny, grid.nx)
 
 
-def test_load_and_grid_granules_secunda_all_nan(
-    domain: DomainConfig, grid: GridConfig
-) -> None:
+def test_load_and_grid_granules_secunda_all_nan(domain: DomainConfig, grid: GridConfig) -> None:
     """Secunda grid produces all-NaN because no soundings exist near Secunda."""
     ds = load_and_grid_granules([_OCO3_PATH], domain, grid)
     xco2 = ds["xco2_observed"].values

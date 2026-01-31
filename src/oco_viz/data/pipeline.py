@@ -118,9 +118,7 @@ def run_data_pipeline(
         ds = generate_sequence(config.plume, config.grid, num_timesteps)
 
     if oco3_paths:
-        ds = attach_oco3_overlay(
-            ds, oco3_paths, config.data_source.domain, config.grid
-        )
+        ds = attach_oco3_overlay(ds, oco3_paths, config.data_source.domain, config.grid)
 
     if output_zarr is not None:
         _write_pipeline_zarr(ds, output_zarr)

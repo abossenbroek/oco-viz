@@ -63,10 +63,12 @@ def test_find_nearest_passes_returns_sorted_by_distance() -> None:
     oco3_data = _mock_cmr_response(2, title_prefix="oco3_LtCO2", base_date="2025-03-14")
     oco2_data = _mock_cmr_response(1, title_prefix="oco2_LtCO2", base_date="2025-03-16")
 
-    side_effect = _urlopen_side_effect({
-        "C2910086168-GES_DISC": oco3_data,  # oco3
-        "C2912085112-GES_DISC": oco2_data,  # oco2
-    })
+    side_effect = _urlopen_side_effect(
+        {
+            "C2910086168-GES_DISC": oco3_data,  # oco3
+            "C2912085112-GES_DISC": oco2_data,  # oco2
+        }
+    )
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
         passes = find_nearest_passes(-26.52, 29.17, "2025-03-15")
@@ -81,14 +83,14 @@ def test_find_nearest_passes_single_satellite() -> None:
     """Can restrict to a single satellite."""
     oco2_data = _mock_cmr_response(2, title_prefix="oco2_LtCO2", base_date="2025-03-10")
 
-    side_effect = _urlopen_side_effect({
-        "C2912085112-GES_DISC": oco2_data,
-    })
+    side_effect = _urlopen_side_effect(
+        {
+            "C2912085112-GES_DISC": oco2_data,
+        }
+    )
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
-        passes = find_nearest_passes(
-            -26.52, 29.17, "2025-03-15", satellites=("oco2",)
-        )
+        passes = find_nearest_passes(-26.52, 29.17, "2025-03-15", satellites=("oco2",))
 
     assert len(passes) == 2
     assert all(p["satellite"] == "oco2" for p in passes)
@@ -97,10 +99,12 @@ def test_find_nearest_passes_single_satellite() -> None:
 def test_find_nearest_passes_no_results() -> None:
     """Empty CMR feed returns empty list."""
     empty = json.dumps({"feed": {"entry": []}}).encode()
-    side_effect = _urlopen_side_effect({
-        "C2910086168-GES_DISC": empty,
-        "C2912085112-GES_DISC": empty,
-    })
+    side_effect = _urlopen_side_effect(
+        {
+            "C2910086168-GES_DISC": empty,
+            "C2912085112-GES_DISC": empty,
+        }
+    )
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
         passes = find_nearest_passes(-26.52, 29.17, "2025-03-15")
@@ -123,10 +127,12 @@ def test_search_multi_satellite_merges_results() -> None:
     oco3_data = _mock_cmr_response(1, title_prefix="oco3_LtCO2", base_date="2025-03-14")
     oco2_data = _mock_cmr_response(1, title_prefix="oco2_LtCO2", base_date="2025-03-16")
 
-    side_effect = _urlopen_side_effect({
-        "C2910086168-GES_DISC": oco3_data,
-        "C2912085112-GES_DISC": oco2_data,
-    })
+    side_effect = _urlopen_side_effect(
+        {
+            "C2910086168-GES_DISC": oco3_data,
+            "C2912085112-GES_DISC": oco2_data,
+        }
+    )
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
         entries = search_multi_satellite("2025-03-01", "2025-03-31")

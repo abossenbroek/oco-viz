@@ -203,7 +203,8 @@ def search_and_download(
     bbox = (float(lon_w), float(lat_s), float(lon_e), float(lat_n))
 
     entries = search_granules(
-        start_date, end_date,
+        start_date,
+        end_date,
         bbox=bbox,
         collection_id=collection_id,
     )
@@ -269,13 +270,15 @@ def find_nearest_passes(
             except (ValueError, IndexError):
                 continue
             days_from_target = (entry_date - target).days
-            passes.append({
-                "satellite": sat,
-                "date": entry_date.isoformat(),
-                "days_from_target": days_from_target,
-                "title": entry.get("title", ""),
-                "id": entry.get("id", ""),
-            })
+            passes.append(
+                {
+                    "satellite": sat,
+                    "date": entry_date.isoformat(),
+                    "days_from_target": days_from_target,
+                    "title": entry.get("title", ""),
+                    "id": entry.get("id", ""),
+                }
+            )
 
     passes.sort(key=lambda p: abs(p["days_from_target"]))
     return passes
