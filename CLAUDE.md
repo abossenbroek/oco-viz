@@ -16,7 +16,7 @@ configs/        # YAML config files (base + platform overrides)
 scripts/        # Standalone scripts (render_synthetic, tune_transfer, validate_backend)
 tests/          # pytest test suite
 plan/tickets/   # YAML ticket specs for wave-based development
-wave-runner/    # Claude Code plugin for wave orchestration
+.claude/plugins/wave-runner/  # Claude Code plugin for wave orchestration
 ```
 
 ## 2. Build & Run
@@ -52,7 +52,7 @@ Four gates run **in parallel** via `pixi run check`:
 | pyright | `pixi run pyright src/` | strict |
 | pytest | `pixi run pytest tests/ -x` | fail-fast |
 
-**Failure classification** (see `wave-runner/skills/gate-conventions/SKILL.md` for full tables):
+**Failure classification** (see `.claude/plugins/wave-runner/skills/gate-conventions/SKILL.md` for full tables):
 
 | Category | Action | Example |
 |----------|--------|---------|
