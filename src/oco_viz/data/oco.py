@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 # Satellite collection concept IDs on NASA CMR
 SATELLITE_COLLECTION_IDS: dict[str, str] = {
-    "oco2": "C2723754864-GES_DISC",
+    "oco2": "C2912085112-GES_DISC",
     "oco3": "C2910086168-GES_DISC",
 }
 

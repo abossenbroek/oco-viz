@@ -65,7 +65,7 @@ def test_find_nearest_passes_returns_sorted_by_distance() -> None:
 
     side_effect = _urlopen_side_effect({
         "C2910086168-GES_DISC": oco3_data,  # oco3
-        "C2723754864-GES_DISC": oco2_data,  # oco2
+        "C2912085112-GES_DISC": oco2_data,  # oco2
     })
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
@@ -82,7 +82,7 @@ def test_find_nearest_passes_single_satellite() -> None:
     oco2_data = _mock_cmr_response(2, title_prefix="oco2_LtCO2", base_date="2025-03-10")
 
     side_effect = _urlopen_side_effect({
-        "C2723754864-GES_DISC": oco2_data,
+        "C2912085112-GES_DISC": oco2_data,
     })
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
@@ -99,7 +99,7 @@ def test_find_nearest_passes_no_results() -> None:
     empty = json.dumps({"feed": {"entry": []}}).encode()
     side_effect = _urlopen_side_effect({
         "C2910086168-GES_DISC": empty,
-        "C2723754864-GES_DISC": empty,
+        "C2912085112-GES_DISC": empty,
     })
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
@@ -125,7 +125,7 @@ def test_search_multi_satellite_merges_results() -> None:
 
     side_effect = _urlopen_side_effect({
         "C2910086168-GES_DISC": oco3_data,
-        "C2723754864-GES_DISC": oco2_data,
+        "C2912085112-GES_DISC": oco2_data,
     })
 
     with patch("urllib.request.urlopen", side_effect=side_effect):
