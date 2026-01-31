@@ -1,0 +1,12 @@
+id: "3-6"
+title: "Sidecar YAML Metadata"
+status: in_progress
+wave: 3
+produces:
+  - src/oco_viz/render/frame_sidecar.py
+  - tests/test_frame_sidecar.py
+depends: []
+gates: [lint, typecheck, test]
+context:
+  related_files:
+    - src/oco_viz/sequencer/controller.py

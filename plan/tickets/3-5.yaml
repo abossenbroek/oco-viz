@@ -1,6 +1,6 @@
 id: "3-5"
 title: "16-bit PNG Output"
-status: in_progress
+status: done
 wave: 3
 produces:
   - src/oco_viz/render/frame_writer.py
