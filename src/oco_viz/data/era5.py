@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
     from numpy.typing import NDArray
 
+    from oco_viz.config.schema import DomainConfig, ERA5Config, GridConfig
+
 
 # Secunda approximate location
 _SECUNDA_LAT = -26.5
@@ -93,3 +95,112 @@ def wind_components_from_direction(
     u = -speed * math.sin(rad)
     v = -speed * math.cos(rad)
     return u, v
+
+
+def build_era5_request_for_domain(
+    domain: DomainConfig,
+    era5_cfg: ERA5Config,
+    date: str,
+) -> dict[str, Any]:
+    """Derive CDS API request from DomainConfig and ERA5Config."""
+    from oco_viz.data.transform import local_km_to_latlon
+
+    # Compute bounding box from domain extents
+    half_x = domain.extent_x_km / 2.0
+    half_y = domain.extent_y_km / 2.0
+    lat_s, lon_w = local_km_to_latlon(
+        -half_x, -half_y, origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+    )
+    lat_n, lon_e = local_km_to_latlon(
+        half_x, half_y, origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+    )
+    # CDS area format: [N, W, S, E]
+    return build_cds_request(
+        date,
+        lat=domain.origin_lat,
+        lon=domain.origin_lon,
+        pressure_levels=era5_cfg.pressure_levels,
+    ) | {"area": [float(lat_n), float(lon_w), float(lat_s), float(lon_e)]}
+
+
+def load_era5_winds(
+    path: Path,
+    domain: DomainConfig,
+    grid: GridConfig,
+) -> xr.Dataset:
+    """Load ERA5 NetCDF winds and regrid to local Cartesian grid.
+
+    Returns xr.Dataset with {u_wind, v_wind} on dims (time, z, y, x), float32.
+    """
+    from scipy.interpolate import RegularGridInterpolator
+
+    from oco_viz.data.transform import latlon_to_local_km, pressure_to_altitude_m
+
+    ds: xr.Dataset = xr.open_dataset(str(path))
+
+    # Source coordinates
+    src_lats = ds["latitude"].values
+    src_lons = ds["longitude"].values
+    src_pressure = ds["pressure_level"].values
+    n_times = ds.sizes["time"]
+
+    # Convert source coords to local km / altitude m
+    src_x_km, _ = latlon_to_local_km(
+        src_lats[0], src_lons, origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+    )
+    _, src_y_km = latlon_to_local_km(
+        src_lats, src_lons[0], origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+    )
+    src_x_m = np.asarray(src_x_km, dtype=np.float64) * 1000.0
+    src_y_m = np.asarray(src_y_km, dtype=np.float64) * 1000.0
+    src_z_m = np.asarray(pressure_to_altitude_m(src_pressure), dtype=np.float64)
+
+    # Target grid coordinates in meters
+    tgt_x = np.arange(grid.nx, dtype=np.float64) * grid.dx
+    tgt_y = np.arange(grid.ny, dtype=np.float64) * grid.dy
+    tgt_z = np.arange(grid.nz, dtype=np.float64) * grid.dz
+
+    # Sort source axes (RegularGridInterpolator needs ascending)
+    z_order = np.argsort(src_z_m)
+    y_order = np.argsort(src_y_m)
+    x_order = np.argsort(src_x_m)
+    src_z_sorted = src_z_m[z_order]
+    src_y_sorted = src_y_m[y_order]
+    src_x_sorted = src_x_m[x_order]
+
+    # Build output arrays
+    u_out = np.zeros((n_times, grid.nz, grid.ny, grid.nx), dtype=np.float32)
+    v_out = np.zeros((n_times, grid.nz, grid.ny, grid.nx), dtype=np.float32)
+
+    # Target meshgrid for interpolation
+    tgt_pts = np.stack(
+        np.meshgrid(tgt_z, tgt_y, tgt_x, indexing="ij"), axis=-1
+    ).reshape(-1, 3)
+
+    for t in range(n_times):
+        for var_name, out_arr in [("u", u_out), ("v", v_out)]:
+            data_3d = ds[var_name].isel(time=t).values  # (pressure, lat, lon)
+            # Reorder to sorted axes
+            data_sorted = data_3d[np.ix_(z_order, y_order, x_order)]
+
+            interp = RegularGridInterpolator(
+                (src_z_sorted, src_y_sorted, src_x_sorted),
+                data_sorted,
+                method="linear",
+                bounds_error=False,
+                fill_value=np.nan,
+            )
+            out_arr[t] = interp(tgt_pts).reshape(grid.nz, grid.ny, grid.nx).astype(np.float32)
+
+    return xr.Dataset(
+        {
+            "u_wind": (["time", "z", "y", "x"], u_out),
+            "v_wind": (["time", "z", "y", "x"], v_out),
+        },
+        coords={
+            "time": np.arange(n_times),
+            "z": tgt_z,
+            "y": tgt_y,
+            "x": tgt_x,
+        },
+    )

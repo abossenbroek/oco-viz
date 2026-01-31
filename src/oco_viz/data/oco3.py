@@ -8,11 +8,14 @@ import urllib.request
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
+import xarray as xr
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from numpy.typing import NDArray
+
+    from oco_viz.config.schema import DomainConfig, GridConfig, OCO3Config
 
 # Sasol Secunda complex bounding box (lon_min, lat_min, lon_max, lat_max)
 _SECUNDA_BBOX = (28.8, -26.7, 29.5, -26.2)
@@ -90,3 +93,115 @@ def filter_quality(
     """Return XCO2 values that pass quality filtering (flag == 0)."""
     mask = quality_flag == 0
     return np.asarray(xco2[mask], dtype=np.float64)
+
+
+def load_granule(
+    path: Path,
+    *,
+    quality_threshold: int | None = 0,
+) -> xr.Dataset:
+    """Load an OCO-3 L2 Lite NetCDF4 file and optionally apply quality filtering.
+
+    Returns xr.Dataset with dims (sounding_id,) containing xco2, latitude, longitude.
+    If *quality_threshold* is None, no filtering is applied.
+    """
+    ds: xr.Dataset = xr.open_dataset(str(path))
+
+    if quality_threshold is not None and "xco2_quality_flag" in ds:
+        mask = ds["xco2_quality_flag"] <= quality_threshold
+        ds = ds.where(mask, drop=True)
+
+    return ds
+
+
+def load_and_grid_granules(
+    paths: list[Path],
+    domain: DomainConfig,
+    grid: GridConfig,
+) -> xr.Dataset:
+    """Load, concatenate, and grid OCO-3 granules onto a 2D Cartesian grid.
+
+    Returns xr.Dataset with {xco2_observed} on dims (y, x), float32.
+    Empty cells are NaN.
+    """
+    from oco_viz.data.transform import latlon_to_local_km, regrid_to_cartesian
+
+    # Load and concatenate all granules
+    datasets = [load_granule(p) for p in paths]
+    combined = xr.concat(datasets, dim="sounding_id")
+
+    # Filter to domain bounding box
+    lats = combined["latitude"].values
+    lons = combined["longitude"].values
+    xco2 = combined["xco2"].values
+
+    # Convert to local km
+    x_km, y_km = latlon_to_local_km(
+        lats, lons, origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+    )
+    x_m = np.asarray(x_km, dtype=np.float64) * 1000.0
+    y_m = np.asarray(y_km, dtype=np.float64) * 1000.0
+
+    # Filter to grid extent
+    x_max = grid.nx * grid.dx
+    y_max = grid.ny * grid.dy
+    in_domain = (x_m >= 0) & (x_m < x_max) & (y_m >= 0) & (y_m < y_max)
+
+    gridded = regrid_to_cartesian(
+        xco2[in_domain].astype(np.float32),
+        x_m[in_domain],
+        y_m[in_domain],
+        grid,
+    )
+
+    tgt_y = np.arange(grid.ny, dtype=np.float64) * grid.dy
+    tgt_x = np.arange(grid.nx, dtype=np.float64) * grid.dx
+
+    return xr.Dataset(
+        {"xco2_observed": (["y", "x"], gridded)},
+        coords={"y": tgt_y, "x": tgt_x},
+    )
+
+
+def search_and_download(
+    domain: DomainConfig,
+    oco3_cfg: OCO3Config,
+    start_date: str,
+    end_date: str,
+    dest_dir: Path,
+    *,
+    token: str | None = None,
+) -> list[Path]:
+    """Search for OCO-3 granules and download them to dest_dir.
+
+    Returns list of downloaded file paths.
+    """
+    from pathlib import Path as PathCls
+
+    from oco_viz.data.transform import local_km_to_latlon
+
+    half_x = domain.extent_x_km / 2.0
+    half_y = domain.extent_y_km / 2.0
+    lat_s, lon_w = local_km_to_latlon(
+        -half_x, -half_y, origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+    )
+    lat_n, lon_e = local_km_to_latlon(
+        half_x, half_y, origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+    )
+    bbox = (float(lon_w), float(lat_s), float(lon_e), float(lat_n))
+
+    entries = search_granules(
+        start_date, end_date,
+        bbox=bbox,
+        collection_id=oco3_cfg.collection_id,
+    )
+    urls = granule_download_urls(entries)
+
+    downloaded: list[Path] = []
+    for url in urls:
+        filename = url.rsplit("/", 1)[-1]
+        dest = PathCls(dest_dir) / filename
+        download_granule(url, dest, token=token)
+        downloaded.append(dest)
+
+    return downloaded
