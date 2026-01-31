@@ -76,6 +76,9 @@ def extract_wind_profile(
     Speed is in m/s, direction is meteorological degrees (from which wind blows).
     """
     ds: xr.Dataset = xr.open_dataset(str(path))
+    # Normalize time dimension name (CDS API returns 'valid_time' in newer versions)
+    if "valid_time" in ds.dims and "time" not in ds.dims:
+        ds = ds.rename({"valid_time": "time"})
     # Average over spatial and pressure dimensions
     u = ds["u"].mean(dim=["latitude", "longitude", "pressure_level"]).values
     v = ds["v"].mean(dim=["latitude", "longitude", "pressure_level"]).values
@@ -134,6 +137,9 @@ def load_era5_winds(
     Returns xr.Dataset with {u_wind, v_wind} on dims (time, z, y, x), float32.
     """
     ds: xr.Dataset = xr.open_dataset(str(path))
+    # Normalize time dimension name (CDS API returns 'valid_time' in newer versions)
+    if "valid_time" in ds.dims and "time" not in ds.dims:
+        ds = ds.rename({"valid_time": "time"})
 
     # Source coordinates
     src_lats = ds["latitude"].values

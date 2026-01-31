@@ -44,7 +44,7 @@ def download_oco3_fixture(dest: Path) -> None:
         sys.exit(1)
 
     print("Searching for OCO-3 granules over Secunda...")
-    entries = search_granules("2024-01-01", "2024-03-31")
+    entries = search_granules("2025-10-01", "2025-12-31")
     if not entries:
         print("ERROR: No granules found")
         sys.exit(1)

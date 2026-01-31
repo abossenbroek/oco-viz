@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 _SECUNDA_BBOX = (28.8, -26.7, 29.5, -26.2)
 
 # OCO-3 L2 Lite collection concept ID on CMR
-_COLLECTION_ID = "C2237486636-GES_DISC"
+_COLLECTION_ID = "C2910086168-GES_DISC"
 
 _CMR_SEARCH_URL = "https://cmr.earthdata.nasa.gov/search/granules.json"
 
@@ -74,22 +74,38 @@ def download_granule(url: str, dest: Path, *, token: str | None = None) -> Path:
 
     If *token* is provided it is sent as a Bearer Authorization header
     (required for Earthdata Login protected data).
-    """
-    headers: dict[str, str] = {}
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
 
-    req = urllib.request.Request(url, headers=headers)  # noqa: S310
+    Uses *requests* when available (handles Earthdata OAuth redirects),
+    falls back to *urllib* for simple servers.
+    """
     dest.parent.mkdir(parents=True, exist_ok=True)
-    with urllib.request.urlopen(req) as resp, dest.open("wb") as fout:  # noqa: S310
-        while chunk := resp.read(1 << 16):
-            fout.write(chunk)
+
+    try:
+        import requests as _requests  # noqa: PLC0415
+
+        session = _requests.Session()
+        if token:
+            session.headers.update({"Authorization": f"Bearer {token}"})
+        resp = session.get(url, stream=True, allow_redirects=True, timeout=120)
+        resp.raise_for_status()
+        with dest.open("wb") as fout:
+            for chunk in resp.iter_content(chunk_size=1 << 16):
+                fout.write(chunk)
+    except ModuleNotFoundError:
+        headers: dict[str, str] = {}
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        req = urllib.request.Request(url, headers=headers)  # noqa: S310
+        with urllib.request.urlopen(req) as resp_u, dest.open("wb") as fout:  # noqa: S310
+            while chunk_b := resp_u.read(1 << 16):
+                fout.write(chunk_b)
+
     return dest
 
 
 def filter_quality(
     xco2: NDArray[np.float64],
-    quality_flag: NDArray[np.int8],
+    quality_flag: NDArray[np.floating[Any] | np.integer[Any]],
 ) -> NDArray[np.float64]:
     """Return XCO2 values that pass quality filtering (flag == 0)."""
     mask = quality_flag == 0

@@ -46,7 +46,7 @@ mypy_path = "src"
 packages = ["oco_viz"]
 
 [[tool.mypy.overrides]]
-module = ["vtk", "vtk.*", "vtkmodules.*", "scipy.*", "xarray", "zarr", "openvdb", "cdsapi"]
+module = ["vtk", "vtk.*", "vtkmodules.*", "scipy.*", "xarray", "zarr", "openvdb", "cdsapi", "requests"]
 ignore_missing_imports = true
 
 

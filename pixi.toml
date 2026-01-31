@@ -16,16 +16,20 @@ attrs = ">=24"
 xarray = ">=2024"
 zarr = ">=2.16"
 scipy = ">=1.12"
+netcdf4 = ">=1.6"
+requests = ">=2.31"
 openvdb = ">=13"
 
 [pypi-dependencies]
 oco-viz = { path = ".", editable = true }
+cdsapi = ">=0.7"
 
 [tasks]
 lint = "ruff check src/ tests/"
 typecheck = "mypy src/ && pyright src/"
 test = "pytest tests/ -x"
 check = { depends-on = ["lint", "typecheck", "test"] }
+download-fixtures = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/download_fixtures.py"
 
 [feature.dev.dependencies]
 ruff = ">=0.8"
