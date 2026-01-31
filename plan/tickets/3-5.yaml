@@ -1,0 +1,13 @@
+id: "3-5"
+title: "16-bit PNG Output"
+status: in_progress
+wave: 3
+produces:
+  - src/oco_viz/render/frame_writer.py
+  - tests/test_frame_writer.py
+depends: []
+gates: [lint, typecheck, test]
+context:
+  related_files:
+    - src/oco_viz/sequencer/controller.py
+    - src/oco_viz/config/schema.py
