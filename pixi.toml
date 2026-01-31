@@ -25,7 +25,20 @@ oco-viz = { path = ".", editable = true }
 lint = "ruff check src/ tests/"
 typecheck = "mypy src/ && pyright src/"
 test = "pytest tests/ -x"
+mypy = "mypy src/"
+pyright = "pyright src/"
 check = { depends-on = ["lint", "typecheck", "test"] }
+format-check = "ruff format --check src/ tests/"
+import-sort = "ruff check --select I src/ tests/"
+spell = "typos"
+dead-code = "vulture src/ --min-confidence 80"
+complexity = "radon cc src/ --min D --total-average --no-assert"
+yaml-lint = "yamllint configs/ plan/ .github/"
+file-size = "find src/ tests/ -type f -size +1M | grep -q . && echo 'ERROR: files > 1MB found' && exit 1 || echo 'OK: no oversized files'"
+future-annotations = "python -c \"import pathlib,sys; bad=[p for p in pathlib.Path('src/oco_viz').rglob('*.py') if 'from __future__ import annotations' not in p.read_text()]; [print(p) for p in bad]; sys.exit(1 if bad else 0)\""
+py-typed = "test -f src/oco_viz/py.typed && echo 'OK: py.typed exists' || (echo 'ERROR: py.typed missing' && exit 1)"
+fix = "ruff format src/ tests/ && ruff check --fix --unsafe-fixes src/ tests/"
+ci = { depends-on = ["lint", "typecheck", "test", "format-check", "import-sort", "spell", "dead-code", "complexity", "yaml-lint", "file-size", "future-annotations", "py-typed"] }
 
 [feature.dev.dependencies]
 ruff = ">=0.8"
@@ -36,6 +49,10 @@ pre-commit = ">=4"
 pillow = ">=10"
 types-pyyaml = ">=6"
 pytest-cov = ">=5"
+typos = ">=1"
+vulture = ">=2"
+radon = ">=6"
+yamllint = ">=1"
 
 [environments]
 default = { features = ["dev"], solve-group = "default" }

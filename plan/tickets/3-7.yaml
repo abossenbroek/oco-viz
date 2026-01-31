@@ -1,6 +1,6 @@
 id: "3-7"
 title: "Sequencer Integration"
-status: in_progress
+status: done
 wave: 3
 produces:
   - tests/test_renderer_integration.py
