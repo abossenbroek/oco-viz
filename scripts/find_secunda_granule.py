@@ -46,8 +46,8 @@ def main() -> None:
     parser.add_argument(
         "--radius-deg",
         type=float,
-        default=0.5,
-        help="Max distance in degrees from Secunda (default: 0.5 ~ 55 km)",
+        default=1.0,
+        help="Max distance in degrees from Secunda (default: 1.0 ~ 110 km)",
     )
     parser.add_argument(
         "--dest-dir",
@@ -60,6 +60,18 @@ def main() -> None:
         type=int,
         default=30,
         help="Max granules to download before giving up",
+    )
+    parser.add_argument(
+        "--require-good-quality",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Require xco2_quality_flag == 0 for near-Secunda soundings (default: True)",
+    )
+    parser.add_argument(
+        "--min-good",
+        type=int,
+        default=1,
+        help="Minimum good-quality soundings near Secunda to accept (default: 1)",
     )
     args = parser.parse_args()
 
@@ -106,20 +118,29 @@ def main() -> None:
         ds = xr.open_dataset(str(tmp_path))
         lats = ds["latitude"].values
         lons = ds["longitude"].values
-        ds.close()
 
         near = (
             (np.abs(lats - SECUNDA_LAT) < args.radius_deg)
             & (np.abs(lons - SECUNDA_LON) < args.radius_deg)
         )
         n_near = int(np.sum(near))
-        print(f"{size_mb:.1f} MB, {len(lats)} soundings, {n_near} near Secunda")
 
-        if n_near > 0:
+        n_good = n_near
+        if args.require_good_quality and "xco2_quality_flag" in ds:
+            qf = ds["xco2_quality_flag"].values
+            good = near & (qf == 0)
+            n_good = int(np.sum(good))
+
+        ds.close()
+
+        quality_info = f", {n_good} good quality" if args.require_good_quality else ""
+        print(f"{size_mb:.1f} MB, {len(lats)} soundings, {n_near} near Secunda{quality_info}")
+
+        if n_good >= args.min_good:
             final_name = f"{args.satellite}_secunda_{date}.nc4"
             final_path = dest_dir / final_name
             tmp_path.rename(final_path)
-            print(f"\nFound {n_near} soundings near Secunda on {date}")
+            print(f"\nFound {n_near} soundings near Secunda ({n_good} good quality) on {date}")
             print(f"Saved: {final_path}")
             sys.exit(0)
 
