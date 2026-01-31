@@ -92,6 +92,9 @@ def create_volume(
         mapper.SetGlobalIlluminationReach(scattering.global_illumination_reach)
         mapper.SetVolumetricScatteringBlending(scattering.volumetric_scattering_blending)
         volume_property.SetScatteringAnisotropy(scattering.anisotropy)
+        volume_property.SetAmbient(scattering.ambient)
+        volume_property.SetDiffuse(scattering.diffuse)
+        volume_property.SetSpecular(scattering.specular)
 
         if scattering.jittering:
             mapper.SetUseJittering(True)

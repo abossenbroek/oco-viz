@@ -1,0 +1,12 @@
+id: "3-4"
+title: "Volume Material Properties"
+status: in_progress
+wave: 3
+produces: []
+depends: []
+gates: [lint, typecheck, test]
+context:
+  related_files:
+    - src/oco_viz/render/volume.py
+    - src/oco_viz/config/schema.py
+    - tests/test_volume.py
