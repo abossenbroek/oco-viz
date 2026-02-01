@@ -1,0 +1,64 @@
+id: "7-3"
+title: "Batch Render Manager with Progress & Recovery"
+wave: 7
+status: todo
+depends: ["5-5", "6-4"]
+produces:
+  - src/oco_viz/sequencer/batch.py
+  - tests/test_batch.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_batch.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    For hero-quality 90-day renders (2160 frames), need robust batch
+    management with progress tracking, crash recovery, and resource cleanup.
+
+    BatchRenderManager class:
+    1. Read zarr dataset, count total frames
+    2. Scan output directory for existing frames (resume from controller.py)
+    3. Render in configurable chunk sizes (default 100 frames)
+    4. After each chunk, write progress JSON to output_dir/progress.json:
+       {
+         "total_frames": 2160,
+         "completed": 450,
+         "elapsed_seconds": 3600,
+         "avg_seconds_per_frame": 8.0,
+         "estimated_remaining_seconds": 13680,
+         "last_frame": 449,
+         "status": "running",   // running | completed | failed
+         "error": null           // error message if failed
+       }
+    5. On failure: log traceback, save progress state, exit cleanly
+       so `batch-render --resume` picks up from last good frame
+    6. Memory management: after each chunk call gc.collect() and
+       release VTK mapper/volume resources to avoid GPU memory leaks
+       during multi-thousand-frame runs
+
+    Progress display (no tqdm dependency):
+    - Write to stderr: Frame 450/2160 [========>               ] 20.8% | 8.0s/f | ETA 3h48m
+    - Update in-place using \r carriage return
+
+    Functions:
+    - BatchRenderManager(zarr_path, output_dir, config, chunk_size)
+    - .run() -> BatchResult  (attrs dataclass with final stats)
+    - .resume() -> BatchResult  (scans existing frames, continues)
+    - write_progress(output_dir, stats) -> Path
+    - format_progress_bar(completed, total, elapsed) -> str
+
+    CLI: `pixi run oco-viz batch-render --zarr path --chunk-size 100`
+    CLI: `pixi run oco-viz batch-render --zarr path --resume`
+  patterns:
+    - "Chunked iteration with JSON state persistence"
+    - "attrs dataclass for batch results"
+    - "gc.collect() + VTK resource release between chunks"
+  related_files:
+    - src/oco_viz/sequencer/controller.py
+    - src/oco_viz/__main__.py
+    - src/oco_viz/config/schema.py

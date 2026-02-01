@@ -1,0 +1,75 @@
+id: "5-4"
+title: "Render Quality Modes + Hero Config YAML"
+wave: 5
+status: todo
+depends: ["5-1"]
+produces:
+  - configs/hero.yaml
+  - tests/test_quality_modes.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_quality_modes.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Quality mode presets for iterative workflow and hero output.
+
+    Add RenderQualityConfig to schema.py:
+      mode: str = "draft"  # preview | draft | hero
+
+    Presets override ScatteringConfig + OutputConfig:
+    "preview":
+      sample_distance: 2.0, auto_adjust_sample: True
+      global_illumination_reach: 0.0
+      output resolution: config.output / 2  (half-res)
+    "draft":
+      sample_distance: 1.0, auto_adjust_sample: False
+      global_illumination_reach: 0.5
+      full resolution
+    "hero":
+      sample_distance: 0.3, auto_adjust_sample: False
+      global_illumination_reach: 1.0
+      volumetric_scattering_blending: 1.8
+      full resolution
+
+    Apply in VolumeRenderer.configure() by merging quality overrides
+    into scattering config before creating volume.
+
+    Also create configs/hero.yaml — the production config profile:
+      transfer_function:
+        preset: cinematic_storm
+      scattering:
+        global_illumination_reach: 1.0
+        volumetric_scattering_blending: 1.8
+        anisotropy: 0.75
+        ambient: 0.05
+        sample_distance: 0.3
+      render_quality:
+        mode: hero
+      light_rig:
+        preset: dramatic
+      camera_path:
+        preset: reveal
+      turbulence:
+        enabled: true
+        octaves: 7
+      postprocess:
+        exposure: 0.5
+        vignette_strength: 0.4
+        grain_intensity: 0.015
+
+    Add --quality flag to CLI render command.
+  patterns:
+    - "Config overlay pattern"
+    - "vtkSmartVolumeMapper.SetSampleDistance"
+  related_files:
+    - src/oco_viz/render/volume.py
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/config/schema.py
+    - src/oco_viz/__main__.py
+    - configs/base.yaml

@@ -1,0 +1,62 @@
+id: "6-3"
+title: "OCO Satellite Pass Overlay + Annotations"
+wave: 6
+status: todo
+depends: ["5-5"]
+produces:
+  - src/oco_viz/render/overlay.py
+  - src/oco_viz/render/annotations.py
+  - tests/test_overlay.py
+  - tests/test_annotations.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_overlay.py tests/test_annotations.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Combined ticket: satellite footprint overlays + text annotations.
+    Both are visual overlays on the rendered frame, both need config.
+
+    PART A: Satellite Pass Overlay (overlay.py)
+    When OCO-2/OCO-3 overpass exists for current frame's timestamp:
+    - Render colored dots on ground plane at footprint locations
+    - Color by XCO2 enhancement above background (~415 ppm)
+    - White (background) → yellow → red (high enhancement)
+    - create_observation_overlay(obs_data, grid) -> vtkActor
+      Uses vtkPointGaussian for soft dots
+    - Add "OCO-3" / "OCO-2" text label when visible
+
+    PART B: Text Annotations (annotations.py)
+    Applied AFTER VTK render, on numpy frame via PIL ImageDraw:
+    - Timestamp: bottom-left "2024-01-15 14:00 UTC"
+    - Facility marker: "Sasol Secunda" near source
+    - Data credits: bottom-right "CO2: NASA OCO-2/3 | Winds: ECMWF ERA5"
+    - Scale bar: "10 km" horizontal bar
+    apply_annotations(rgb, annotation_cfg, frame_meta) -> NDArray
+
+    Add AnnotationConfig to schema.py:
+      show_timestamp: bool = True
+      show_facility: bool = True
+      show_credits: bool = True
+      show_scale_bar: bool = True
+      font_size: int = 18
+    Add to AppConfig + base.yaml.
+
+    Wire annotations into PostProcessPipeline as final stage (after grain).
+  patterns:
+    - "vtkPointGaussian for soft footprint dots"
+    - "PIL ImageDraw for text overlay"
+    - "Conditional rendering (only when obs available)"
+  related_files:
+    - src/oco_viz/data/oco.py
+    - src/oco_viz/data/pipeline.py
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/render/ground_plane.py
+    - src/oco_viz/postprocess/pipeline.py
+    - src/oco_viz/render/frame_sidecar.py
+    - src/oco_viz/config/schema.py

@@ -1,0 +1,55 @@
+id: "4-4"
+title: "Cinematic Transfer Function Presets (Retuned for Low Opacity)"
+wave: 4
+status: todo
+depends: ["4-2"]
+produces:
+  - tests/test_transfer_presets.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_transfer_presets.py tests/test_transfer.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    The cinematic presets are already added to transfer.py (cinematic_storm,
+    cinematic_ember, cinematic_atmospheric) and JSON files exist in
+    configs/transfer_functions/. However, expert review identified that
+    ALL presets have per-sample opacity WAY TOO HIGH (0.7-0.88 peak).
+
+    At Pixar, cinematic cloud volumes use MUCH LOWER per-sample opacity
+    (0.05-0.20) combined with many ray-march samples (low sample distance
+    from ticket 4-2). Visual density comes from ACCUMULATION over many
+    samples, not from high per-sample opacity. Current settings produce
+    opaque blobs, not translucent atmospheric volumes.
+
+    RETUNE all presets:
+    1. cinematic_storm — peak opacity 0.12 (was 0.88), gentle ramp
+    2. cinematic_ember — peak opacity 0.15 (was 0.7)
+    3. cinematic_atmospheric — peak opacity 0.10 (was 0.70)
+    4. default_plume — peak opacity 0.15 (was 0.8)
+
+    Also retune storm colors slightly warmer in forward-scatter regions:
+    At scalar 0.15: add warm highlight (0.15, 0.14, 0.13) instead of
+    pure blue-gray. This allows rim lighting to produce silver-warm edges.
+
+    Update JSON files to match retuned presets.
+    Write test_transfer_presets.py:
+    - All presets load and convert to VTK
+    - Storm peak opacity < 0.15
+    - All presets roundtrip JSON
+    - JSON files match classmethods
+  patterns:
+    - "ControlPoint + TransferFunction attrs"
+    - "JSON serialization roundtrip"
+  related_files:
+    - src/oco_viz/render/transfer.py
+    - configs/transfer_functions/storm.json
+    - configs/transfer_functions/ember.json
+    - configs/transfer_functions/atmospheric.json
+    - configs/transfer_functions/default_plume.json
+    - tests/test_transfer.py

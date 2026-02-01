@@ -1,0 +1,62 @@
+id: "5-3"
+title: "Cinematic Camera Choreography (Keyframe Splines)"
+wave: 5
+status: todo
+depends: []
+produces:
+  - src/oco_viz/render/camera_path.py
+  - tests/test_camera_path.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_camera_path.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Keyframe-based spline camera with cinematic presets.
+
+    @attr.s(auto_attribs=True, frozen=True, slots=True)
+    class CameraKeyframe:
+        t: float
+        position: tuple[float, float, float]
+        focal_point: tuple[float, float, float]
+        view_up: tuple[float, float, float] = (0.0, 0.0, 1.0)
+        fov: float = 45.0
+
+    class CameraPath:
+        def __init__(self, keyframes, interpolation="catmull_rom")
+        def evaluate(self, t: float) -> CameraState
+        @classmethod
+        def from_preset(cls, name, grid, plume_cfg) -> CameraPath
+        @classmethod
+        def from_json(cls, path) -> CameraPath
+
+    Catmull-Rom spline: use scipy.interpolate.CubicSpline with
+    bc_type='clamped' on position, focal_point, fov channels separately.
+
+    Presets (generate keyframes relative to grid/plume config):
+    1. "reveal" — start close/low, pull back+up, reveal plume (4 keyframes)
+    2. "orbit_rise" — orbit + slow vertical rise (6 keyframes)
+    3. "push_in" — wide establishing → close-up (3 keyframes)
+    4. "top_down_drift" — bird's eye with lateral drift (3 keyframes)
+
+    Add CameraPathConfig to schema.py:
+      preset: str = "orbit"  # orbit | reveal | orbit_rise | push_in | top_down_drift
+      keyframes_json: str | None = None
+      interpolation: str = "catmull_rom"
+    Add to AppConfig. Add to base.yaml.
+
+    CameraPath.evaluate(t) returns CameraState so it's drop-in compatible
+    with OrbitCamera.evaluate(t) — same protocol.
+  patterns:
+    - "scipy.interpolate.CubicSpline for smooth paths"
+    - "evaluate(t) -> CameraState protocol"
+    - "attrs frozen dataclass for keyframes"
+  related_files:
+    - src/oco_viz/render/camera.py
+    - src/oco_viz/config/schema.py
+    - configs/base.yaml

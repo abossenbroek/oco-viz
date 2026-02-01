@@ -1,0 +1,68 @@
+id: "4-3"
+title: "Turbulence Config + Turbulent Plume Compositor"
+wave: 4
+status: todo
+depends: ["4-1"]
+produces:
+  - src/oco_viz/plume/turbulent.py
+  - tests/test_turbulent.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_turbulent.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Two things combined because the compositor needs the config:
+
+    PART A: TurbulenceConfig schema addition
+      Add TurbulenceConfig to schema.py and wire into AppConfig:
+        class TurbulenceConfig(BaseModel):
+          enabled: bool = True
+          octaves: int = Field(default=6, ge=1, le=10)
+          lacunarity: float = Field(default=2.0, gt=1.0)
+          gain: float = Field(default=0.5, gt=0, lt=1)
+          amplitude: float = Field(default=0.6, ge=0, le=2.0)
+          curl_strength: float = Field(default=0.3, ge=0, le=1.0)
+          temporal_speed: float = Field(default=0.02, gt=0)
+          seed: int = 42
+      Add to AppConfig as turbulence: TurbulenceConfig
+      Add to base.yaml with sensible defaults.
+
+    PART B: Turbulent plume compositor
+      Compose Gaussian base with fractal noise. Strategy:
+      1. Generate base Gaussian plume (smooth envelope)
+      2. Generate curl noise displacement field from noise.py
+      3. Displace concentration coordinates: use scipy.ndimage.map_coordinates
+         with curl_displacement * config.curl_strength
+      4. Multiply warped plume by fBm noise for density variation:
+         - Use (noise * 0.5 + 0.5) so noise modulates around 1.0
+         - amplitude controls modulation depth
+      5. Apply distance-from-center falloff: core stays dense, edges wispy
+      6. Clamp to >= 0, preserve total mass approximately
+
+      Functions:
+      - apply_turbulence(base_conc, turb_cfg, grid_cfg, time_index) -> NDArray
+      - generate_turbulent_timestep(plume_cfg, grid_cfg, turb_cfg, t) -> NDArray
+      - generate_turbulent_sequence(plume_cfg, grid_cfg, turb_cfg, n) -> xr.Dataset
+
+      Key insight from expert review: The per-sample opacity in transfer
+      functions is too high (0.7-0.88). The turbulence compositor must
+      produce density fields with proper dynamic range for LOW per-sample
+      opacity (0.1-0.3) combined with many ray-march samples. This means
+      the concentration values need sufficient range/contrast so the
+      volume looks substantial even at low opacity.
+  patterns:
+    - "scipy.ndimage.map_coordinates for coordinate warping"
+    - "xr.Dataset output with (time, z, y, x)"
+    - "Follows PlumeGenerator protocol"
+  related_files:
+    - src/oco_viz/plume/gaussian.py
+    - src/oco_viz/plume/noise.py
+    - src/oco_viz/plume/protocol.py
+    - src/oco_viz/config/schema.py
+    - configs/base.yaml

@@ -1,0 +1,89 @@
+id: "7-4"
+title: "Final Assembly Script (End-to-End Pipeline)"
+wave: 7
+status: todo
+depends: ["7-1", "7-2", "7-3"]
+produces:
+  - scripts/assemble_final.py
+  - tests/test_assembly.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/ scripts/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_assembly.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Single entry-point script that produces ALL deliverables from one config.
+
+    Usage: pixi run python scripts/assemble_final.py --config configs/hero.yaml
+
+    Pipeline stages:
+
+    1. GENERATE: Advected turbulent plume → Zarr
+       - Gaussian source + ERA5 wind-driven semi-Lagrangian advection
+       - Curl noise turbulence + fBm density modulation
+       - Output: {output_dir}/concentration.zarr with (time, z, y, x)
+       - Skip if zarr already exists and --no-regenerate flag set
+
+    2. VALIDATE: Column XCO2 comparison (PRD Goal G4)
+       - compute_column_xco2 from concentration field
+       - compare_modeled_observed against OCO-3 data if available
+       - generate_validation_report → {output_dir}/validation_report.json
+       - Log warning if fraction_within_threshold < 0.5 but continue
+       - Skip if --skip-validation flag set or no OCO data available
+
+    3. RENDER: Zarr → PNG frames (cinematic quality)
+       - Storm transfer function (low per-sample opacity)
+       - Dramatic 3-point lighting with camera-tracking rim light
+       - Cinematic camera path ("reveal" preset)
+       - Full post-processing: fog → color_grade → bloom → tonemap → vignette → grain
+       - Annotations: timestamp, facility marker, data credits, scale bar
+       - OCO-2/OCO-3 footprint overlays on frames with observations
+       - Hero quality mode (fine sample distance, high GI reach)
+       - Batch rendering with progress tracking and crash recovery
+
+    4. ENCODE: Frames → Video
+       - Generate title slate (3 seconds, matching render resolution)
+       - ProRes 4444 master → {output_dir}/master.mov
+       - H.264 distribution → {output_dir}/distribution.mp4
+       - Both from same PNG sequence
+
+    5. EXPORT: TD deliverables
+       - VDB sequence with density + velocity grids → {output_dir}/vdb/
+       - Camera CHOP file → {output_dir}/td/camera.chop
+       - TD session manifest JSON → {output_dir}/td/manifest.json
+       - Point cloud CSV fallback → {output_dir}/td/points/
+
+    6. REPORT: Render summary
+       - Total frames, render time, quality mode used
+       - Data sources: ERA5 date range, OCO passes found, wind field stats
+       - Validation metrics (if run): RMSE, bias, correlation
+       - Output file inventory with sizes
+       - Write to {output_dir}/render_report.json
+
+    The script should be idempotent — rerunning skips completed stages
+    (zarr exists → skip generate, frames exist → skip render, etc).
+
+    Test (test_assembly.py):
+    - Mock all heavy operations (no VTK, no ffmpeg, no openvdb)
+    - Verify stage orchestration order
+    - Verify skip logic for existing outputs
+    - Verify report generation with mock data
+  patterns:
+    - "Standalone script orchestrating all modules"
+    - "Idempotent stage execution with skip logic"
+    - "Config-driven via hero.yaml single entry point"
+  related_files:
+    - src/oco_viz/__main__.py
+    - src/oco_viz/data/pipeline.py
+    - src/oco_viz/data/validation.py
+    - src/oco_viz/sequencer/controller.py
+    - src/oco_viz/sequencer/encode.py
+    - src/oco_viz/sequencer/td_export.py
+    - src/oco_viz/sequencer/batch.py
+    - src/oco_viz/config/schema.py
+    - configs/hero.yaml

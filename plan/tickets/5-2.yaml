@@ -1,0 +1,60 @@
+id: "5-2"
+title: "Advanced Post-Processing (Vignette, Color Grade, Film Grain)"
+wave: 5
+status: todo
+depends: ["4-5"]
+produces:
+  - src/oco_viz/postprocess/vignette.py
+  - src/oco_viz/postprocess/color_grade.py
+  - src/oco_viz/postprocess/grain.py
+  - tests/test_postprocess_advanced.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_postprocess_advanced.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Three cinematic post-processing stages. All operate on float32 arrays.
+
+    1. COLOR GRADE (color_grade.py) — before tonemap in chain:
+       apply_color_grade(rgb, lift, gamma, gain, saturation) -> NDArray
+       - Lift: added to shadows (values near 0)
+       - Gamma: power curve on midtones
+       - Gain: multiplied on highlights
+       - Saturation: lerp toward luminance
+       For reference look: crush blacks (lift=(-0.02,-0.01,0.0)),
+       cool shadows, warm highlights, saturation 0.85
+
+    2. VIGNETTE (vignette.py) — after tonemap:
+       apply_vignette(rgb, strength, radius, softness) -> NDArray
+       Radial falloff: mask = 1 - strength * smoothstep(r, r+s, dist)
+       Default: strength=0.4, radius=0.7, softness=0.3
+
+    3. FILM GRAIN (grain.py) — last stage:
+       apply_grain(rgb, intensity, size, seed) -> NDArray
+       Luminance-dependent: more grain in shadows, less in highlights.
+       seed should include frame index for temporal variation.
+       Default: intensity=0.02, size=1
+
+    Updated pipeline chain:
+      fog → color_grade → bloom → tonemap → vignette → grain
+
+    Note: color_grade BEFORE tonemap (operates in HDR/linear).
+    Bloom was already moved before tonemap in ticket 4-2.
+
+    Add fields to PostProcessConfig for each stage.
+    Wire into PostProcessPipeline.process().
+  patterns:
+    - "NDArray[np.float32] in/out"
+    - "scipy.ndimage for grain size"
+    - "Composable pipeline stages"
+  related_files:
+    - src/oco_viz/postprocess/pipeline.py
+    - src/oco_viz/postprocess/bloom.py
+    - src/oco_viz/postprocess/tonemap.py
+    - src/oco_viz/config/schema.py

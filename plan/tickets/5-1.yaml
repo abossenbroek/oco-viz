@@ -1,0 +1,64 @@
+id: "5-1"
+title: "Configurable Light Rig with Camera-Tracking Rim"
+wave: 5
+status: todo
+depends: ["4-5"]
+produces:
+  - src/oco_viz/render/light_rig.py
+  - tests/test_light_rig.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_light_rig.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Replace hardcoded apply_lighting() with configurable LightRig that
+    updates per-frame to track camera position.
+
+    class LightRig:
+        def __init__(self, config: LightRigConfig) -> None
+        def apply(self, renderer: vtkRenderer, camera_state: CameraState) -> None
+        def update(self, camera_state: CameraState) -> None  # per-frame
+
+    Presets:
+    1. "dramatic" — Reference image match:
+       Key: 45deg above, 30deg right of camera, intensity 0.8, warm (1.0,0.95,0.9)
+       Fill: opposite side, intensity 0.10, cool (0.6,0.7,1.0)
+       Rim: BEHIND volume (reflected camera position through focal point),
+            intensity 1.2, silver (1.0,0.98,0.95)
+       CRITICAL: Rim tracks camera for consistent backlighting during orbit.
+
+    2. "golden_hour" — warm low-angle key, blue fill from above
+    3. "overcast" — soft diffuse, minimal shadows
+
+    Add LightRigConfig to schema.py:
+      preset: str = "dramatic"
+      key_intensity: float = 0.8
+      fill_intensity: float = 0.10
+      rim_intensity: float = 1.2
+      key_color: tuple[float,float,float] = (1.0, 0.95, 0.9)
+      follow_camera: bool = True
+    Add to AppConfig. Add to base.yaml.
+
+    Modify renderer.py:
+    - Replace apply_lighting() call with LightRig instantiation in configure()
+    - Call light_rig.update(camera_state) in render_frame() before Render()
+    - Keep apply_lighting() for backward compat but deprecate
+
+    Expert note: With ambient lowered to 0.05 (ticket 4-2), the rim light
+    becomes the dominant source of edge brightness. This creates the
+    dramatic silver-edged look from the reference image.
+  patterns:
+    - "vtkLight positional and directional"
+    - "Camera-relative light positioning via reflection"
+  related_files:
+    - src/oco_viz/render/lighting.py
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/render/camera.py
+    - src/oco_viz/config/schema.py
+    - configs/base.yaml

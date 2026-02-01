@@ -1,0 +1,66 @@
+id: "7-1"
+title: "TouchDesigner VDB + Point Cloud Export"
+wave: 7
+status: todo
+depends: ["6-4"]
+produces:
+  - src/oco_viz/sequencer/td_export.py
+  - tests/test_td_export.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_td_export.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Rewrite vdb_export.py and add TD-specific export tooling.
+
+    Current vdb_export.py problems (from expert review):
+    - Voxel size hardcoded 1000m — must use grid config (dx, dy, dz)
+    - No grid metadata (frame, timestamp, geo-reference)
+    - No wind vector export for TD particle advection
+    - Grid name "density" only — TD workflows need additional grids
+
+    PART A: Fix VDB export (update vdb_export.py)
+    - Use GridConfig dx/dy/dz for voxel transform (not hardcoded 1000m)
+    - Add grid metadata dict: creator, frame, timestamp, origin_lat/lon, voxel_size_m
+    - Export both "density" (concentration) and "velocity" (wind u,v,w) grids
+      TD particle systems advect particles using velocity VDB natively
+    - Support non-uniform voxel sizes via openvdb.createLinearTransform(matrix)
+    - File naming: "plume_{frame:06d}.vdb" for TD File In TOP glob
+
+    PART B: TD session manifest (new in td_export.py)
+    - export_td_manifest(config, output_dir, frame_count) -> Path
+      JSON with: frame_count, fps, voxel_dims, world_scale,
+      transfer function color ramp as TD-compatible CHOP format,
+      camera keyframes as position/lookat arrays per frame
+    - export_td_camera_chop(camera_path, output_dir, n_frames) -> Path
+      Tab-separated CHOP file: frame, tx, ty, tz, rx, ry, rz
+      TD imports this directly as a CHOP channel
+
+    PART C: Point cloud fallback (for TD without VDB support)
+    - export_point_cloud(concentration, grid, output_path, threshold) -> Path
+      Writes CSV: x, y, z, density (only voxels above threshold)
+      TD imports CSV as a Table DAT → Script SOP point cloud
+    - Much lighter than VDB for preview workflows
+
+    Functions:
+    - export_vdb(concentration, output_path, grid_cfg, metadata) -> Path  (updated)
+    - export_vdb_with_wind(conc, u, v, w, output_path, grid_cfg, meta) -> Path
+    - export_td_vdb_sequence(ds, config, output_dir) -> list[Path]
+    - export_td_manifest(config, output_dir, frame_count) -> Path
+    - export_td_camera_chop(camera_path, output_dir, n_frames) -> Path
+    - export_point_cloud(conc, grid_cfg, output_path, threshold) -> Path
+  patterns:
+    - "pyopenvdb FloatGrid/Vec3SGrid with metadata"
+    - "JSON manifest for TouchDesigner"
+    - "CSV point cloud as lightweight TD fallback"
+  related_files:
+    - src/oco_viz/sequencer/vdb_export.py
+    - src/oco_viz/sequencer/controller.py
+    - src/oco_viz/render/camera_path.py
+    - src/oco_viz/config/schema.py

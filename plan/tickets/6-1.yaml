@@ -1,0 +1,55 @@
+id: "6-1"
+title: "ERA5 Wind-Driven Semi-Lagrangian Advection"
+wave: 6
+status: todo
+depends: ["4-3"]
+produces:
+  - src/oco_viz/plume/advection.py
+  - tests/test_advection.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_advection.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Replace per-frame independent Gaussian with physically evolving plume
+    driven by ERA5 wind fields. This creates temporal narrative — the plume
+    bends with wind shifts, building across frames.
+
+    Semi-Lagrangian advection:
+    1. Initialize concentration at t=0 from Gaussian source
+    2. Each timestep:
+       a. Backtrack: for each grid cell, trace backward along wind field
+          by dt to find departure point
+       b. Interpolate concentration at departure point using
+          scipy.interpolate.RegularGridInterpolator
+       c. Apply turbulent diffusion: displace departure points by
+          curl_noise * turb_cfg.curl_strength (from noise.py)
+       d. Re-inject source emission at stack location
+       e. Apply mixing height lid: zero above mixing_height
+       f. Clamp to >= 0
+
+    Functions:
+    - advect_step(conc, u_wind, v_wind, dt, grid, turb_cfg, t_idx) -> NDArray
+    - advect_sequence(plume_cfg, grid, wind_ds, turb_cfg, n_steps) -> xr.Dataset
+
+    dt should be configurable; default = 3600s (hourly, matching ERA5).
+    For smooth animation, may need sub-stepping (e.g., 4 sub-steps per hour).
+
+    The advection module should follow PlumeGenerator protocol where possible,
+    but its generate_sequence takes a wind dataset as additional input.
+  patterns:
+    - "scipy.interpolate.RegularGridInterpolator for backtracking"
+    - "xr.Dataset with (time, z, y, x)"
+  related_files:
+    - src/oco_viz/data/pipeline.py
+    - src/oco_viz/data/era5.py
+    - src/oco_viz/plume/gaussian.py
+    - src/oco_viz/plume/turbulent.py
+    - src/oco_viz/plume/noise.py
+    - src/oco_viz/config/schema.py
