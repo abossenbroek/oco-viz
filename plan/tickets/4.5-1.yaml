@@ -1,7 +1,7 @@
 id: "4.5-1"
 title: "Spec Fixes + Tier System Architecture"
 wave: 4.5
-status: todo
+status: done
 depends: ["4-5"]
 produces:
   - src/oco_viz/config/tier.py

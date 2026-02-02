@@ -14,9 +14,14 @@ from oco_viz.sequencer.controller import render_sequence
 from oco_viz.sequencer.encode import encode_video
 
 
+def _get_tier(args: argparse.Namespace) -> str | None:
+    """Extract tier from args, returning None if not set."""
+    return getattr(args, "tier", None) or None
+
+
 def cmd_generate_plume(args: argparse.Namespace) -> None:
     """Generate synthetic plume to Zarr."""
-    config = load_config(args.profile)
+    config = load_config(args.profile, tier=_get_tier(args))
     output = Path(args.output)
 
     if args.turbulent:
@@ -35,7 +40,9 @@ def cmd_render(args: argparse.Namespace) -> None:
     overrides: dict[str, dict[str, str]] = {}
     if args.preset:
         overrides["transfer_function"] = {"preset": args.preset}
-    config = load_config(args.profile, overrides=overrides if overrides else None)
+    config = load_config(
+        args.profile, overrides=overrides if overrides else None, tier=_get_tier(args),
+    )
     zarr_path = Path(args.zarr)
     paths = render_sequence(config, zarr_path, num_frames=args.num_frames)
     print(f"Rendered {len(paths)} frames to {config.output.frames_dir}")
@@ -43,7 +50,7 @@ def cmd_render(args: argparse.Namespace) -> None:
 
 def cmd_encode(args: argparse.Namespace) -> None:
     """Encode frames to video."""
-    config = load_config(args.profile)
+    config = load_config(args.profile, tier=_get_tier(args))
     frames_dir = Path(config.output.frames_dir)
     video_dir = Path(config.output.video_dir)
     output_path = video_dir / "synthetic_plume.mp4"
@@ -53,7 +60,7 @@ def cmd_encode(args: argparse.Namespace) -> None:
 
 def cmd_pipeline(args: argparse.Namespace) -> None:
     """Run full pipeline: generate -> render -> encode."""
-    config = load_config(args.profile)
+    config = load_config(args.profile, tier=_get_tier(args))
     zarr_path = Path("output/plume.zarr")
 
     # Determine mode from flags
@@ -91,6 +98,7 @@ def main() -> None:
     # generate-plume
     p_gen = sub.add_parser("generate-plume", help="Generate synthetic plume to Zarr")
     p_gen.add_argument("--profile", default="dev_mac")
+    p_gen.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
     p_gen.add_argument("--output", default="output/plume.zarr")
     p_gen.add_argument("--timesteps", type=int, default=48)
     p_gen.add_argument("--turbulent", action="store_true", help="Use turbulent plume compositor")
@@ -99,6 +107,7 @@ def main() -> None:
     # render
     p_render = sub.add_parser("render", help="Render frames from Zarr")
     p_render.add_argument("--profile", default="dev_mac")
+    p_render.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
     p_render.add_argument("--zarr", default="output/plume.zarr")
     p_render.add_argument("--num-frames", type=int, default=None)
     p_render.add_argument("--preset", default=None, help="Transfer function preset name")
@@ -107,11 +116,13 @@ def main() -> None:
     # encode
     p_encode = sub.add_parser("encode", help="Encode frames to video")
     p_encode.add_argument("--profile", default="dev_mac")
+    p_encode.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
     p_encode.set_defaults(func=cmd_encode)
 
     # pipeline
     p_pipe = sub.add_parser("pipeline", help="Full pipeline: generate -> render -> encode")
     p_pipe.add_argument("--profile", default="dev_mac")
+    p_pipe.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
     p_pipe.add_argument("--num-frames", type=int, default=48)
     p_pipe.add_argument("--turbulent", action="store_true", help="Use turbulent plume compositor")
     p_pipe.add_argument(

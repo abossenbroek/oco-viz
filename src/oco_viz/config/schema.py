@@ -230,6 +230,7 @@ class DataSourceConfig(BaseModel):
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
+    tier: str = "study"
     grid: GridConfig = Field(default_factory=GridConfig)
     sky: SkyConfig = Field(default_factory=SkyConfig)
     ground_plane: GroundPlaneConfig = Field(default_factory=GroundPlaneConfig)
@@ -243,6 +244,15 @@ class AppConfig(BaseModel):
     cams: CamsConfig = Field(default_factory=CamsConfig)
     rendering: RenderingConfig = Field(default_factory=RenderingConfig)
     data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
+
+    @field_validator("tier")
+    @classmethod
+    def _valid_tier(cls, v: str) -> str:
+        valid = {"sketch", "study", "exhibition"}
+        if v not in valid:
+            msg = f"Tier must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
 
 
 def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
@@ -261,8 +271,12 @@ def load_config(
     *,
     overrides: dict[str, Any] | None = None,
     configs_dir: Path | None = None,
+    tier: str | None = None,
 ) -> AppConfig:
-    """Load config from base.yaml, optionally overlay a profile, then apply overrides."""
+    """Load config from base.yaml, optionally overlay a profile and tier, then apply overrides.
+
+    Loading order: base.yaml -> profile overlay -> tier overlay -> runtime overrides.
+    """
     cdir = configs_dir or _configs_dir()
     base_path = cdir / "base.yaml"
 
@@ -280,6 +294,16 @@ def load_config(
                 overlay = yaml.safe_load(f)
                 if overlay:
                     data = _deep_merge(data, overlay)
+
+    # Determine tier: explicit parameter > overrides > data > default
+    effective_tier = tier or (overrides or {}).get("tier") or data.get("tier", "study")
+    tier_path = cdir / "tiers" / f"{effective_tier}.yaml"
+    if tier_path.exists():
+        with tier_path.open() as f:
+            tier_overlay = yaml.safe_load(f)
+            if tier_overlay:
+                data = _deep_merge(data, tier_overlay)
+    data["tier"] = effective_tier
 
     if overrides:
         data = _deep_merge(data, overrides)

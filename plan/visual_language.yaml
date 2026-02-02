@@ -122,8 +122,8 @@ visual_language:
       diffuse: 0.5
       specular: 0.0
     notes:
-      - "Exhibition tier: remove all external lights from renderer"
-      - "Study tier: basic volume shading acceptable"
+      - "Exhibition tier: remove all external lights, diffuse=0.0 (no external light response)"
+      - "Study tier: basic volume shading acceptable, diffuse=0.5"
       - "Sketch tier: no lighting computation"
 
   motion:
@@ -141,7 +141,7 @@ visual_language:
       - "Study/sketch tiers may use faster preview playback"
 
   composition:
-    frame_fill: "0.6-0.8"
+    frame_fill: [0.6, 0.8]
     ground_plane: false
     depth_of_field: "shallow, exhibition tier only"
     camera_distance: "close — viewer loses sense of scale, the soot fills the world"
@@ -183,6 +183,11 @@ visual_language:
       - "Background PPM renders as trace/low density — barely visible soot haze"
       - "Plume peak renders at high/peak density — heavy oppressive concentration"
 
+  tier_notes:
+    - "Exhibition tier is the aspirational target — full Soot visual language"
+    - "Study tier is the MVP — functional rendering for iteration"
+    - "Sketch tier is fast preview — wireframe or minimal rendering"
+
   tiers:
     sketch:
       purpose: "Fast iteration, form exploration"
@@ -205,7 +210,7 @@ visual_language:
       composition: "adjustable camera"
       motion: "standard playback"
       annotations: "minimal — timestamp optional"
-      post_processing: "ACES tonemap only"
+      post_processing: "fog -> bloom -> ACES tonemap"
     exhibition:
       purpose: "Gallery-quality output"
       treatment: "full volume + particle dissolution + turbulent detail"
@@ -216,7 +221,7 @@ visual_language:
       composition: "fill frame, shallow DOF, asymmetric framing"
       motion: "slow, creeping, glacial camera — heavy easing"
       annotations: false
-      post_processing: "particle dissolution -> shallow DOF -> ACES tonemap"
+      post_processing: "ACES tonemap only (no bloom, no fog)"
 
   developer_self_check:
     - "The plume feels industrial and oppressive with weight and texture"
