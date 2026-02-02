@@ -1,0 +1,231 @@
+visual_language:
+  name: "Soot"
+  version: "1.0"
+  concept: >
+    Anthropocene industrial dread. CO2 rendered as heavy, choking industrial
+    particulate — not decorative vapor, but the suffocating residue of fossil
+    combustion. Sasol Secunda's 57 Mt/year CO2 made visible as oppressive soot
+    against black void, forcing confrontation with the scale of emissions.
+
+  references:
+    - name: "Refik Anadol"
+      quality: "monumental turbulent volumes, geological folding, particle dissolution"
+    - name: "William Kentridge"
+      quality: "charcoal on black, industrial residue, weight of material"
+    - name: "Pixar Soul"
+      quality: "inner luminosity structure, made industrial and suffocated"
+    - name: "Japanese/South African nightmare"
+      quality: "slow dread, encroaching wrongness, inescapable presence"
+
+  mood_keywords:
+    - industrial
+    - choking
+    - oppressive
+    - smoldering
+    - heavy
+    - suffocating
+    - granular
+    - creeping
+    - inexorable
+    - dread
+    - ashen
+    - geological
+    - sediment
+    - residue
+
+  palette:
+    background:
+      hex: "#000000"
+      description: "Pure black void — no ground plane, no sky, no context"
+    trace:
+      hex: "#1a1a1a"
+      density_range: [0.0, 0.1]
+      description: "Barely visible wisps at volume periphery"
+    low:
+      hex: "#3d3d3d"
+      density_range: [0.1, 0.3]
+      description: "Diffuse soot haze, faint structure visible"
+    medium:
+      hex: "#6b6b6b"
+      density_range: [0.3, 0.5]
+      description: "Dense particulate, internal structure apparent"
+    high:
+      hex: "#9e9e9e"
+      density_range: [0.5, 0.8]
+      description: "Heavy concentration, light begins to suffocate"
+    peak:
+      hex: "#c8c8c8"
+      density_range: [0.8, 1.0]
+      description: "Dirty near-white — never clean white, always contaminated"
+    rules:
+      - "Strictly achromatic — R equals G equals B at all levels"
+      - "Peak density is dirty near-white (#c8c8c8), never clean white (#ffffff)"
+      - "Opacity never reaches 1.0 — volumes always have depth"
+      - "Background is always pure black — no grey, no gradient"
+
+  transfer_function:
+    color_points:
+      - [0.0, 0, 0, 0]
+      - [0.1, 26, 26, 26]
+      - [0.3, 61, 61, 61]
+      - [0.5, 107, 107, 107]
+      - [0.8, 158, 158, 158]
+      - [1.0, 200, 200, 200]
+    opacity_points:
+      - [0.0, 0.0]
+      - [0.1, 0.0]
+      - [0.2, 0.05]
+      - [0.5, 0.20]
+      - [0.8, 0.35]
+      - [1.0, 0.45]
+    notes:
+      - "Color values are 0-255 RGB, all channels equal"
+      - "Opacity never exceeds 0.45 — ensures volume depth is always visible"
+      - "Opacity stays near zero at low density — soot emerges gradually"
+
+  edge_treatment:
+    style: "granular_dissolution"
+    description: >
+      Volume boundaries do not fade smoothly. Instead, the continuous dense
+      interior breaks into progressively smaller clumps, then individual
+      soot particles that scatter outward like disintegrating ash.
+    inner_volume: "continuous dense volume rendering"
+    transition_zone: "volume breaks into discrete clumps and filaments"
+    outer_edge: "individual soot particles scatter outward"
+    implementation_notes:
+      - "Exhibition tier only — sketch and study use smooth volume falloff"
+      - "Particle count scales with boundary surface area"
+      - "Particles inherit local velocity with slight outward drift"
+
+  turbulence:
+    form: "organic folded geological layering"
+    weight: "heavy, thick, sediment-like — not wispy or ethereal"
+    noise_octaves: 6
+    texture: "grit at every scale — fractal roughness, no smooth gradients"
+    notes:
+      - "Turbulence should feel like geological folding, not weather"
+      - "Low-frequency folds dominate, high-frequency adds grit"
+      - "Study tier uses basic noise (2-3 octaves)"
+      - "Exhibition tier uses full multi-octave geological folding"
+
+  lighting:
+    source: "internal_smoldering"
+    external_lights: false
+    description: >
+      Light appears to originate from within the volume, suffocated by
+      density. Deep interiors glow brighter than surfaces. No external
+      directional light — the soot is its own dim, oppressive light source.
+    vtk_parameters:
+      global_illumination_reach: 0.6
+      scattering_anisotropy: 0.35
+      ambient: 0.4
+      diffuse: 0.5
+      specular: 0.0
+    notes:
+      - "Exhibition tier: remove all external lights from renderer"
+      - "Study tier: basic volume shading acceptable"
+      - "Sketch tier: no lighting computation"
+
+  motion:
+    tempo: "slow_creeping"
+    easing: "heavy_ease_in"
+    particle_drift: "slow outward dispersal with gravity settling"
+    turbulence_speed: "geological timescale — imperceptibly slow deformation"
+    camera: "glacial drift, no fast cuts, no snap transitions"
+    reveal: "gradual emergence from darkness — soot materializes slowly"
+    notes:
+      - "All animation should feel heavy and inexorable"
+      - "Camera moves at constant glacial speed — no acceleration"
+      - "Plume evolution uses heavy ease-in — slow start, gradual build"
+      - "Exhibition tier enforces full motion language"
+      - "Study/sketch tiers may use faster preview playback"
+
+  composition:
+    frame_fill: "0.6-0.8"
+    ground_plane: false
+    depth_of_field: "shallow, exhibition tier only"
+    camera_distance: "close — viewer loses sense of scale, the soot fills the world"
+    framing: "asymmetric, off-center mass"
+    vertical_emphasis: true
+    annotations: "sketch and study tiers only — exhibition has no text overlay"
+    notes:
+      - "The plume should dominate the frame — not float in empty space"
+      - "Off-center composition creates tension and unease"
+      - "Vertical emphasis suggests rising emissions, industrial stacks"
+      - "No ground plane, no horizon line, no environmental context"
+      - "Shallow DOF draws focus to plume interior structure"
+
+  data_sources:
+    oco2:
+      product: "XCO2 column averages"
+      role: "primary concentration"
+      access: "NASA Earthdata"
+    oco3:
+      product: "XCO2 SAM/target mode"
+      role: "high-res plume structure"
+      access: "NASA Earthdata"
+    ecd:
+      product: "Emission Change Detection"
+      role: "temporal dynamics"
+      access: "NASA Earthdata"
+    cams:
+      product: "Global CO2 reanalysis"
+      role: "background ambient soot"
+      access: "Copernicus CDS"
+
+  data_mapping:
+    background_ppm: [415, 420]
+    enhanced_ppm: [420, 440]
+    plume_peak_ppm: [440, 480]
+    ecd_anomaly: "positive delta increases dissolution and turbulence"
+    notes:
+      - "PPM ranges map to density 0.0-1.0 for transfer function"
+      - "Background PPM renders as trace/low density — barely visible soot haze"
+      - "Plume peak renders at high/peak density — heavy oppressive concentration"
+
+  tiers:
+    sketch:
+      purpose: "Fast iteration, form exploration"
+      treatment: "wireframe or point cloud on black"
+      color: "single grey (#6b6b6b), no transfer function"
+      particles: false
+      turbulence: false
+      lighting: false
+      composition: "default camera"
+      motion: "fast preview playback"
+      annotations: true
+      post_processing: "none — raw output"
+    study:
+      purpose: "Density/TF refinement"
+      treatment: "volume rendering with grey-scale TF"
+      color: "full Soot palette via soot.json transfer function"
+      particles: false
+      turbulence: "basic noise (2-3 octaves)"
+      lighting: "basic volume shading"
+      composition: "adjustable camera"
+      motion: "standard playback"
+      annotations: "minimal — timestamp optional"
+      post_processing: "ACES tonemap only"
+    exhibition:
+      purpose: "Gallery-quality output"
+      treatment: "full volume + particle dissolution + turbulent detail"
+      color: "full Soot palette with opacity curves"
+      particles: "granular soot dissolution at volume boundaries"
+      turbulence: "multi-octave geological folding (6 octaves)"
+      lighting: "internal smoldering only — no external lights"
+      composition: "fill frame, shallow DOF, asymmetric framing"
+      motion: "slow, creeping, glacial camera — heavy easing"
+      annotations: false
+      post_processing: "particle dissolution -> shallow DOF -> ACES tonemap"
+
+  developer_self_check:
+    - "The plume feels industrial and oppressive with weight and texture"
+    - "The palette is strictly grey-scale on black"
+    - "Edges dissolve into granular soot particles (exhibition tier)"
+    - "The volume feels heavy, thick, and choking"
+    - "Light is internal and suffocated"
+    - "Motion is slow, creeping, and inexorable"
+    - "There is no color — only density, texture, and luminance"
+    - "The background is pure black with no ground plane or sky"
+    - "Peak brightness is dirty near-white, never clean white"
+    - "Opacity never reaches 1.0 — you can always see into the volume"
