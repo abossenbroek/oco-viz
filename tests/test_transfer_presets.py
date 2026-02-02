@@ -15,22 +15,26 @@ def _max_opacity(tf: TransferFunction) -> float:
 
 def test_storm_peak_opacity() -> None:
     tf = TransferFunction.cinematic_storm()
-    assert _max_opacity(tf) < 0.15
+    assert _max_opacity(tf) >= 0.25
+    assert _max_opacity(tf) <= 0.60
 
 
 def test_ember_peak_opacity() -> None:
     tf = TransferFunction.cinematic_ember()
-    assert _max_opacity(tf) <= 0.15
+    assert _max_opacity(tf) >= 0.25
+    assert _max_opacity(tf) <= 0.60
 
 
 def test_atmospheric_peak_opacity() -> None:
     tf = TransferFunction.cinematic_atmospheric()
-    assert _max_opacity(tf) <= 0.10
+    assert _max_opacity(tf) >= 0.25
+    assert _max_opacity(tf) <= 0.60
 
 
 def test_default_plume_peak_opacity() -> None:
     tf = TransferFunction.default_plume()
-    assert _max_opacity(tf) <= 0.15
+    assert _max_opacity(tf) >= 0.25
+    assert _max_opacity(tf) <= 0.60
 
 
 def test_all_presets_to_vtk() -> None:

@@ -1,0 +1,29 @@
+id: "5.5-4"
+title: "Gallery Composite Rendering with OCO Validation Overlay"
+wave: 5.5
+status: todo
+depends: ["5.5-3", "5.5-5"]
+produces:
+  - tests/test_gallery_composite.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_gallery_composite.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Update render_gallery.py to use composite pipeline.
+    Add OCO-2/OCO-3 footprint markers as ground-plane overlay (VTK actor layer).
+    Color-code markers by XCO2 value.
+    Render all 4 TF presets with composite field.
+  patterns:
+    - "VTK actor layer for overlay"
+    - "Color-coded point markers"
+  related_files:
+    - scripts/render_gallery.py
+    - src/oco_viz/data/cams.py
+    - src/oco_viz/render/renderer.py

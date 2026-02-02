@@ -22,6 +22,7 @@ context:
     - run_data_pipeline(config, mode="gaussian")  — existing (default)
     - run_data_pipeline(config, mode="turbulent") — uses generate_turbulent_sequence
     - run_data_pipeline(config, mode="advected")  — uses advect_sequence with ERA5
+    - run_data_pipeline(config, mode="composite") — CAMS background + plume + turbulence
 
     Update __main__.py:
     - Add --mode flag to pipeline command (gaussian|turbulent|advected)
@@ -55,4 +56,5 @@ context:
     - src/oco_viz/render/overlay.py
     - src/oco_viz/render/annotations.py
     - src/oco_viz/__main__.py
+    - src/oco_viz/data/cams.py
     - src/oco_viz/sequencer/controller.py

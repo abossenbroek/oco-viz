@@ -92,11 +92,11 @@ def test_dev_mac_uses_8bit() -> None:
 
 def test_base_config_has_exposure() -> None:
     config = load_config()
-    assert config.postprocess.exposure == pytest.approx(0.6)
+    assert config.postprocess.exposure == pytest.approx(1.4)
 
 
 def test_base_config_has_material_properties() -> None:
     config = load_config()
-    assert config.scattering.ambient == pytest.approx(0.05)
-    assert config.scattering.diffuse == pytest.approx(0.85)
-    assert config.scattering.specular == pytest.approx(0.1)
+    assert config.scattering.ambient == pytest.approx(0.30)
+    assert config.scattering.diffuse == pytest.approx(0.60)
+    assert config.scattering.specular == pytest.approx(0.15)

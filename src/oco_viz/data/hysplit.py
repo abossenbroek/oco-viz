@@ -16,10 +16,10 @@ if TYPE_CHECKING:
     from oco_viz.config.schema import AppConfig
 
 
-# Sasol Secunda source coordinates
-_SOURCE_LAT = -26.52
-_SOURCE_LON = 29.17
-_SOURCE_ALT_M = 200.0  # stack height
+# Default source coordinates (Secunda) — prefer DomainConfig/PlumeConfig for new code.
+_DEFAULT_SOURCE_LAT = -26.52
+_DEFAULT_SOURCE_LON = 29.17
+_DEFAULT_SOURCE_ALT_M = 200.0  # stack height
 
 
 def generate_control_file(
@@ -30,9 +30,9 @@ def generate_control_file(
     start_day: int,
     start_hour: int = 0,
     run_hours: int = 48,
-    source_lat: float = _SOURCE_LAT,
-    source_lon: float = _SOURCE_LON,
-    source_alt: float = _SOURCE_ALT_M,
+    source_lat: float = _DEFAULT_SOURCE_LAT,
+    source_lon: float = _DEFAULT_SOURCE_LON,
+    source_alt: float = _DEFAULT_SOURCE_ALT_M,
 ) -> Path:
     """Generate a HYSPLIT CONTROL file for forward dispersion from Secunda."""
     lines = [

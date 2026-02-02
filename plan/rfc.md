@@ -85,6 +85,34 @@ We need to create a 3D video visualization of CO2 transport above Sasol Secunda 
 
 ---
 
+### Decision 2a: Background CO2 Field (Amendment)
+
+**Context**: Original Decision 2 rejected CAMS reanalysis (80 km) as too coarse for point-source resolution. This amendment adds CAMS *high-resolution forecast* (~9 km) as a **background layer only**.
+
+**Architecture**:
+```
+Layer 1: CAMS 9km background    → large-scale 3D CO2 field (~420 ppm)
+Layer 2: Gaussian plume model   → Secunda point-source enhancement (+5-15 ppm)
+Layer 3: Turbulent compositor   → sub-grid filamentary structure
+Overlay: OCO-2/OCO-3 footprints → validation markers
+```
+
+**Decision**: Use CAMS `cams-global-atmospheric-composition-forecasts` (9 km) as the background CO2 field. Point-source dispersion remains Gaussian plume (Decision 2). CAMS does **not** assimilate OCO-2/OCO-3 (it uses GOSAT), so OCO observations remain independent for validation.
+
+**Rationale**:
+- No single dataset provides observation-based 3D CO2 at 1 km — layered composition is the same method NASA SVS uses at regional scale
+- CAMS high-res forecast resolves synoptic-scale gradients that make the background realistic
+- Anomaly-mode normalization (subtract background, normalize enhancement) keeps existing transfer function presets working while the background becomes transparent
+- Absolute-mode normalization with ultra-low opacity (peak 0.20) prevents the 10 km column from going solid opaque
+
+**Consequences**:
+- (+) Visualization shows ALL atmospheric CO2 transport, not only point-source plume
+- (+) OCO-2/OCO-3 validation overlay is scientifically defensible (independent data)
+- (-) Additional data dependency (CDS API for CAMS forecasts)
+- (-) Regridding pipeline adds complexity (hybrid-sigma → altitude, 9 km → 1 km)
+
+---
+
 ### Decision 3: Atmospheric Effects Strategy
 
 **Options Considered**:

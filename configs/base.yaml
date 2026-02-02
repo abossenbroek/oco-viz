@@ -8,25 +8,25 @@ grid:
 
 sky:
   enabled: true
-  top_color: [0.01, 0.01, 0.04]
-  bottom_color: [0.08, 0.08, 0.12]
+  top_color: [0.03, 0.03, 0.12]
+  bottom_color: [0.15, 0.12, 0.18]
 
 ground_plane:
   enabled: true
-  opacity: 0.08
+  opacity: 0.20
   grid_spacing_km: 10.0
-  color: [0.3, 0.3, 0.3]
+  color: [0.35, 0.33, 0.30]
 
 scattering:
-  global_illumination_reach: 1.0
-  volumetric_scattering_blending: 1.8
-  anisotropy: 0.75
-  jittering: true
+  sample_distance: 250.0
+  ambient: 0.30
+  diffuse: 0.60
+  specular: 0.15
+  anisotropy: 0.3
+  global_illumination_reach: 0.5
+  volumetric_scattering_blending: 1.0
   shade: true
-  ambient: 0.05
-  diffuse: 0.85
-  specular: 0.1
-  sample_distance: 0.5
+  jittering: true
 
 camera:
   rig: orbit
@@ -37,13 +37,13 @@ camera:
   focal_point: [50.0, 50.0, 30.0]
 
 postprocess:
+  exposure: 1.4
+  bloom_threshold: 0.50
+  bloom_intensity: 0.25
+  bloom_passes: 3
   fog_density: 0.02
   fog_color: [0.7, 0.75, 0.85]
   tonemap: aces
-  bloom_threshold: 0.8
-  bloom_intensity: 0.3
-  bloom_passes: 3
-  exposure: 0.6
 
 output:
   width: 1920
@@ -74,6 +74,16 @@ plume:
   wind_direction: 270.0
   mixing_height: 1500.0
   stack_height: 200.0
+
+cams:
+  dataset: cams-global-ghg-forecasts
+  cache_dir: data/cams
+
+rendering:
+  mode: anomaly
+  anomaly_max_ppm: 10.0
+  absolute_min_ppm: 415.0
+  absolute_max_ppm: 435.0
 
 data_source:
   start_date: "2024-01-15"

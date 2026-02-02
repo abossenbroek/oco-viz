@@ -163,7 +163,7 @@ An artistic visualization showing CO2 plume behavior in 3D over time would commu
 | ID | Question | Owner | Status |
 |----|----------|-------|--------|
 | OQ1 | What specific 30-90 day period has best OCO-2/OCO-3 coverage over Secunda? | Data | Open — multi-satellite search across OCO-2 + OCO-3 addresses sparse coverage |
-| OQ2 | Is HYSPLIT or CAMS reanalysis faster path to 3D concentrations? | Eng | Open |
+| OQ2 | Is HYSPLIT or CAMS reanalysis faster path to 3D concentrations? | Eng | Closed — layered architecture adopted: CAMS 9 km background + Gaussian plume + turbulent noise. See RFC Decision 2a. |
 | OQ3 | Should we use VAPOR for exploration before committing to VTK render pipeline? | Eng | Open |
 | OQ4 | What frame rate / time compression ratio produces best artistic result? | Art | Open |
 
@@ -181,6 +181,12 @@ An artistic visualization showing CO2 plume behavior in 3D over time would commu
 | 5: VDB Export + Polish | 3 days | TouchDesigner-ready output |
 
 **Total**: ~18 working days
+
+---
+
+## Scope Evolution
+
+**Visualization shows ALL atmospheric CO2 transport**, not only point-source plume. Layered architecture: CAMS background + parametric plume + turbulent noise. OCO-2/OCO-3 as independent validation overlay. Location-portable via `DomainConfig` (Secunda default, Seattle example).
 
 ---
 

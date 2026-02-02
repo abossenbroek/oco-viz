@@ -20,9 +20,9 @@ if TYPE_CHECKING:
     from oco_viz.config.schema import DomainConfig, ERA5Config, GridConfig
 
 
-# Secunda approximate location
-_SECUNDA_LAT = -26.5
-_SECUNDA_LON = 29.2
+# Default location (Secunda) — prefer DomainConfig for new code.
+_DEFAULT_LAT = -26.5
+_DEFAULT_LON = 29.2
 
 # Pressure levels covering boundary layer (hPa)
 _PRESSURE_LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500]
@@ -31,8 +31,8 @@ _PRESSURE_LEVELS = [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500]
 def build_cds_request(
     date: str,
     *,
-    lat: float = _SECUNDA_LAT,
-    lon: float = _SECUNDA_LON,
+    lat: float = _DEFAULT_LAT,
+    lon: float = _DEFAULT_LON,
     pressure_levels: list[int] | None = None,
 ) -> dict[str, Any]:
     """Build a CDS API request dict for ERA5 u/v wind components.

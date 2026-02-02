@@ -1,0 +1,33 @@
+id: "5.5-5"
+title: "Location Portability (Parameterize Hardcoded Coordinates)"
+wave: 5.5
+status: todo
+depends: []
+produces:
+  - configs/seattle.yaml
+  - tests/test_location_portability.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_location_portability.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Replace hardcoded Secunda coordinates with config-based domain parameters.
+    Add DomainConfig.bbox() method.
+    Add seattle.yaml overlay config.
+    Files modified: oco.py, oco2.py, oco3.py, era5.py, hysplit.py, schema.py.
+  patterns:
+    - "Config-driven coordinate parameters"
+    - "YAML config overlay"
+  related_files:
+    - src/oco_viz/data/oco.py
+    - src/oco_viz/data/oco2.py
+    - src/oco_viz/data/oco3.py
+    - src/oco_viz/data/era5.py
+    - src/oco_viz/data/hysplit.py
+    - src/oco_viz/config/schema.py

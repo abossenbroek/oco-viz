@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -153,6 +154,48 @@ class DomainConfig(BaseModel):
     extent_y_km: float = Field(default=100.0, gt=0, description="North-south extent in km")
     extent_z_km: float = Field(default=15.0, gt=0, description="Vertical extent in km")
 
+    def bbox(self) -> tuple[float, float, float, float]:
+        """Return (lon_min, lat_min, lon_max, lat_max) bounding box.
+
+        Approximates degree offsets from km extents using equirectangular projection.
+        """
+        half_x = self.extent_x_km / 2.0
+        half_y = self.extent_y_km / 2.0
+        km_per_deg_lat = 111.32
+        km_per_deg_lon = 111.32 * math.cos(math.radians(self.origin_lat))
+        dlat = half_y / km_per_deg_lat
+        dlon = half_x / max(km_per_deg_lon, 1e-6)
+        return (
+            self.origin_lon - dlon,
+            self.origin_lat - dlat,
+            self.origin_lon + dlon,
+            self.origin_lat + dlat,
+        )
+
+
+class CamsConfig(BaseModel):
+    """CAMS high-resolution GHG forecast configuration."""
+
+    dataset: str = "cams-global-ghg-forecasts"
+    cache_dir: str = "data/cams"
+
+
+class RenderingConfig(BaseModel):
+    """Concentration normalization and rendering mode configuration."""
+
+    mode: str = Field(default="anomaly", description="anomaly or absolute")
+    anomaly_max_ppm: float = Field(default=10.0, gt=0)
+    absolute_min_ppm: float = Field(default=415.0)
+    absolute_max_ppm: float = Field(default=435.0, gt=0)
+
+    @field_validator("mode")
+    @classmethod
+    def _valid_mode(cls, v: str) -> str:
+        if v not in ("anomaly", "absolute"):
+            msg = f"Rendering mode must be 'anomaly' or 'absolute', got {v!r}"
+            raise ValueError(msg)
+        return v
+
 
 class ERA5Config(BaseModel):
     """ERA5 reanalysis data configuration."""
@@ -197,6 +240,8 @@ class AppConfig(BaseModel):
     output: OutputConfig = Field(default_factory=OutputConfig)
     plume: PlumeConfig = Field(default_factory=PlumeConfig)
     turbulence: TurbulenceConfig = Field(default_factory=TurbulenceConfig)
+    cams: CamsConfig = Field(default_factory=CamsConfig)
+    rendering: RenderingConfig = Field(default_factory=RenderingConfig)
     data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
 
 

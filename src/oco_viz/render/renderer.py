@@ -31,6 +31,7 @@ PRESETS: dict[str, Callable[[], TransferFunction]] = {
     "cinematic_storm": TransferFunction.cinematic_storm,
     "cinematic_ember": TransferFunction.cinematic_ember,
     "cinematic_atmospheric": TransferFunction.cinematic_atmospheric,
+    "absolute_atmospheric": TransferFunction.absolute_atmospheric,
 }
 
 
@@ -97,8 +98,13 @@ class VolumeRenderer:
         self,
         concentration: NDArray[np.float32],
         camera_state: CameraState,
+        *,
+        pre_normalized: bool = False,
     ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
         """Render a frame from concentration data and camera state.
+
+        If *pre_normalized* is True, *concentration* is assumed to be in [0, 1]
+        and internal normalization is skipped.
 
         Returns (rgb, depth) as float32 arrays.
         """
@@ -107,8 +113,11 @@ class VolumeRenderer:
             raise RuntimeError(msg)
 
         # Normalize
-        max_val = concentration.max()
-        normalized = concentration / max_val if max_val > 0 else concentration
+        if pre_normalized:
+            normalized = concentration
+        else:
+            max_val = concentration.max()
+            normalized = concentration / max_val if max_val > 0 else concentration
 
         grid = self._config.grid
         spacing = (grid.dx, grid.dy, grid.dz)
@@ -139,9 +148,13 @@ class VolumeRenderer:
         self,
         concentration: NDArray[np.float32],
         camera_state: CameraState,
+        *,
+        pre_normalized: bool = False,
     ) -> NDArray[np.float32]:
         """Render and apply post-processing pipeline."""
-        rgb, depth = self.render_frame(concentration, camera_state)
+        rgb, depth = self.render_frame(
+            concentration, camera_state, pre_normalized=pre_normalized,
+        )
         if self._pipeline is not None:
             return self._pipeline.process(rgb, depth)
         return rgb

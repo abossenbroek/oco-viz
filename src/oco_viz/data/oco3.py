@@ -24,8 +24,9 @@ if TYPE_CHECKING:
 
     from oco_viz.config.schema import DomainConfig, OCO3Config
 
-# Sasol Secunda complex bounding box (lon_min, lat_min, lon_max, lat_max)
-_SECUNDA_BBOX = (28.8, -26.7, 29.5, -26.2)
+# Default Secunda bounding box (lon_min, lat_min, lon_max, lat_max)
+# Kept as fallback default; prefer DomainConfig.bbox() for new code.
+_DEFAULT_BBOX = (28.8, -26.7, 29.5, -26.2)
 
 _COLLECTION_ID = SATELLITE_COLLECTION_IDS["oco3"]
 
@@ -34,7 +35,7 @@ def search_granules(
     start_date: str,
     end_date: str,
     *,
-    bbox: tuple[float, float, float, float] = _SECUNDA_BBOX,
+    bbox: tuple[float, float, float, float] = _DEFAULT_BBOX,
     collection_id: str = _COLLECTION_ID,
     page_size: int = 200,
 ) -> list[dict[str, Any]]:

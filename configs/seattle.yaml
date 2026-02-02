@@ -1,0 +1,14 @@
+data_source:
+  domain:
+    origin_lat: 47.60
+    origin_lon: -122.33
+    extent_x_km: 80.0
+    extent_y_km: 80.0
+    extent_z_km: 12.0
+
+plume:
+  emission_rate: 200.0
+  stack_height: 50.0
+  stability_class: C
+  wind_speed: 4.0
+  wind_direction: 225.0

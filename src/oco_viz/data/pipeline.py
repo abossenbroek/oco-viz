@@ -8,10 +8,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 import xarray as xr
 
+from oco_viz.data.cams import load_cams_co2
 from oco_viz.data.era5 import load_era5_winds
 from oco_viz.data.oco3 import load_and_grid_granules
 from oco_viz.data.zarr_store import write_zarr
 from oco_viz.plume.gaussian import generate_sequence, generate_timestep
+from oco_viz.plume.turbulent import apply_turbulence, generate_turbulent_sequence
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -97,22 +99,80 @@ def attach_oco3_overlay(
     return ds
 
 
+def build_composite_field(
+    config: AppConfig,
+    cams_path: Path,
+    num_timesteps: int,
+) -> xr.Dataset:
+    """Build composite CO2 field: CAMS background + plume + turbulence.
+
+    1. Load CAMS background (3D, ~420 ppm with gradients)
+    2. Generate point-source plume enhancement (Gaussian)
+    3. Apply turbulent noise
+    4. Composite: background + plume_turb
+    """
+    grid = config.grid
+    background = load_cams_co2(cams_path, config.data_source.domain, grid)
+
+    nz, ny, nx = grid.shape
+    frames = []
+
+    for t in range(num_timesteps):
+        # Generate plume enhancement
+        plume = generate_timestep(config.plume, grid, t)
+
+        # Apply turbulence if enabled
+        if config.turbulence.enabled:
+            plume = apply_turbulence(plume, config.turbulence, grid, t)
+
+        # Composite: add plume enhancement to background
+        composite = background + plume
+        frames.append(composite)
+
+    data = np.stack(frames, axis=0)
+
+    return xr.Dataset(
+        {"concentration": (["time", "z", "y", "x"], data)},
+        coords={
+            "time": np.arange(num_timesteps),
+            "z": np.arange(nz) * grid.dz,
+            "y": np.arange(ny) * grid.dy,
+            "x": np.arange(nx) * grid.dx,
+        },
+    )
+
+
 def run_data_pipeline(
     config: AppConfig,
     *,
+    mode: str = "gaussian",
     era5_path: Path | None = None,
+    cams_path: Path | None = None,
     oco3_paths: list[Path] | None = None,
     num_timesteps: int = 24,
     output_zarr: Path | None = None,
 ) -> xr.Dataset:
     """Main data pipeline entry point.
 
-    If *era5_path* is provided, drives plume with real ERA5 wind data.
-    Otherwise, falls back to the existing Gaussian plume generator.
+    Modes:
+    - ``gaussian``: Gaussian plume only (default).
+    - ``turbulent``: Gaussian plume with turbulent noise.
+    - ``composite``: CAMS background + plume + turbulence (requires *cams_path*).
+    - ``wind``: ERA5 wind-driven plume (requires *era5_path*).
+
     If *oco3_paths* is provided, attaches XCO2 observation overlay.
     If *output_zarr* is provided, writes the result to a Zarr store.
     """
-    if era5_path is not None:
+    if mode == "composite":
+        if cams_path is None:
+            msg = "mode='composite' requires cams_path"
+            raise ValueError(msg)
+        ds = build_composite_field(config, cams_path, num_timesteps)
+    elif mode == "turbulent":
+        ds = generate_turbulent_sequence(
+            config.plume, config.grid, config.turbulence, num_timesteps,
+        )
+    elif (mode == "wind" and era5_path is not None) or era5_path is not None:
         ds = build_wind_driven_plume(config, era5_path, num_timesteps)
     else:
         ds = generate_sequence(config.plume, config.grid, num_timesteps)

@@ -6,6 +6,7 @@ import argparse
 from pathlib import Path
 
 from oco_viz.config import load_config
+from oco_viz.data.pipeline import run_data_pipeline
 from oco_viz.data.zarr_store import write_zarr
 from oco_viz.plume.gaussian import generate_sequence
 from oco_viz.plume.turbulent import generate_turbulent_sequence
@@ -55,15 +56,22 @@ def cmd_pipeline(args: argparse.Namespace) -> None:
     config = load_config(args.profile)
     zarr_path = Path("output/plume.zarr")
 
-    # Generate
-    if args.turbulent:
-        ds = generate_turbulent_sequence(
-            config.plume, config.grid, config.turbulence, num_timesteps=args.num_frames,
-        )
-    else:
-        ds = generate_sequence(config.plume, config.grid, num_timesteps=args.num_frames)
+    # Determine mode from flags
+    mode = getattr(args, "mode", "gaussian")
+    cams_path = Path(args.cams) if getattr(args, "cams", None) else None
+
+    # For backward compat: --turbulent flag maps to mode=turbulent
+    if getattr(args, "turbulent", False) and mode == "gaussian":
+        mode = "turbulent"
+
+    ds = run_data_pipeline(
+        config,
+        mode=mode,
+        cams_path=cams_path,
+        num_timesteps=args.num_frames,
+    )
     write_zarr(ds, zarr_path)
-    print(f"Generated plume: {zarr_path}")
+    print(f"Generated plume ({mode}): {zarr_path}")
 
     # Render
     paths = render_sequence(config, zarr_path, num_frames=args.num_frames)
@@ -106,6 +114,13 @@ def main() -> None:
     p_pipe.add_argument("--profile", default="dev_mac")
     p_pipe.add_argument("--num-frames", type=int, default=48)
     p_pipe.add_argument("--turbulent", action="store_true", help="Use turbulent plume compositor")
+    p_pipe.add_argument(
+        "--mode",
+        default="gaussian",
+        choices=["gaussian", "turbulent", "composite", "wind"],
+        help="Pipeline mode (default: gaussian)",
+    )
+    p_pipe.add_argument("--cams", default=None, help="Path to CAMS NetCDF (for composite mode)")
     p_pipe.set_defaults(func=cmd_pipeline)
 
     args = parser.parse_args()

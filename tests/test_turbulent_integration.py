@@ -106,7 +106,10 @@ def test_preset_dispatch_cinematic_storm() -> None:
 
 def test_all_presets_known() -> None:
     """All expected presets are wired into PRESETS dict."""
-    expected = {"default_plume", "cinematic_storm", "cinematic_ember", "cinematic_atmospheric"}
+    expected = {
+        "default_plume", "cinematic_storm", "cinematic_ember",
+        "cinematic_atmospheric", "absolute_atmospheric",
+    }
     assert expected == set(PRESETS.keys())
 
 
