@@ -36,6 +36,9 @@ camera:
   distance: 300.0
   focal_point: [50.0, 50.0, 30.0]
 
+transfer_function:
+  preset: soot
+
 postprocess:
   exposure: 1.4
   bloom_threshold: 0.50

@@ -25,8 +25,18 @@ if TYPE_CHECKING:
 
     from oco_viz.config.schema import AppConfig
 
+
+def _soot_tf_path() -> Path:
+    return Path(__file__).resolve().parents[3] / "configs" / "transfer_functions" / "soot.json"
+
+
+def _load_soot() -> TransferFunction:
+    return TransferFunction.from_json_file(_soot_tf_path())
+
+
 # Preset name → classmethod factory
 PRESETS: dict[str, Callable[[], TransferFunction]] = {
+    "soot": _load_soot,
     "default_plume": TransferFunction.default_plume,
     "cinematic_storm": TransferFunction.cinematic_storm,
     "cinematic_ember": TransferFunction.cinematic_ember,

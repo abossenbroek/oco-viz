@@ -87,7 +87,7 @@ class CameraConfig(BaseModel):
 class TransferFunctionConfig(BaseModel):
     """Transfer function reference."""
 
-    preset: str = "default_plume"
+    preset: str = "soot"
     json_path: str | None = None
 
 
