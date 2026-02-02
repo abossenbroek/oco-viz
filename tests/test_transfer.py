@@ -1,3 +1,7 @@
+"""Tests for transfer function module."""
+
+from __future__ import annotations
+
 from oco_viz.render.transfer import ControlPoint, TransferFunction
 
 

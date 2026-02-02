@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, ClassVar
 
 import vtk
 
@@ -17,20 +18,46 @@ from oco_viz.render.volume import create_volume, numpy_to_vtk_image
 from oco_viz.render.window import create_render_window
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     import numpy as np
     from numpy.typing import NDArray
 
     from oco_viz.config.schema import AppConfig
 
+# Preset name → classmethod factory
+PRESETS: dict[str, Callable[[], TransferFunction]] = {
+    "default_plume": TransferFunction.default_plume,
+    "cinematic_storm": TransferFunction.cinematic_storm,
+    "cinematic_ember": TransferFunction.cinematic_ember,
+    "cinematic_atmospheric": TransferFunction.cinematic_atmospheric,
+}
+
+
+def resolve_transfer_function(
+    preset: str,
+    json_path: str | None = None,
+) -> TransferFunction:
+    """Resolve a transfer function from preset name or JSON path."""
+    if json_path is not None:
+        return TransferFunction.from_json_file(Path(json_path))
+    if preset not in PRESETS:
+        msg = f"Unknown transfer function preset: {preset!r}. Known: {sorted(PRESETS)}"
+        raise ValueError(msg)
+    return PRESETS[preset]()
+
 
 class VolumeRenderer:
     """Configure once, render many frames."""
+
+    _PRESETS: ClassVar[dict[str, Callable[[], TransferFunction]]] = PRESETS
 
     def __init__(self, config: AppConfig) -> None:
         self._config = config
         self._win: vtk.vtkRenderWindow | None = None
         self._renderer: vtk.vtkRenderer | None = None
         self._volume: vtk.vtkVolume | None = None
+        self._mapper: vtk.vtkSmartVolumeMapper | None = None
         self._pipeline: PostProcessPipeline | None = None
 
     def configure(
@@ -41,7 +68,10 @@ class VolumeRenderer:
     ) -> None:
         """Build the rendering pipeline. Call once before render_frame."""
         if tf is None:
-            tf = TransferFunction.default_plume()
+            tf = resolve_transfer_function(
+                self._config.transfer_function.preset,
+                self._config.transfer_function.json_path,
+            )
 
         self._color_tf, self._opacity_tf = tf.to_vtk()
 
@@ -80,19 +110,23 @@ class VolumeRenderer:
         max_val = concentration.max()
         normalized = concentration / max_val if max_val > 0 else concentration
 
-        image_data = numpy_to_vtk_image(normalized)
+        grid = self._config.grid
+        spacing = (grid.dx, grid.dy, grid.dz)
+        image_data = numpy_to_vtk_image(normalized, spacing=spacing)
 
-        # Remove old volume, create new
-        if self._volume is not None:
-            self._renderer.RemoveVolume(self._volume)
-
-        self._volume = create_volume(
-            image_data,
-            self._color_tf,
-            self._opacity_tf,
-            scattering=self._config.scattering,
-        )
-        self._renderer.AddVolume(self._volume)
+        if self._volume is None:
+            # First frame: create volume actor and add to renderer
+            self._volume = create_volume(
+                image_data,
+                self._color_tf,
+                self._opacity_tf,
+                scattering=self._config.scattering,
+            )
+            self._mapper = self._volume.GetMapper()
+            self._renderer.AddVolume(self._volume)
+        else:
+            # Subsequent frames: only update input data (preserves BVH/gradient cache)
+            self._mapper.SetInputData(image_data)
 
         apply_camera(camera_state, self._renderer)
         self._win.Render()

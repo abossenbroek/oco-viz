@@ -1,3 +1,7 @@
+"""Tests for post-processing pipeline."""
+
+from __future__ import annotations
+
 import numpy as np
 
 from oco_viz.config.schema import PostProcessConfig
@@ -54,6 +58,22 @@ def test_pipeline_composes_stages():
     result = pipeline.process(rgb, depth)
     assert result.shape == rgb.shape
     assert result.dtype == np.float32
+
+
+def test_pipeline_order_fog_bloom_tonemap():
+    """Verify pipeline applies fog -> bloom -> tonemap (not fog -> tonemap -> bloom)."""
+    config = PostProcessConfig(bloom_intensity=0.5, bloom_threshold=0.3, exposure=1.0)
+    pipeline = PostProcessPipeline(config)
+
+    # Create HDR input with a bright spot
+    rgb = np.full((64, 64, 3), 0.1, dtype=np.float32)
+    rgb[28:36, 28:36, :] = 3.0  # HDR bright region
+    depth = np.full((64, 64), 10.0, dtype=np.float32)
+
+    result = pipeline.process(rgb, depth)
+    # Tonemap is last, so output must be in [0, 1]
+    assert result.min() >= 0.0
+    assert result.max() <= 1.0
 
 
 def test_default_pipeline():

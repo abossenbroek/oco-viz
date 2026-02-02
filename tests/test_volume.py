@@ -1,3 +1,7 @@
+"""Tests for VTK volume rendering utilities."""
+
+from __future__ import annotations
+
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +38,19 @@ def test_numpy_to_vtk_image():
     assert dims == (30, 20, 10)
 
 
+def test_numpy_to_vtk_image_default_spacing():
+    data = np.random.default_rng(42).random((10, 20, 30), dtype=np.float32)
+    image = numpy_to_vtk_image(data)
+    assert image.GetSpacing() == (1.0, 1.0, 1.0)
+
+
+def test_numpy_to_vtk_image_custom_spacing():
+    data = np.random.default_rng(42).random((10, 20, 30), dtype=np.float32)
+    spacing = (1000.0, 1000.0, 500.0)
+    image = numpy_to_vtk_image(data, spacing=spacing)
+    assert image.GetSpacing() == spacing
+
+
 def test_create_volume_without_scattering():
     blob = make_gaussian_blob((10, 20, 20))
     image_data = numpy_to_vtk_image(blob)
@@ -64,6 +81,19 @@ def test_create_volume_with_scattering():
     assert mapper.GetVolumetricScatteringBlending() == pytest.approx(1.0, abs=1e-6)
     assert volume.GetProperty().GetScatteringAnisotropy() == pytest.approx(0.5, abs=1e-6)
     assert volume.GetProperty().GetShade() == 1
+
+
+def test_create_volume_sample_distance():
+    blob = make_gaussian_blob((10, 20, 20))
+    image_data = numpy_to_vtk_image(blob)
+    tf = TransferFunction.default_plume()
+    color_tf, opacity_tf = tf.to_vtk()
+
+    scattering = ScatteringConfig(sample_distance=0.25)
+    volume = create_volume(image_data, color_tf, opacity_tf, scattering=scattering)
+    mapper = volume.GetMapper()
+    assert mapper.GetSampleDistance() == pytest.approx(0.25, abs=1e-6)
+    assert mapper.GetAutoAdjustSampleDistances() == 0
 
 
 @pytest.mark.skipci

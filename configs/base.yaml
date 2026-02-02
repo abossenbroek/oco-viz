@@ -18,14 +18,15 @@ ground_plane:
   color: [0.3, 0.3, 0.3]
 
 scattering:
-  global_illumination_reach: 0.5
-  volumetric_scattering_blending: 0.5
-  anisotropy: 0.3
+  global_illumination_reach: 1.0
+  volumetric_scattering_blending: 1.8
+  anisotropy: 0.75
   jittering: true
   shade: true
-  ambient: 0.3
-  diffuse: 0.7
-  specular: 0.2
+  ambient: 0.05
+  diffuse: 0.85
+  specular: 0.1
+  sample_distance: 0.5
 
 camera:
   rig: orbit

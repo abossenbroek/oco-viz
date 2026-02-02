@@ -48,14 +48,15 @@ class GroundPlaneConfig(BaseModel):
 class ScatteringConfig(BaseModel):
     """Volume scattering parameters for VTK."""
 
-    global_illumination_reach: float = Field(default=0.5, ge=0, le=1)
-    volumetric_scattering_blending: float = Field(default=0.5, ge=0, le=2)
-    anisotropy: float = Field(default=0.3, ge=-1, le=1)
+    global_illumination_reach: float = Field(default=1.0, ge=0, le=1)
+    volumetric_scattering_blending: float = Field(default=1.8, ge=0, le=2)
+    anisotropy: float = Field(default=0.75, ge=-1, le=1)
     jittering: bool = True
     shade: bool = True
-    ambient: float = Field(default=0.3, ge=0, le=1)
-    diffuse: float = Field(default=0.7, ge=0, le=1)
-    specular: float = Field(default=0.2, ge=0, le=1)
+    ambient: float = Field(default=0.05, ge=0, le=1)
+    diffuse: float = Field(default=0.85, ge=0, le=1)
+    specular: float = Field(default=0.1, ge=0, le=1)
+    sample_distance: float = Field(default=0.5, gt=0)
 
 
 class CameraConfig(BaseModel):

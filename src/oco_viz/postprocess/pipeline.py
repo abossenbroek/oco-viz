@@ -26,20 +26,23 @@ class PostProcessPipeline:
         rgb: NDArray[np.float32],
         depth: NDArray[np.float32],
     ) -> NDArray[np.float32]:
-        """Apply all stages: fog -> tonemap -> bloom."""
+        """Apply all stages: fog -> bloom -> tonemap.
+
+        Bloom operates in HDR/linear space before tonemapping compresses the range.
+        """
         result = apply_depth_fog(
             rgb,
             depth,
             density=self._config.fog_density,
             fog_color=self._config.fog_color,
         )
-        result = aces_tonemap(result, exposure=self._config.exposure)
-        return apply_bloom(
+        result = apply_bloom(
             result,
             threshold=self._config.bloom_threshold,
             intensity=self._config.bloom_intensity,
             passes=self._config.bloom_passes,
         )
+        return aces_tonemap(result, exposure=self._config.exposure)
 
     def quantize(self, rgb: NDArray[np.float32]) -> NDArray[np.uint8]:
         """Convert float32 [0,1] to uint8 [0,255]."""

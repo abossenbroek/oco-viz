@@ -1,10 +1,37 @@
+"""Tests for VolumeRenderer."""
+
+from __future__ import annotations
+
 import numpy as np
 import pytest
 
 from oco_viz.config import load_config
 from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.render.camera import CameraState
-from oco_viz.render.renderer import VolumeRenderer
+from oco_viz.render.renderer import PRESETS, VolumeRenderer, resolve_transfer_function
+from oco_viz.render.transfer import TransferFunction
+
+
+def test_preset_dispatch_all_known():
+    for name in PRESETS:
+        tf = resolve_transfer_function(name)
+        assert isinstance(tf, TransferFunction)
+        color_tf, opacity_tf = tf.to_vtk()
+        assert color_tf.GetSize() > 0
+        assert opacity_tf.GetSize() > 0
+
+
+def test_preset_dispatch_unknown_raises():
+    with pytest.raises(ValueError, match="Unknown transfer function preset"):
+        resolve_transfer_function("nonexistent")
+
+
+def test_preset_dispatch_json_path(tmp_path):
+    tf = TransferFunction.default_plume()
+    path = tmp_path / "custom.json"
+    tf.save_json(path)
+    loaded = resolve_transfer_function("ignored", json_path=str(path))
+    assert len(loaded.color_points) == len(tf.color_points)
 
 
 @pytest.mark.skipci
@@ -30,7 +57,7 @@ def test_configure_and_render():
 
 
 @pytest.mark.skipci
-def test_second_render_works():
+def test_second_render_reuses_volume():
     config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
     renderer = VolumeRenderer(config)
     renderer.configure()
@@ -40,7 +67,13 @@ def test_second_render_works():
     camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
 
     rgb1, _ = renderer.render_frame(conc1, camera)
+    # After first frame, volume should exist
+    assert renderer._volume is not None
+    volume_id = id(renderer._volume)
+
     rgb2, _ = renderer.render_frame(conc2, camera)
+    # Volume actor should be reused (not recreated)
+    assert id(renderer._volume) == volume_id
 
     assert rgb1.shape == (64, 64, 3)
     assert rgb2.shape == (64, 64, 3)
