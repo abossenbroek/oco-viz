@@ -8,7 +8,7 @@ from oco_viz.data.era5 import (
 )
 
 
-def test_build_cds_request_date_parsing():
+def test_build_cds_request_date_parsing() -> None:
     req = build_cds_request("2024-03-15")
     assert req["year"] == "2024"
     assert req["month"] == "03"
@@ -18,12 +18,12 @@ def test_build_cds_request_date_parsing():
     assert len(req["time"]) == 24
 
 
-def test_build_cds_request_pressure_levels():
+def test_build_cds_request_pressure_levels() -> None:
     req = build_cds_request("2024-01-01", pressure_levels=[850, 500])
     assert req["pressure_level"] == ["850", "500"]
 
 
-def test_wind_components_north_wind():
+def test_wind_components_north_wind() -> None:
     # Wind from the north (0 deg) blowing southward -> u=0, v<0
     u, v = wind_components_from_direction(10.0, 0.0)
     assert abs(u) < 1e-10
@@ -31,7 +31,7 @@ def test_wind_components_north_wind():
     assert abs(v - (-10.0)) < 1e-10
 
 
-def test_wind_components_west_wind():
+def test_wind_components_west_wind() -> None:
     # Wind from the west (270 deg) blowing eastward -> u>0, v~0
     u, v = wind_components_from_direction(10.0, 270.0)
     assert u > 0
@@ -39,7 +39,7 @@ def test_wind_components_west_wind():
     assert abs(v) < 1e-6
 
 
-def test_wind_components_round_trip():
+def test_wind_components_round_trip() -> None:
     speed = 8.5
     direction = 135.0
     u, v = wind_components_from_direction(speed, direction)

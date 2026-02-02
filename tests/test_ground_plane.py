@@ -6,7 +6,7 @@ from oco_viz.config.schema import GridConfig, GroundPlaneConfig
 from oco_viz.render.ground_plane import create_ground_plane
 
 
-def test_create_ground_plane_returns_actor():
+def test_create_ground_plane_returns_actor() -> None:
     config = GroundPlaneConfig()
     grid = GridConfig()
     actor = create_ground_plane(config, grid)
@@ -14,21 +14,21 @@ def test_create_ground_plane_returns_actor():
     assert actor.GetMapper() is not None
 
 
-def test_ground_plane_opacity():
+def test_ground_plane_opacity() -> None:
     config = GroundPlaneConfig(opacity=0.15)
     grid = GridConfig()
     actor = create_ground_plane(config, grid)
     assert abs(actor.GetProperty().GetOpacity() - 0.15) < 1e-6
 
 
-def test_ground_plane_color():
+def test_ground_plane_color() -> None:
     config = GroundPlaneConfig(color=(0.5, 0.5, 0.5))
     grid = GridConfig()
     actor = create_ground_plane(config, grid)
     assert actor.GetProperty().GetColor() == (0.5, 0.5, 0.5)
 
 
-def test_ground_plane_config_defaults():
+def test_ground_plane_config_defaults() -> None:
     config = GroundPlaneConfig()
     assert config.enabled is True
     assert abs(config.opacity - 0.08) < 1e-6

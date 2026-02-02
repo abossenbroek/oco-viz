@@ -1,7 +1,7 @@
 id: "4-5"
 title: "Wave 4 Integration Test + CLI Wiring"
 wave: 4
-status: todo
+status: done
 depends: ["4-2", "4-3", "4-4"]
 produces:
   - tests/test_turbulent_integration.py

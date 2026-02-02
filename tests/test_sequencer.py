@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import time
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -7,9 +10,12 @@ from oco_viz.data.zarr_store import write_zarr
 from oco_viz.plume.gaussian import generate_sequence
 from oco_viz.sequencer.controller import render_sequence
 
+if TYPE_CHECKING:
+    from pathlib import Path
+
 
 @pytest.mark.skipci
-def test_render_sequence_produces_frames(tmp_path):
+def test_render_sequence_produces_frames(tmp_path: Path) -> None:
     config = load_config(
         "dev_mac",
         overrides={
@@ -33,7 +39,7 @@ def test_render_sequence_produces_frames(tmp_path):
 
 
 @pytest.mark.skipci
-def test_resume_skips_existing(tmp_path):
+def test_resume_skips_existing(tmp_path: Path) -> None:
     config = load_config(
         "dev_mac",
         overrides={

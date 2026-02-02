@@ -19,20 +19,20 @@ DEFAULT_PLUME = PlumeConfig()
 DEFAULT_TURB = TurbulenceConfig(octaves=3, seed=42)
 
 
-def test_apply_turbulence_shape():
+def test_apply_turbulence_shape() -> None:
     base = gaussian_timestep(DEFAULT_PLUME, SMALL_GRID, 0)
     result = apply_turbulence(base, DEFAULT_TURB, SMALL_GRID, 0)
     assert result.shape == base.shape
     assert result.dtype == np.float32
 
 
-def test_apply_turbulence_nonnegative():
+def test_apply_turbulence_nonnegative() -> None:
     base = gaussian_timestep(DEFAULT_PLUME, SMALL_GRID, 0)
     result = apply_turbulence(base, DEFAULT_TURB, SMALL_GRID, 0)
     assert result.min() >= 0.0
 
 
-def test_turbulence_increases_variance():
+def test_turbulence_increases_variance() -> None:
     """Turbulence should produce higher spatial variance than smooth Gaussian."""
     base = gaussian_timestep(DEFAULT_PLUME, SMALL_GRID, 0)
     turb = apply_turbulence(base, DEFAULT_TURB, SMALL_GRID, 0)
@@ -45,7 +45,7 @@ def test_turbulence_increases_variance():
     assert turb_lap_var > base_lap_var
 
 
-def test_turbulence_preserves_mass_approximately():
+def test_turbulence_preserves_mass_approximately() -> None:
     """Total mass should be preserved within 50% (curl displacement redistributes)."""
     base = gaussian_timestep(DEFAULT_PLUME, SMALL_GRID, 0)
     turb = apply_turbulence(base, DEFAULT_TURB, SMALL_GRID, 0)
@@ -56,14 +56,14 @@ def test_turbulence_preserves_mass_approximately():
         assert 0.1 < ratio < 2.0, f"Mass ratio {ratio:.3f} out of range"
 
 
-def test_generate_turbulent_timestep():
+def test_generate_turbulent_timestep() -> None:
     result = generate_turbulent_timestep(DEFAULT_PLUME, SMALL_GRID, DEFAULT_TURB, 0)
     assert result.shape == SMALL_GRID.shape
     assert result.dtype == np.float32
     assert result.min() >= 0.0
 
 
-def test_generate_turbulent_timestep_disabled():
+def test_generate_turbulent_timestep_disabled() -> None:
     """When turbulence is disabled, should return plain Gaussian."""
     turb_off = TurbulenceConfig(enabled=False)
     base = gaussian_timestep(DEFAULT_PLUME, SMALL_GRID, 0)
@@ -71,14 +71,14 @@ def test_generate_turbulent_timestep_disabled():
     np.testing.assert_array_equal(result, base)
 
 
-def test_generate_turbulent_sequence_shape():
+def test_generate_turbulent_sequence_shape() -> None:
     n = 3
     ds = generate_turbulent_sequence(DEFAULT_PLUME, SMALL_GRID, DEFAULT_TURB, n)
     assert "concentration" in ds
     assert ds["concentration"].shape == (n, *SMALL_GRID.shape)
 
 
-def test_generate_turbulent_sequence_coords():
+def test_generate_turbulent_sequence_coords() -> None:
     n = 2
     ds = generate_turbulent_sequence(DEFAULT_PLUME, SMALL_GRID, DEFAULT_TURB, n)
     assert list(ds["concentration"].dims) == ["time", "z", "y", "x"]
@@ -88,7 +88,7 @@ def test_generate_turbulent_sequence_coords():
     assert len(ds.coords["x"]) == SMALL_GRID.nx
 
 
-def test_temporal_coherence():
+def test_temporal_coherence() -> None:
     """Adjacent frames should be highly correlated (no popping)."""
     turb = TurbulenceConfig(octaves=3, temporal_speed=0.02, seed=7)
     ds = generate_turbulent_sequence(DEFAULT_PLUME, SMALL_GRID, turb, 3)
@@ -100,7 +100,7 @@ def test_temporal_coherence():
         assert corr > 0.5, f"Frame {t} -> {t+1} correlation {corr:.4f} too low"
 
 
-def test_deterministic_seed():
+def test_deterministic_seed() -> None:
     a = generate_turbulent_timestep(DEFAULT_PLUME, SMALL_GRID, DEFAULT_TURB, 0)
     b = generate_turbulent_timestep(DEFAULT_PLUME, SMALL_GRID, DEFAULT_TURB, 0)
     np.testing.assert_array_equal(a, b)

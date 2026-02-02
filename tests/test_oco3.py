@@ -25,7 +25,7 @@ def _mock_cmr_response(n_entries: int = 3) -> bytes:
     return json.dumps({"feed": {"entry": entries}}).encode()
 
 
-def test_search_granules_returns_entries():
+def test_search_granules_returns_entries() -> None:
     mock_resp = MagicMock()
     mock_resp.read.return_value = _mock_cmr_response(2)
     mock_resp.__enter__ = lambda s: s
@@ -38,7 +38,7 @@ def test_search_granules_returns_entries():
     assert "title" in entries[0]
 
 
-def test_granule_download_urls_extracts_nc4():
+def test_granule_download_urls_extracts_nc4() -> None:
     entries = [
         {
             "links": [
@@ -58,7 +58,7 @@ def test_granule_download_urls_extracts_nc4():
     assert all("opendap" not in u for u in urls)
 
 
-def test_filter_quality_keeps_good_data():
+def test_filter_quality_keeps_good_data() -> None:
     xco2 = np.array([400.0, 410.0, 420.0, 405.0])
     flags = np.array([0, 1, 0, 0], dtype=np.int8)
     filtered = filter_quality(xco2, flags)

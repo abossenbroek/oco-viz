@@ -15,25 +15,25 @@ from oco_viz.data.transform import (
 # --- latlon_to_local_km / local_km_to_latlon round-trip ---
 
 
-def test_latlon_to_local_km_origin_is_zero():
+def test_latlon_to_local_km_origin_is_zero() -> None:
     x, y = latlon_to_local_km(-26.52, 29.17, origin_lat=-26.52, origin_lon=29.17)
     assert abs(x) < 1e-10
     assert abs(y) < 1e-10
 
 
-def test_latlon_to_local_km_one_degree_lat():
+def test_latlon_to_local_km_one_degree_lat() -> None:
     """One degree latitude ~ 111 km."""
     _, y = latlon_to_local_km(-25.52, 29.17, origin_lat=-26.52, origin_lon=29.17)
     assert 109 < y < 113
 
 
-def test_latlon_to_local_km_one_degree_lon():
+def test_latlon_to_local_km_one_degree_lon() -> None:
     """One degree longitude at -26.5 lat ~ 99 km (cos correction)."""
     x, _ = latlon_to_local_km(-26.52, 30.17, origin_lat=-26.52, origin_lon=29.17)
     assert 95 < x < 103
 
 
-def test_round_trip_latlon():
+def test_round_trip_latlon() -> None:
     """latlon -> local -> latlon should recover original coords."""
     lat, lon = -26.3, 29.5
     origin_lat, origin_lon = -26.52, 29.17
@@ -43,7 +43,7 @@ def test_round_trip_latlon():
     np.testing.assert_allclose(lon2, lon, atol=0.01)
 
 
-def test_latlon_to_local_km_arrays():
+def test_latlon_to_local_km_arrays() -> None:
     """Should work with numpy arrays."""
     lats = np.array([-26.52, -25.52])
     lons = np.array([29.17, 30.17])
@@ -55,19 +55,19 @@ def test_latlon_to_local_km_arrays():
 # --- pressure_to_altitude_m ---
 
 
-def test_pressure_1013_is_zero():
+def test_pressure_1013_is_zero() -> None:
     """Standard sea-level pressure should give ~0 m altitude."""
     alt = pressure_to_altitude_m(1013.25)
     assert abs(alt) < 50  # within 50 m of sea level
 
 
-def test_pressure_500_is_high():
+def test_pressure_500_is_high() -> None:
     """500 hPa ~ 5500 m in standard atmosphere."""
     alt = pressure_to_altitude_m(500.0)
     assert 5000 < alt < 6000
 
 
-def test_pressure_monotonic():
+def test_pressure_monotonic() -> None:
     """Lower pressure = higher altitude."""
     pressures = [1000, 850, 700, 500, 300]
     altitudes = [pressure_to_altitude_m(p) for p in pressures]
@@ -75,7 +75,7 @@ def test_pressure_monotonic():
         assert altitudes[i] < altitudes[i + 1]
 
 
-def test_pressure_array():
+def test_pressure_array() -> None:
     """Should work with numpy arrays."""
     p = np.array([1000.0, 500.0])
     alt = pressure_to_altitude_m(p)
@@ -86,7 +86,7 @@ def test_pressure_array():
 # --- regrid_to_cartesian ---
 
 
-def test_regrid_to_cartesian_shape():
+def test_regrid_to_cartesian_shape() -> None:
     """Output shape should match grid config."""
     grid = GridConfig(nx=10, ny=10, nz=5, dx=1000.0, dy=1000.0, dz=500.0)
     n_points = 50
@@ -98,7 +98,7 @@ def test_regrid_to_cartesian_shape():
     assert result.shape == (grid.ny, grid.nx)
 
 
-def test_regrid_to_cartesian_nan_fill():
+def test_regrid_to_cartesian_nan_fill() -> None:
     """Cells with no data should be NaN."""
     grid = GridConfig(nx=10, ny=10, nz=5, dx=1000.0, dy=1000.0, dz=500.0)
     # Place all data in one corner
@@ -110,7 +110,7 @@ def test_regrid_to_cartesian_nan_fill():
     assert np.isnan(result[9, 9])
 
 
-def test_regrid_to_cartesian_correct_binning():
+def test_regrid_to_cartesian_correct_binning() -> None:
     """Points in same cell should be averaged."""
     grid = GridConfig(nx=5, ny=5, nz=1, dx=1000.0, dy=1000.0, dz=500.0)
     # Two points in cell (0, 0)

@@ -13,27 +13,27 @@ def _max_opacity(tf: TransferFunction) -> float:
     return max(cp.opacity for cp in tf.opacity_points)
 
 
-def test_storm_peak_opacity():
+def test_storm_peak_opacity() -> None:
     tf = TransferFunction.cinematic_storm()
     assert _max_opacity(tf) < 0.15
 
 
-def test_ember_peak_opacity():
+def test_ember_peak_opacity() -> None:
     tf = TransferFunction.cinematic_ember()
     assert _max_opacity(tf) <= 0.15
 
 
-def test_atmospheric_peak_opacity():
+def test_atmospheric_peak_opacity() -> None:
     tf = TransferFunction.cinematic_atmospheric()
     assert _max_opacity(tf) <= 0.10
 
 
-def test_default_plume_peak_opacity():
+def test_default_plume_peak_opacity() -> None:
     tf = TransferFunction.default_plume()
     assert _max_opacity(tf) <= 0.15
 
 
-def test_all_presets_to_vtk():
+def test_all_presets_to_vtk() -> None:
     for factory in [
         TransferFunction.cinematic_storm,
         TransferFunction.cinematic_ember,
@@ -46,7 +46,7 @@ def test_all_presets_to_vtk():
         assert opacity_tf.GetSize() > 0
 
 
-def test_all_presets_json_roundtrip():
+def test_all_presets_json_roundtrip() -> None:
     for factory in [
         TransferFunction.cinematic_storm,
         TransferFunction.cinematic_ember,
@@ -62,7 +62,7 @@ def test_all_presets_json_roundtrip():
             assert a == b
 
 
-def test_storm_json_matches_classmethod():
+def test_storm_json_matches_classmethod() -> None:
     from_file = TransferFunction.from_json_file(CONFIGS_DIR / "storm.json")
     from_cls = TransferFunction.cinematic_storm()
     assert len(from_file.opacity_points) == len(from_cls.opacity_points)
@@ -70,7 +70,7 @@ def test_storm_json_matches_classmethod():
         assert a == b
 
 
-def test_ember_json_matches_classmethod():
+def test_ember_json_matches_classmethod() -> None:
     from_file = TransferFunction.from_json_file(CONFIGS_DIR / "ember.json")
     from_cls = TransferFunction.cinematic_ember()
     assert len(from_file.opacity_points) == len(from_cls.opacity_points)
@@ -78,7 +78,7 @@ def test_ember_json_matches_classmethod():
         assert a == b
 
 
-def test_atmospheric_json_matches_classmethod():
+def test_atmospheric_json_matches_classmethod() -> None:
     from_file = TransferFunction.from_json_file(CONFIGS_DIR / "atmospheric.json")
     from_cls = TransferFunction.cinematic_atmospheric()
     assert len(from_file.opacity_points) == len(from_cls.opacity_points)
@@ -86,7 +86,7 @@ def test_atmospheric_json_matches_classmethod():
         assert a == b
 
 
-def test_default_plume_json_matches_classmethod():
+def test_default_plume_json_matches_classmethod() -> None:
     from_file = TransferFunction.from_json_file(CONFIGS_DIR / "default_plume.json")
     from_cls = TransferFunction.default_plume()
     assert len(from_file.opacity_points) == len(from_cls.opacity_points)
@@ -94,7 +94,7 @@ def test_default_plume_json_matches_classmethod():
         assert a == b
 
 
-def test_storm_warm_highlight():
+def test_storm_warm_highlight() -> None:
     """Storm should have warm highlight at scalar 0.15."""
     tf = TransferFunction.cinematic_storm()
     s15 = [cp for cp in tf.color_points if cp.scalar == 0.15]

@@ -97,6 +97,6 @@ def test_base_config_has_exposure() -> None:
 
 def test_base_config_has_material_properties() -> None:
     config = load_config()
-    assert config.scattering.ambient == pytest.approx(0.3)
-    assert config.scattering.diffuse == pytest.approx(0.7)
-    assert config.scattering.specular == pytest.approx(0.2)
+    assert config.scattering.ambient == pytest.approx(0.05)
+    assert config.scattering.diffuse == pytest.approx(0.85)
+    assert config.scattering.specular == pytest.approx(0.1)

@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from oco_viz.render.transfer import ControlPoint, TransferFunction
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def test_json_round_trip():
+
+def test_json_round_trip() -> None:
     tf = TransferFunction.default_plume()
     json_str = tf.to_json()
     tf2 = TransferFunction.from_json(json_str)
@@ -17,20 +22,20 @@ def test_json_round_trip():
         assert a == b
 
 
-def test_to_vtk_returns_correct_types():
+def test_to_vtk_returns_correct_types() -> None:
     tf = TransferFunction.default_plume()
     color_tf, opacity_tf = tf.to_vtk()
     assert color_tf.GetSize() == len(tf.color_points)
     assert opacity_tf.GetSize() == len(tf.opacity_points)
 
 
-def test_control_point_frozen():
+def test_control_point_frozen() -> None:
     cp = ControlPoint(scalar=0.5, r=1.0, g=0.5, b=0.0, opacity=0.3)
     assert cp.scalar == 0.5
     assert cp.r == 1.0
 
 
-def test_save_and_load_json(tmp_path):
+def test_save_and_load_json(tmp_path: Path) -> None:
     tf = TransferFunction.default_plume()
     path = tmp_path / "tf.json"
     tf.save_json(path)
@@ -38,7 +43,7 @@ def test_save_and_load_json(tmp_path):
     assert len(tf2.color_points) == len(tf.color_points)
 
 
-def test_empty_transfer_function():
+def test_empty_transfer_function() -> None:
     tf = TransferFunction()
     color_tf, opacity_tf = tf.to_vtk()
     assert color_tf.GetSize() == 0

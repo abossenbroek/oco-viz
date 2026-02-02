@@ -20,7 +20,7 @@ def _make_depth(h: int = 64, w: int = 64) -> np.ndarray:
     return np.linspace(0, 100, h * w, dtype=np.float32).reshape(h, w)
 
 
-def test_fog_shifts_toward_fog_color():
+def test_fog_shifts_toward_fog_color() -> None:
     rgb = _make_rgb()
     depth = _make_depth()
     fog_color = (0.7, 0.75, 0.85)
@@ -34,7 +34,7 @@ def test_fog_shifts_toward_fog_color():
     assert far_dist < near_dist
 
 
-def test_tonemap_output_in_range():
+def test_tonemap_output_in_range() -> None:
     rgb = _make_rgb() * 5.0  # HDR input
     result = aces_tonemap(rgb)
     assert result.min() >= 0.0
@@ -42,7 +42,7 @@ def test_tonemap_output_in_range():
     assert result.dtype == np.float32
 
 
-def test_bloom_increases_brightness():
+def test_bloom_increases_brightness() -> None:
     rgb = _make_rgb()
     rgb[30:35, 30:35, :] = 1.0  # bright spot
     result = apply_bloom(rgb, threshold=0.8, intensity=0.5, passes=3)
@@ -50,7 +50,7 @@ def test_bloom_increases_brightness():
     assert result.mean() >= rgb.mean()
 
 
-def test_pipeline_composes_stages():
+def test_pipeline_composes_stages() -> None:
     config = PostProcessConfig()
     pipeline = PostProcessPipeline(config)
     rgb = _make_rgb()
@@ -60,7 +60,7 @@ def test_pipeline_composes_stages():
     assert result.dtype == np.float32
 
 
-def test_pipeline_order_fog_bloom_tonemap():
+def test_pipeline_order_fog_bloom_tonemap() -> None:
     """Verify pipeline applies fog -> bloom -> tonemap (not fog -> tonemap -> bloom)."""
     config = PostProcessConfig(bloom_intensity=0.5, bloom_threshold=0.3, exposure=1.0)
     pipeline = PostProcessPipeline(config)
@@ -76,7 +76,7 @@ def test_pipeline_order_fog_bloom_tonemap():
     assert result.max() <= 1.0
 
 
-def test_default_pipeline():
+def test_default_pipeline() -> None:
     pipeline = default_pipeline()
     rgb = _make_rgb()
     depth = _make_depth()
@@ -84,7 +84,7 @@ def test_default_pipeline():
     assert result.shape == rgb.shape
 
 
-def test_quantize():
+def test_quantize() -> None:
     pipeline = default_pipeline()
     rgb = np.full((10, 10, 3), 0.5, dtype=np.float32)
     q = pipeline.quantize(rgb)

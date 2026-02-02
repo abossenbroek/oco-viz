@@ -11,7 +11,7 @@ from oco_viz.render.camera import (
 )
 
 
-def test_fixed_camera_constant():
+def test_fixed_camera_constant() -> None:
     cam = FixedCamera(position=(1, 2, 3), focal_point=(0, 0, 0))
     s0 = cam.evaluate(0.0)
     s1 = cam.evaluate(0.5)
@@ -19,7 +19,7 @@ def test_fixed_camera_constant():
     assert s0 == s1 == s2
 
 
-def test_orbit_full_revolution():
+def test_orbit_full_revolution() -> None:
     cam = OrbitCamera(azimuth_start=0.0, azimuth_end=360.0)
     s0 = cam.evaluate(0.0)
     s1 = cam.evaluate(1.0)
@@ -28,7 +28,7 @@ def test_orbit_full_revolution():
     assert s0.position[2] == pytest.approx(s1.position[2], abs=1e-6)
 
 
-def test_dolly_midpoint():
+def test_dolly_midpoint() -> None:
     cam = DollyCamera(
         start_position=(0, 0, 0),
         end_position=(100, 0, 0),
@@ -38,7 +38,7 @@ def test_dolly_midpoint():
     assert mid.position[0] == pytest.approx(50.0, abs=1e-6)
 
 
-def test_dolly_endpoints():
+def test_dolly_endpoints() -> None:
     cam = DollyCamera(
         start_position=(0, 0, 0),
         end_position=(100, 200, 300),
@@ -50,7 +50,7 @@ def test_dolly_endpoints():
     assert np.allclose(s1.position, (100, 200, 300), atol=1e-6)
 
 
-def test_apply_camera_sets_vtk():
+def test_apply_camera_sets_vtk() -> None:
     state = CameraState(position=(10, 20, 30), focal_point=(0, 0, 0))
     renderer = vtk.vtkRenderer()
     apply_camera(state, renderer)

@@ -14,7 +14,7 @@ from oco_viz.config.schema import (
 )
 
 
-def test_domain_config_defaults():
+def test_domain_config_defaults() -> None:
     d = DomainConfig()
     assert d.origin_lat == pytest.approx(-26.52)
     assert d.origin_lon == pytest.approx(29.17)
@@ -23,7 +23,7 @@ def test_domain_config_defaults():
     assert d.extent_z_km == pytest.approx(15.0)
 
 
-def test_era5_config_defaults():
+def test_era5_config_defaults() -> None:
     e = ERA5Config()
     assert 1000 in e.pressure_levels
     assert 500 in e.pressure_levels
@@ -31,26 +31,26 @@ def test_era5_config_defaults():
     assert "v_component_of_wind" in e.variables
 
 
-def test_oco3_config_defaults():
+def test_oco3_config_defaults() -> None:
     o = OCO3Config()
     assert o.quality_threshold == 0
     assert o.collection_id
 
 
-def test_datasource_config_defaults():
+def test_datasource_config_defaults() -> None:
     ds = DataSourceConfig()
     assert ds.domain is not None
     assert ds.era5 is not None
     assert ds.oco3 is not None
 
 
-def test_app_config_has_datasource():
+def test_app_config_has_datasource() -> None:
     cfg = AppConfig()
     assert hasattr(cfg, "data_source")
     assert isinstance(cfg.data_source, DataSourceConfig)
 
 
-def test_load_config_preserves_existing_fields():
+def test_load_config_preserves_existing_fields() -> None:
     """Adding data_source must not break existing config loading."""
     cfg = load_config()
     assert cfg.grid.nx == 100
@@ -58,12 +58,12 @@ def test_load_config_preserves_existing_fields():
     assert cfg.plume.wind_speed == pytest.approx(5.0)
 
 
-def test_load_config_has_datasource_section():
+def test_load_config_has_datasource_section() -> None:
     cfg = load_config()
     assert cfg.data_source.domain.origin_lat == pytest.approx(-26.52)
 
 
-def test_datasource_overrides():
+def test_datasource_overrides() -> None:
     cfg = load_config(overrides={"data_source": {"domain": {"extent_x_km": 200.0}}})
     assert cfg.data_source.domain.extent_x_km == pytest.approx(200.0)
     # Other defaults preserved

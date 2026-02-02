@@ -8,6 +8,7 @@ from pathlib import Path
 from oco_viz.config import load_config
 from oco_viz.data.zarr_store import write_zarr
 from oco_viz.plume.gaussian import generate_sequence
+from oco_viz.plume.turbulent import generate_turbulent_sequence
 from oco_viz.sequencer.controller import render_sequence
 from oco_viz.sequencer.encode import encode_video
 
@@ -16,14 +17,24 @@ def cmd_generate_plume(args: argparse.Namespace) -> None:
     """Generate synthetic plume to Zarr."""
     config = load_config(args.profile)
     output = Path(args.output)
-    ds = generate_sequence(config.plume, config.grid, num_timesteps=args.timesteps)
+
+    if args.turbulent:
+        ds = generate_turbulent_sequence(
+            config.plume, config.grid, config.turbulence, num_timesteps=args.timesteps,
+        )
+    else:
+        ds = generate_sequence(config.plume, config.grid, num_timesteps=args.timesteps)
+
     write_zarr(ds, output)
     print(f"Wrote {args.timesteps} timesteps to {output}")
 
 
 def cmd_render(args: argparse.Namespace) -> None:
     """Render frames from Zarr."""
-    config = load_config(args.profile)
+    overrides: dict[str, dict[str, str]] = {}
+    if args.preset:
+        overrides["transfer_function"] = {"preset": args.preset}
+    config = load_config(args.profile, overrides=overrides if overrides else None)
     zarr_path = Path(args.zarr)
     paths = render_sequence(config, zarr_path, num_frames=args.num_frames)
     print(f"Rendered {len(paths)} frames to {config.output.frames_dir}")
@@ -45,7 +56,12 @@ def cmd_pipeline(args: argparse.Namespace) -> None:
     zarr_path = Path("output/plume.zarr")
 
     # Generate
-    ds = generate_sequence(config.plume, config.grid, num_timesteps=args.num_frames)
+    if args.turbulent:
+        ds = generate_turbulent_sequence(
+            config.plume, config.grid, config.turbulence, num_timesteps=args.num_frames,
+        )
+    else:
+        ds = generate_sequence(config.plume, config.grid, num_timesteps=args.num_frames)
     write_zarr(ds, zarr_path)
     print(f"Generated plume: {zarr_path}")
 
@@ -69,6 +85,7 @@ def main() -> None:
     p_gen.add_argument("--profile", default="dev_mac")
     p_gen.add_argument("--output", default="output/plume.zarr")
     p_gen.add_argument("--timesteps", type=int, default=48)
+    p_gen.add_argument("--turbulent", action="store_true", help="Use turbulent plume compositor")
     p_gen.set_defaults(func=cmd_generate_plume)
 
     # render
@@ -76,6 +93,7 @@ def main() -> None:
     p_render.add_argument("--profile", default="dev_mac")
     p_render.add_argument("--zarr", default="output/plume.zarr")
     p_render.add_argument("--num-frames", type=int, default=None)
+    p_render.add_argument("--preset", default=None, help="Transfer function preset name")
     p_render.set_defaults(func=cmd_render)
 
     # encode
@@ -87,6 +105,7 @@ def main() -> None:
     p_pipe = sub.add_parser("pipeline", help="Full pipeline: generate -> render -> encode")
     p_pipe.add_argument("--profile", default="dev_mac")
     p_pipe.add_argument("--num-frames", type=int, default=48)
+    p_pipe.add_argument("--turbulent", action="store_true", help="Use turbulent plume compositor")
     p_pipe.set_defaults(func=cmd_pipeline)
 
     args = parser.parse_args()

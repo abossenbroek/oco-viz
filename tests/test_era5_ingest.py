@@ -30,18 +30,18 @@ def grid() -> GridConfig:
     return GridConfig(nx=10, ny=10, nz=5, dx=1000.0, dy=1000.0, dz=500.0)
 
 
-def test_load_era5_winds_returns_dataset(domain, grid):
+def test_load_era5_winds_returns_dataset(domain: DomainConfig, grid: GridConfig) -> None:
     ds = load_era5_winds(_ERA5_PATH, domain, grid)
     assert isinstance(ds, xr.Dataset)
 
 
-def test_load_era5_winds_has_wind_vars(domain, grid):
+def test_load_era5_winds_has_wind_vars(domain: DomainConfig, grid: GridConfig) -> None:
     ds = load_era5_winds(_ERA5_PATH, domain, grid)
     assert "u_wind" in ds
     assert "v_wind" in ds
 
 
-def test_load_era5_winds_shape(domain, grid):
+def test_load_era5_winds_shape(domain: DomainConfig, grid: GridConfig) -> None:
     ds = load_era5_winds(_ERA5_PATH, domain, grid)
     # Should have (time, z, y, x) dimensions
     assert set(ds["u_wind"].dims) == {"time", "z", "y", "x"}
@@ -50,13 +50,13 @@ def test_load_era5_winds_shape(domain, grid):
     assert ds["u_wind"].shape[3] == grid.nx
 
 
-def test_load_era5_winds_dtype(domain, grid):
+def test_load_era5_winds_dtype(domain: DomainConfig, grid: GridConfig) -> None:
     ds = load_era5_winds(_ERA5_PATH, domain, grid)
     assert ds["u_wind"].dtype == np.float32
     assert ds["v_wind"].dtype == np.float32
 
 
-def test_load_era5_winds_physically_reasonable(domain, grid):
+def test_load_era5_winds_physically_reasonable(domain: DomainConfig, grid: GridConfig) -> None:
     ds = load_era5_winds(_ERA5_PATH, domain, grid)
     u = ds["u_wind"].values
     v = ds["v_wind"].values
@@ -66,7 +66,7 @@ def test_load_era5_winds_physically_reasonable(domain, grid):
     assert np.nanmin(speed) >= 0.0
 
 
-def test_build_era5_request_for_domain():
+def test_build_era5_request_for_domain() -> None:
     domain = DomainConfig()
     era5_cfg = ERA5Config()
     req = build_era5_request_for_domain(domain, era5_cfg, "2024-01-15")

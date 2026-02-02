@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 
@@ -11,8 +13,11 @@ from oco_viz.render.camera import CameraState
 from oco_viz.render.renderer import PRESETS, VolumeRenderer, resolve_transfer_function
 from oco_viz.render.transfer import TransferFunction
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def test_preset_dispatch_all_known():
+
+def test_preset_dispatch_all_known() -> None:
     for name in PRESETS:
         tf = resolve_transfer_function(name)
         assert isinstance(tf, TransferFunction)
@@ -21,12 +26,12 @@ def test_preset_dispatch_all_known():
         assert opacity_tf.GetSize() > 0
 
 
-def test_preset_dispatch_unknown_raises():
+def test_preset_dispatch_unknown_raises() -> None:
     with pytest.raises(ValueError, match="Unknown transfer function preset"):
         resolve_transfer_function("nonexistent")
 
 
-def test_preset_dispatch_json_path(tmp_path):
+def test_preset_dispatch_json_path(tmp_path: Path) -> None:
     tf = TransferFunction.default_plume()
     path = tmp_path / "custom.json"
     tf.save_json(path)
@@ -35,7 +40,7 @@ def test_preset_dispatch_json_path(tmp_path):
 
 
 @pytest.mark.skipci
-def test_configure_and_render():
+def test_configure_and_render() -> None:
     config = load_config("dev_mac", overrides={"output": {"width": 128, "height": 128}})
     renderer = VolumeRenderer(config)
     renderer.configure()
@@ -57,7 +62,7 @@ def test_configure_and_render():
 
 
 @pytest.mark.skipci
-def test_second_render_reuses_volume():
+def test_second_render_reuses_volume() -> None:
     config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
     renderer = VolumeRenderer(config)
     renderer.configure()
@@ -82,7 +87,7 @@ def test_second_render_reuses_volume():
 
 
 @pytest.mark.skipci
-def test_render_with_postprocessing():
+def test_render_with_postprocessing() -> None:
     config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
     renderer = VolumeRenderer(config)
     renderer.configure()
