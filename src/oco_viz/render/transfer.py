@@ -69,8 +69,96 @@ class TransferFunction:
         path.write_text(self.to_json())
 
     @classmethod
+    def cinematic_storm(cls) -> TransferFunction:
+        """Dark, dramatic volumetric look with deep self-shadowing.
+
+        Retuned for low per-sample opacity (peak 0.12) — visual density comes
+        from accumulation over many ray-march samples. Warm highlight at scalar
+        0.15 for silver-warm rim lighting edges.
+        """
+        return cls(
+            color_points=[
+                ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
+                ControlPoint(scalar=0.15, r=0.15, g=0.14, b=0.13),
+                ControlPoint(scalar=0.35, r=0.15, g=0.18, b=0.22),
+                ControlPoint(scalar=0.55, r=0.12, g=0.14, b=0.18),
+                ControlPoint(scalar=0.75, r=0.08, g=0.10, b=0.14),
+                ControlPoint(scalar=0.90, r=0.05, g=0.06, b=0.09),
+                ControlPoint(scalar=1.0, r=0.04, g=0.05, b=0.07),
+            ],
+            opacity_points=[
+                ControlPoint(scalar=0.0, opacity=0.0),
+                ControlPoint(scalar=0.05, opacity=0.0),
+                ControlPoint(scalar=0.10, opacity=0.005),
+                ControlPoint(scalar=0.20, opacity=0.02),
+                ControlPoint(scalar=0.35, opacity=0.04),
+                ControlPoint(scalar=0.50, opacity=0.06),
+                ControlPoint(scalar=0.70, opacity=0.08),
+                ControlPoint(scalar=0.85, opacity=0.10),
+                ControlPoint(scalar=1.0, opacity=0.12),
+            ],
+        )
+
+    @classmethod
+    def cinematic_ember(cls) -> TransferFunction:
+        """Hot emission look with deep reds to white-yellow.
+
+        Retuned for low per-sample opacity (peak 0.15).
+        """
+        return cls(
+            color_points=[
+                ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
+                ControlPoint(scalar=0.2, r=0.15, g=0.02, b=0.0),
+                ControlPoint(scalar=0.4, r=0.5, g=0.08, b=0.0),
+                ControlPoint(scalar=0.6, r=0.8, g=0.25, b=0.02),
+                ControlPoint(scalar=0.8, r=1.0, g=0.5, b=0.1),
+                ControlPoint(scalar=1.0, r=1.0, g=0.85, b=0.4),
+            ],
+            opacity_points=[
+                ControlPoint(scalar=0.0, opacity=0.0),
+                ControlPoint(scalar=0.1, opacity=0.0),
+                ControlPoint(scalar=0.25, opacity=0.01),
+                ControlPoint(scalar=0.4, opacity=0.03),
+                ControlPoint(scalar=0.6, opacity=0.07),
+                ControlPoint(scalar=0.8, opacity=0.11),
+                ControlPoint(scalar=1.0, opacity=0.15),
+            ],
+        )
+
+    @classmethod
+    def cinematic_atmospheric(cls) -> TransferFunction:
+        """Realistic atmospheric scattering with Rayleigh blue-shift.
+
+        Retuned for low per-sample opacity (peak 0.10).
+        """
+        return cls(
+            color_points=[
+                ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
+                ControlPoint(scalar=0.15, r=0.55, g=0.60, b=0.70),
+                ControlPoint(scalar=0.3, r=0.65, g=0.68, b=0.72),
+                ControlPoint(scalar=0.5, r=0.75, g=0.75, b=0.75),
+                ControlPoint(scalar=0.7, r=0.82, g=0.80, b=0.78),
+                ControlPoint(scalar=0.85, r=0.88, g=0.86, b=0.84),
+                ControlPoint(scalar=1.0, r=0.92, g=0.90, b=0.88),
+            ],
+            opacity_points=[
+                ControlPoint(scalar=0.0, opacity=0.0),
+                ControlPoint(scalar=0.05, opacity=0.0),
+                ControlPoint(scalar=0.15, opacity=0.005),
+                ControlPoint(scalar=0.30, opacity=0.02),
+                ControlPoint(scalar=0.50, opacity=0.04),
+                ControlPoint(scalar=0.70, opacity=0.07),
+                ControlPoint(scalar=0.85, opacity=0.09),
+                ControlPoint(scalar=1.0, opacity=0.10),
+            ],
+        )
+
+    @classmethod
     def default_plume(cls) -> TransferFunction:
-        """Default transfer function for CO2 plume visualization."""
+        """Default transfer function for CO2 plume visualization.
+
+        Retuned for low per-sample opacity (peak 0.15).
+        """
         return cls(
             color_points=[
                 ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
@@ -83,9 +171,9 @@ class TransferFunction:
             opacity_points=[
                 ControlPoint(scalar=0.0, opacity=0.0),
                 ControlPoint(scalar=0.1, opacity=0.0),
-                ControlPoint(scalar=0.3, opacity=0.1),
-                ControlPoint(scalar=0.5, opacity=0.3),
-                ControlPoint(scalar=0.8, opacity=0.6),
-                ControlPoint(scalar=1.0, opacity=0.8),
+                ControlPoint(scalar=0.3, opacity=0.02),
+                ControlPoint(scalar=0.5, opacity=0.06),
+                ControlPoint(scalar=0.8, opacity=0.11),
+                ControlPoint(scalar=1.0, opacity=0.15),
             ],
         )

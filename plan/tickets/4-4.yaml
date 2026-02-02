@@ -1,7 +1,7 @@
 id: "4-4"
 title: "Cinematic Transfer Function Presets (Retuned for Low Opacity)"
 wave: 4
-status: todo
+status: done
 depends: ["4-2"]
 produces:
   - tests/test_transfer_presets.py
