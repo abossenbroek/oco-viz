@@ -1,11 +1,11 @@
 id: "5-3"
-title: "Cinematic Camera Choreography (Keyframe Splines)"
+title: "Camera Choreography + Motion Vocabulary"
 wave: 5
 status: todo
-depends: []
+depends: ["4.5-1"]
 produces:
   - src/oco_viz/render/camera_path.py
-  - tests/test_camera_path.py
+  - src/oco_viz/render/easing.py
 gates:
   - cmd: "pixi run ruff check src/ tests/"
     expect: exit_0
@@ -13,50 +13,29 @@ gates:
     expect: exit_0
   - cmd: "pixi run pyright src/"
     expect: exit_0
-  - cmd: "pixi run pytest tests/test_camera_path.py -x"
+  - cmd: "pixi run pytest tests/ -x"
     expect: exit_0
 context:
   key_behavior: |
-    Keyframe-based spline camera with cinematic presets.
+    Camera choreography absorbing old 5-3 keyframe splines + Soot motion vocabulary.
 
-    @attr.s(auto_attribs=True, frozen=True, slots=True)
-    class CameraKeyframe:
-        t: float
-        position: tuple[float, float, float]
-        focal_point: tuple[float, float, float]
-        view_up: tuple[float, float, float] = (0.0, 0.0, 1.0)
-        fov: float = 45.0
+    EasingFunction enum: linear, smoothstep, ease_in_cubic, ease_in_out_cubic,
+    heavy_ease_in (t^4 curve).
 
-    class CameraPath:
-        def __init__(self, keyframes, interpolation="catmull_rom")
-        def evaluate(self, t: float) -> CameraState
-        @classmethod
-        def from_preset(cls, name, grid, plume_cfg) -> CameraPath
-        @classmethod
-        def from_json(cls, path) -> CameraPath
+    CameraPath with Catmull-Rom spline interpolation via
+    scipy.interpolate.CubicSpline.
 
-    Catmull-Rom spline: use scipy.interpolate.CubicSpline with
-    bc_type='clamped' on position, focal_point, fov channels separately.
+    Cinematic presets: "reveal", "orbit_rise", "push_in", "glacial_drift".
 
-    Presets (generate keyframes relative to grid/plume config):
-    1. "reveal" — start close/low, pull back+up, reveal plume (4 keyframes)
-    2. "orbit_rise" — orbit + slow vertical rise (6 keyframes)
-    3. "push_in" — wide establishing → close-up (3 keyframes)
-    4. "top_down_drift" — bird's eye with lateral drift (3 keyframes)
-
-    Add CameraPathConfig to schema.py:
-      preset: str = "orbit"  # orbit | reveal | orbit_rise | push_in | top_down_drift
-      keyframes_json: str | None = None
-      interpolation: str = "catmull_rom"
-    Add to AppConfig. Add to base.yaml.
-
-    CameraPath.evaluate(t) returns CameraState so it's drop-in compatible
-    with OrbitCamera.evaluate(t) — same protocol.
+    MotionConfig in schema: easing, tempo_multiplier, camera_drift_speed.
+    Exhibition tier overlay: easing=heavy_ease_in, tempo_multiplier=0.3.
+    Study tier: easing=smoothstep, tempo_multiplier=1.0.
   patterns:
-    - "scipy.interpolate.CubicSpline for smooth paths"
-    - "evaluate(t) -> CameraState protocol"
-    - "attrs frozen dataclass for keyframes"
+    - "scipy.interpolate.CubicSpline for Catmull-Rom"
+    - "Enum-based easing dispatch"
+    - "Config-driven motion presets"
   related_files:
     - src/oco_viz/render/camera.py
     - src/oco_viz/config/schema.py
-    - configs/base.yaml
+    - configs/tiers/exhibition.yaml
+    - configs/tiers/study.yaml

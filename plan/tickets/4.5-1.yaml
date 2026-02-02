@@ -1,0 +1,50 @@
+id: "4.5-1"
+title: "Spec Fixes + Tier System Architecture"
+wave: 4.5
+status: todo
+depends: ["4-5"]
+produces:
+  - src/oco_viz/config/tier.py
+  - configs/tiers/sketch.yaml
+  - configs/tiers/study.yaml
+  - configs/tiers/exhibition.yaml
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Two parts: spec contradiction fixes and tier system architecture.
+
+    PART A: Fix 5 spec contradictions in PRD, RFC, and visual_language.yaml
+      1. Bloom in exhibition: omit bloom in exhibition tier. Study tier keeps bloom.
+      2. Study fog: include grey fog in study (dev visibility aid). Exhibition: no fog.
+      3. Diffuse lighting: use diffuse=0.0 for exhibition (no external light response).
+         Keep 0.5 in YAML as study default.
+      4. NG1 removed but C1 "POC velocity" remains: add note that exhibition tier
+         is aspirational target; study tier is MVP.
+      5. frame_fill "0.6-0.8" is string: change to frame_fill: [0.6, 0.8] (YAML list).
+
+    PART B: Tier system architecture
+      Add Tier enum to new tier.py: sketch, study, exhibition.
+      Add TierConfig with tier field to AppConfig in schema.py.
+      Add --tier CLI argument to __main__.py (default: study).
+      Create tier overlay mechanism: configs/tiers/{sketch,study,exhibition}.yaml.
+      Config loading order: base.yaml + platform.yaml + tier.yaml (deep merge).
+      Tier propagates to renderer, post-processing, lighting via config.
+  patterns:
+    - "Pydantic v2 enum + config schema"
+    - "YAML deep merge for config layering"
+    - "argparse CLI extension"
+  related_files:
+    - src/oco_viz/config/schema.py
+    - src/oco_viz/__main__.py
+    - configs/base.yaml
+    - plan/idea_board/soot_prd.md
+    - plan/idea_board/soot_rfc.md
+    - plan/idea_board/visual_language.yaml

@@ -1,7 +1,7 @@
 id: "5.5-1"
 title: "CAMS High-Res GHG Forecast Loader"
 wave: 5.5
-status: todo
+status: done
 depends: []
 produces:
   - src/oco_viz/data/cams.py

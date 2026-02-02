@@ -1,7 +1,7 @@
 id: "5.5-5"
 title: "Location Portability (Parameterize Hardcoded Coordinates)"
 wave: 5.5
-status: todo
+status: done
 depends: []
 produces:
   - configs/seattle.yaml

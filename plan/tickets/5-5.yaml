@@ -1,10 +1,10 @@
 id: "5-5"
-title: "Sequencer Wiring + Cinematic Integration Test"
+title: "Soot Rendering Integration Test"
 wave: 5
 status: todo
 depends: ["5-1", "5-2", "5-3", "5-4"]
 produces:
-  - tests/test_cinematic_integration.py
+  - tests/test_soot_integration.py
 gates:
   - cmd: "pixi run ruff check src/ tests/"
     expect: exit_0
@@ -12,43 +12,29 @@ gates:
     expect: exit_0
   - cmd: "pixi run pyright src/"
     expect: exit_0
-  - cmd: "pixi run pytest tests/test_cinematic_integration.py -x"
+  - cmd: "pixi run pytest tests/test_soot_integration.py -x"
     expect: exit_0
 context:
   key_behavior: |
-    Wire all cinematic components into controller.py render loop, then test.
+    End-to-end Soot rendering integration test replacing old sequencer wiring test.
 
-    WIRING (controller.py changes):
-    1. Camera dispatch: use CameraPath.from_preset or OrbitCamera
-       based on config.camera_path.preset. Factory function:
-       create_camera_rig(config) -> CameraPath | OrbitCamera
-    2. LightRig: instantiate from config, call update(camera_state)
-       per frame before render
-    3. Quality mode: apply quality overrides in renderer.configure()
-    4. Frame-index seed: pass frame index to grain for temporal variation
+    Test: generate turbulent plume -> render with soot TF -> verify output.
 
-    TESTS (test_cinematic_integration.py):
-    1. Full pipeline: turbulent plume + storm TF + dramatic lighting +
-       reveal camera + full post-processing → produces frames
-    2. Storm TF: dark histogram (>60% pixels below 0.3 luminance)
-    3. Rim light: edge-region brightness > center brightness
-    4. Vignette: corner brightness < center brightness
-    5. Camera path: no position discontinuities between frames
-    6. Quality modes: preview renders faster than hero
-    7. Hero config profile loads and produces valid render
-    8. Sequencer resume still works with new camera/lighting
+    Study tier assertions: soot TF active, grey fog, basic lighting, bloom active.
+    Exhibition tier assertions: no sky, no ground plane, no fog, no external lights,
+    smoldering scattering params.
+    Sketch tier assertions: passthrough post-processing, no lighting.
 
-    Expert note: the integration test should verify that lowered per-sample
-    opacity + fine sample distance + high GI reach produces translucent
-    accumulation (not opaque blob). Check that max pixel brightness > 0.5
-    (rim light shines through volume edges).
+    Verify config overlay mechanism works for all three tiers.
+    Verify achromatic output (R~=G~=B in rendered frames).
   patterns:
-    - "pytest with skipci marker for VTK tests"
-    - "Factory pattern for camera dispatch"
+    - "End-to-end integration test"
+    - "Tier-conditional assertions"
+    - "VTK offscreen rendering for test"
   related_files:
-    - src/oco_viz/sequencer/controller.py
     - src/oco_viz/render/renderer.py
-    - src/oco_viz/render/light_rig.py
-    - src/oco_viz/render/camera_path.py
+    - src/oco_viz/render/lighting.py
+    - src/oco_viz/render/transfer.py
     - src/oco_viz/postprocess/pipeline.py
-    - configs/hero.yaml
+    - src/oco_viz/config/tier.py
+    - src/oco_viz/config/schema.py

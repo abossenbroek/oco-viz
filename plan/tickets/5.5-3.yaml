@@ -1,7 +1,7 @@
 id: "5.5-3"
 title: "Composite Pipeline Mode (CAMS + Plume + Turbulence)"
 wave: 5.5
-status: todo
+status: done
 depends: ["5.5-1", "5.5-2"]
 produces:
   - tests/test_composite_pipeline.py

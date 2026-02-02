@@ -18,7 +18,7 @@ def apply_lighting(renderer: vtk.vtkRenderer) -> None:
     key.SetPosition(-1.0, -1.0, 0.8)
     key.SetFocalPoint(0.0, 0.0, 0.0)
     key.SetColor(1.0, 0.9, 0.7)
-    key.SetIntensity(1.0)
+    key.SetIntensity(1.2)
     renderer.AddLight(key)
 
     # Fill light: cool ambient from opposite side
@@ -27,7 +27,7 @@ def apply_lighting(renderer: vtk.vtkRenderer) -> None:
     fill.SetPosition(1.0, 0.5, 0.3)
     fill.SetFocalPoint(0.0, 0.0, 0.0)
     fill.SetColor(0.6, 0.7, 1.0)
-    fill.SetIntensity(0.3)
+    fill.SetIntensity(0.45)
     renderer.AddLight(fill)
 
     # Rim light: from behind and above
@@ -36,5 +36,5 @@ def apply_lighting(renderer: vtk.vtkRenderer) -> None:
     rim.SetPosition(0.0, 1.0, 1.0)
     rim.SetFocalPoint(0.0, 0.0, 0.0)
     rim.SetColor(1.0, 0.95, 0.9)
-    rim.SetIntensity(0.5)
+    rim.SetIntensity(0.7)
     renderer.AddLight(rim)

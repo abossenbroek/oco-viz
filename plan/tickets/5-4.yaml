@@ -1,11 +1,10 @@
 id: "5-4"
-title: "Render Quality Modes + Hero Config YAML"
+title: "Composition System"
 wave: 5
 status: todo
-depends: ["5-1"]
+depends: ["4.5-1", "5-3"]
 produces:
-  - configs/hero.yaml
-  - tests/test_quality_modes.py
+  - src/oco_viz/render/composition.py
 gates:
   - cmd: "pixi run ruff check src/ tests/"
     expect: exit_0
@@ -13,63 +12,28 @@ gates:
     expect: exit_0
   - cmd: "pixi run pyright src/"
     expect: exit_0
-  - cmd: "pixi run pytest tests/test_quality_modes.py -x"
+  - cmd: "pixi run pytest tests/ -x"
     expect: exit_0
 context:
   key_behavior: |
-    Quality mode presets for iterative workflow and hero output.
+    Composition system replacing old render quality modes.
 
-    Add RenderQualityConfig to schema.py:
-      mode: str = "draft"  # preview | draft | hero
+    CompositionConfig in schema: frame_fill=[0.6, 0.8],
+    asymmetric_offset=[float, float], vertical_emphasis=bool.
 
-    Presets override ScatteringConfig + OutputConfig:
-    "preview":
-      sample_distance: 2.0, auto_adjust_sample: True
-      global_illumination_reach: 0.0
-      output resolution: config.output / 2  (half-res)
-    "draft":
-      sample_distance: 1.0, auto_adjust_sample: False
-      global_illumination_reach: 0.5
-      full resolution
-    "hero":
-      sample_distance: 0.3, auto_adjust_sample: False
-      global_illumination_reach: 1.0
-      volumetric_scattering_blending: 1.8
-      full resolution
+    compute_camera_distance(plume_bounds, frame_fill_target, fov) -> distance.
+    Asymmetric framing: offset focal point from plume centroid.
+    Vertical emphasis: bias elevation toward vertical.
 
-    Apply in VolumeRenderer.configure() by merging quality overrides
-    into scattering config before creating volume.
+    Exhibition tier overlay: full composition constraints.
+    Study tier: default camera (no composition intelligence).
 
-    Also create configs/hero.yaml — the production config profile:
-      transfer_function:
-        preset: cinematic_storm
-      scattering:
-        global_illumination_reach: 1.0
-        volumetric_scattering_blending: 1.8
-        anisotropy: 0.75
-        ambient: 0.05
-        sample_distance: 0.3
-      render_quality:
-        mode: hero
-      light_rig:
-        preset: dramatic
-      camera_path:
-        preset: reveal
-      turbulence:
-        enabled: true
-        octaves: 7
-      postprocess:
-        exposure: 0.5
-        vignette_strength: 0.4
-        grain_intensity: 0.015
-
-    Add --quality flag to CLI render command.
+    Plume bounding box estimation from concentration field thresholding.
   patterns:
-    - "Config overlay pattern"
-    - "vtkSmartVolumeMapper.SetSampleDistance"
+    - "Camera distance computation from FOV + bounds"
+    - "Bounding box from scalar field thresholding"
+    - "Config-driven composition"
   related_files:
-    - src/oco_viz/render/volume.py
-    - src/oco_viz/render/renderer.py
+    - src/oco_viz/render/camera.py
     - src/oco_viz/config/schema.py
-    - src/oco_viz/__main__.py
-    - configs/base.yaml
+    - configs/tiers/exhibition.yaml

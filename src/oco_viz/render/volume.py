@@ -59,7 +59,7 @@ def numpy_to_vtk_image(
     image.SetSpacing(spacing[0], spacing[1], spacing[2])
     image.SetOrigin(0.0, 0.0, 0.0)
 
-    flat = np.ascontiguousarray(data.ravel(order="F"))
+    flat = np.ascontiguousarray(data.ravel(order="C"))
     vtk_arr = numpy_to_vtk(flat, deep=True, array_type=vtk.VTK_FLOAT)
     vtk_arr.SetName("density")
     image.GetPointData().SetScalars(vtk_arr)

@@ -147,6 +147,11 @@ def _load_gallery_config() -> object:
         "dev_mac",
         overrides={
             "grid": {"nx": 48, "ny": 48, "nz": 32},
+            # Place source upwind so plume spreads toward grid centre
+            "plume": {"source_x": 38.0, "source_y": 38.0, "source_z": 3.0},
+            # Gallery-optimised scattering: shade off for bright volumes on
+            # white background; post-processing already provides the cinematic look
+            "scattering": {"shade": False, "sample_distance": 250.0},
             **({"sky": sky_override} if sky_override else {}),
             **({"ground_plane": ground_override} if ground_override else {}),
         },
@@ -259,8 +264,11 @@ def main() -> None:
     grid = config.grid
     cx, cy = grid.nx * grid.dx / 2.0, grid.ny * grid.dy / 2.0
     cz = grid.nz * grid.dz / 3.0
+    # Scale camera distance to grid extent so plume is visible
+    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
     camera_state = FixedCamera(
-        position=(cx + 80000, cy - 60000, cz + 40000), focal_point=(cx, cy, cz),
+        position=(cx + extent * 1.2, cy - extent * 0.8, cz + extent * 0.5),
+        focal_point=(cx, cy, cz),
     ).evaluate(0.0)
 
     n_rendered = _render_all_presets(config, plume_variants, camera_state)

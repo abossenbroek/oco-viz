@@ -1,15 +1,40 @@
 id: "8-1"
-title: "Sentinel-2 RGB Ground Plane Texture"
+title: "Particle Dissolution at Volume Boundaries"
 wave: 8
 status: todo
-depends: ["5.5-4"]
-produces: []
+depends: ["5-1", "5-2"]
+produces:
+  - src/oco_viz/render/particle_dissolve.py
+  - src/oco_viz/postprocess/dissolution.py
+  - tests/test_particle_dissolve.py
 gates:
-  - cmd: "pixi run check"
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_particle_dissolve.py -x"
     expect: exit_0
 context:
   key_behavior: |
-    Deferred: replace translucent grid ground plane with Sentinel-2 RGB
-    satellite imagery texture for geographic context.
+    Exhibition-tier particle dissolution at volume boundaries.
+
+    Boundary detection: identify surface voxels via gradient magnitude thresholding.
+    Particle generation: spawn particles at boundary, count scales with surface area.
+    Particle rendering: vtkGlyph3D with small spheres, inherit soot TF color/opacity.
+    Particles inherit local velocity + slight outward drift + gravity settling.
+
+    ParticleDissolutionConfig: enabled, threshold, particle_count_scale,
+    drift_speed, gravity.
+    Exhibition tier overlay: particle_dissolution.enabled=true.
+    Integration with renderer: add particle actor after volume actor.
+  patterns:
+    - "vtkGlyph3D for particle rendering"
+    - "Gradient magnitude for boundary detection"
+    - "Exhibition-tier-only feature"
   related_files:
-    - src/oco_viz/render/ground_plane.py
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/render/volume.py
+    - src/oco_viz/config/schema.py
+    - configs/tiers/exhibition.yaml
