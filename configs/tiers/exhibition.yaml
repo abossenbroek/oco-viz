@@ -4,3 +4,7 @@ sky:
 
 ground_plane:
   enabled: false
+
+postprocess:
+  fog_enabled: false
+  bloom_enabled: false

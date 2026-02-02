@@ -1,7 +1,7 @@
 id: "4.5-3"
 title: "Config Defaults Alignment for Soot"
 wave: 4.5
-status: todo
+status: done
 depends: ["4.5-1"]
 produces: []
 gates:

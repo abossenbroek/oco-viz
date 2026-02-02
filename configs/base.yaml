@@ -19,12 +19,12 @@ ground_plane:
 
 scattering:
   sample_distance: 250.0
-  ambient: 0.30
-  diffuse: 0.60
-  specular: 0.15
-  anisotropy: 0.3
-  global_illumination_reach: 0.5
-  volumetric_scattering_blending: 1.0
+  ambient: 0.4
+  diffuse: 0.5
+  specular: 0.0
+  anisotropy: 0.35
+  global_illumination_reach: 0.6
+  volumetric_scattering_blending: 1.8
   shade: true
   jittering: true
 
@@ -45,7 +45,7 @@ postprocess:
   bloom_intensity: 0.25
   bloom_passes: 3
   fog_density: 0.02
-  fog_color: [0.7, 0.75, 0.85]
+  fog_color: [0.2, 0.2, 0.2]
   tonemap: aces
 
 output:

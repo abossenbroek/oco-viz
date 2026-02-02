@@ -41,7 +41,10 @@ def test_preset_dispatch_json_path(tmp_path: Path) -> None:
 
 @pytest.mark.skipci
 def test_configure_and_render() -> None:
-    config = load_config("dev_mac", overrides={"output": {"width": 128, "height": 128}})
+    config = load_config(
+        "dev_mac",
+        overrides={"output": {"width": 128, "height": 128}, "sky": {"enabled": True}},
+    )
     renderer = VolumeRenderer(config)
     renderer.configure()
 
@@ -55,7 +58,7 @@ def test_configure_and_render() -> None:
     assert rgb.max() <= 1.0
     assert depth.shape == (128, 128)
     assert depth.dtype == np.float32
-    # Non-black
+    # Non-black (sky gradient provides non-zero pixels)
     assert rgb.max() > 0.01
 
     renderer.finalize()

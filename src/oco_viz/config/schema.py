@@ -49,14 +49,14 @@ class GroundPlaneConfig(BaseModel):
 class ScatteringConfig(BaseModel):
     """Volume scattering parameters for VTK."""
 
-    global_illumination_reach: float = Field(default=1.0, ge=0, le=1)
+    global_illumination_reach: float = Field(default=0.6, ge=0, le=1)
     volumetric_scattering_blending: float = Field(default=1.8, ge=0, le=2)
-    anisotropy: float = Field(default=0.75, ge=-1, le=1)
+    anisotropy: float = Field(default=0.35, ge=-1, le=1)
     jittering: bool = True
     shade: bool = True
-    ambient: float = Field(default=0.05, ge=0, le=1)
-    diffuse: float = Field(default=0.85, ge=0, le=1)
-    specular: float = Field(default=0.1, ge=0, le=1)
+    ambient: float = Field(default=0.4, ge=0, le=1)
+    diffuse: float = Field(default=0.5, ge=0, le=1)
+    specular: float = Field(default=0.0, ge=0, le=1)
     sample_distance: float = Field(default=0.5, gt=0)
 
 
@@ -94,9 +94,11 @@ class TransferFunctionConfig(BaseModel):
 class PostProcessConfig(BaseModel):
     """Post-processing pipeline configuration."""
 
+    fog_enabled: bool = True
     fog_density: float = Field(default=0.02, ge=0)
-    fog_color: tuple[float, float, float] = (0.7, 0.75, 0.85)
+    fog_color: tuple[float, float, float] = (0.2, 0.2, 0.2)
     tonemap: str = "aces"
+    bloom_enabled: bool = True
     bloom_threshold: float = Field(default=0.8, ge=0, le=1)
     bloom_intensity: float = Field(default=0.3, ge=0)
     bloom_passes: int = Field(default=3, ge=1)

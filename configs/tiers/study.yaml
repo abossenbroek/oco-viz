@@ -1,1 +1,10 @@
 # Study tier: density/TF refinement, MVP quality (base defaults apply)
+sky:
+  enabled: false
+
+ground_plane:
+  enabled: false
+
+postprocess:
+  fog_enabled: true
+  bloom_enabled: true

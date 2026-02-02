@@ -1,1 +1,6 @@
 # Sketch tier: fast iteration, minimal rendering
+sky:
+  enabled: false
+
+ground_plane:
+  enabled: false
