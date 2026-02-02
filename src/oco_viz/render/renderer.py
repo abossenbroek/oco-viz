@@ -11,7 +11,7 @@ from oco_viz.postprocess.pipeline import PostProcessPipeline
 from oco_viz.render.camera import CameraState, apply_camera
 from oco_viz.render.depth import extract_depth, extract_rgb
 from oco_viz.render.ground_plane import create_ground_plane
-from oco_viz.render.lighting import apply_lighting
+from oco_viz.render.light_rig import apply_lighting_for_tier
 from oco_viz.render.sky_gradient import apply_sky_gradient
 from oco_viz.render.transfer import TransferFunction
 from oco_viz.render.volume import create_volume, numpy_to_vtk_image
@@ -74,8 +74,6 @@ class VolumeRenderer:
     def configure(
         self,
         tf: TransferFunction | None = None,
-        *,
-        lighting: bool = True,
     ) -> None:
         """Build the rendering pipeline. Call once before render_frame."""
         if tf is None:
@@ -89,8 +87,9 @@ class VolumeRenderer:
         self._renderer = vtk.vtkRenderer()
         apply_sky_gradient(self._renderer, self._config.sky)
 
-        if lighting:
-            apply_lighting(self._renderer)
+        # Lighting is fully handled in render_frame() via apply_lighting_for_tier()
+        # after volume creation, so both renderer lights and volume property
+        # can be configured together.
 
         if self._config.ground_plane.enabled:
             ground_actor = create_ground_plane(self._config.ground_plane, self._config.grid)
@@ -142,6 +141,12 @@ class VolumeRenderer:
                 scattering=self._config.scattering,
             )
             self._mapper = self._volume.GetMapper()
+            # Apply tier-conditional lighting to volume property
+            apply_lighting_for_tier(
+                self._renderer,
+                self._volume.GetProperty(),
+                self._config.lighting.mode,
+            )
             self._renderer.AddVolume(self._volume)
         else:
             # Subsequent frames: only update input data (preserves BVH/gradient cache)

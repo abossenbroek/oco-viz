@@ -84,6 +84,21 @@ class CameraConfig(BaseModel):
     focal_point: tuple[float, float, float] = (50.0, 50.0, 30.0)
 
 
+class LightingConfig(BaseModel):
+    """Tier-conditional lighting configuration."""
+
+    mode: str = Field(default="basic", description="none, basic, or smoldering")
+
+    @field_validator("mode")
+    @classmethod
+    def _valid_mode(cls, v: str) -> str:
+        valid = {"none", "basic", "smoldering"}
+        if v not in valid:
+            msg = f"Lighting mode must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
+
+
 class TransferFunctionConfig(BaseModel):
     """Transfer function reference."""
 
@@ -237,6 +252,7 @@ class AppConfig(BaseModel):
     sky: SkyConfig = Field(default_factory=SkyConfig)
     ground_plane: GroundPlaneConfig = Field(default_factory=GroundPlaneConfig)
     scattering: ScatteringConfig = Field(default_factory=ScatteringConfig)
+    lighting: LightingConfig = Field(default_factory=LightingConfig)
     camera: CameraConfig = Field(default_factory=CameraConfig)
     transfer_function: TransferFunctionConfig = Field(default_factory=TransferFunctionConfig)
     postprocess: PostProcessConfig = Field(default_factory=PostProcessConfig)
