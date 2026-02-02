@@ -1,7 +1,7 @@
 id: "4-3"
 title: "Turbulence Config + Turbulent Plume Compositor"
 wave: 4
-status: todo
+status: done
 depends: ["4-1"]
 produces:
   - src/oco_viz/plume/turbulent.py

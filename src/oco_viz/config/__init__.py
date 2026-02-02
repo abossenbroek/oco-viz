@@ -15,6 +15,7 @@ from oco_viz.config.schema import (
     PostProcessConfig,
     ScatteringConfig,
     TransferFunctionConfig,
+    TurbulenceConfig,
     load_config,
 )
 
@@ -31,5 +32,6 @@ __all__ = [
     "PostProcessConfig",
     "ScatteringConfig",
     "TransferFunctionConfig",
+    "TurbulenceConfig",
     "load_config",
 ]

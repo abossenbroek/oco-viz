@@ -59,6 +59,19 @@ class ScatteringConfig(BaseModel):
     sample_distance: float = Field(default=0.5, gt=0)
 
 
+class TurbulenceConfig(BaseModel):
+    """Fractal turbulence parameters for plume detail."""
+
+    enabled: bool = True
+    octaves: int = Field(default=6, ge=1, le=10)
+    lacunarity: float = Field(default=2.0, gt=1.0)
+    gain: float = Field(default=0.5, gt=0, lt=1)
+    amplitude: float = Field(default=0.6, ge=0, le=2.0)
+    curl_strength: float = Field(default=0.3, ge=0, le=1.0)
+    temporal_speed: float = Field(default=0.02, gt=0)
+    seed: int = 42
+
+
 class CameraConfig(BaseModel):
     """Camera rig configuration."""
 
@@ -183,6 +196,7 @@ class AppConfig(BaseModel):
     postprocess: PostProcessConfig = Field(default_factory=PostProcessConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
     plume: PlumeConfig = Field(default_factory=PlumeConfig)
+    turbulence: TurbulenceConfig = Field(default_factory=TurbulenceConfig)
     data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
 
 

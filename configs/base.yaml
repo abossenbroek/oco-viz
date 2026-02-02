@@ -54,6 +54,16 @@ output:
   fps: 24
   bit_depth: 16
 
+turbulence:
+  enabled: true
+  octaves: 6
+  lacunarity: 2.0
+  gain: 0.5
+  amplitude: 0.6
+  curl_strength: 0.3
+  temporal_speed: 0.02
+  seed: 42
+
 plume:
   source_x: 50.0
   source_y: 10.0
