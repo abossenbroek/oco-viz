@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, ClassVar
 
 import vtk
 
-from oco_viz.postprocess.pipeline import PostProcessPipeline
+from oco_viz.postprocess.compose import create_pipeline
 from oco_viz.render.camera import CameraState, apply_camera
 from oco_viz.render.depth import extract_depth, extract_rgb
 from oco_viz.render.ground_plane import create_ground_plane
@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from oco_viz.config.schema import AppConfig
+    from oco_viz.postprocess.pipeline import PostProcessPipeline
 
 
 def _soot_tf_path() -> Path:
@@ -101,7 +102,7 @@ class VolumeRenderer:
         )
         self._win.AddRenderer(self._renderer)
 
-        self._pipeline = PostProcessPipeline(self._config.postprocess)
+        self._pipeline = create_pipeline(self._config.postprocess, self._config.tier)
 
     def render_frame(
         self,

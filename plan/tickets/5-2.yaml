@@ -1,7 +1,7 @@
 id: "5-2"
 title: "Tier-Conditional Post-Processing Pipeline"
 wave: 5
-status: todo
+status: done
 depends: ["4.5-1", "4.5-3"]
 produces:
   - src/oco_viz/postprocess/compose.py

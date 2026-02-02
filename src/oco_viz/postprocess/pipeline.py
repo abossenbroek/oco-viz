@@ -26,22 +26,26 @@ class PostProcessPipeline:
         rgb: NDArray[np.float32],
         depth: NDArray[np.float32],
     ) -> NDArray[np.float32]:
-        """Apply all stages: fog -> bloom -> tonemap.
+        """Apply enabled stages: [fog] -> [bloom] -> tonemap.
 
+        Fog and bloom are skipped when their respective config flags are False.
         Bloom operates in HDR/linear space before tonemapping compresses the range.
         """
-        result = apply_depth_fog(
-            rgb,
-            depth,
-            density=self._config.fog_density,
-            fog_color=self._config.fog_color,
-        )
-        result = apply_bloom(
-            result,
-            threshold=self._config.bloom_threshold,
-            intensity=self._config.bloom_intensity,
-            passes=self._config.bloom_passes,
-        )
+        result = rgb
+        if self._config.fog_enabled:
+            result = apply_depth_fog(
+                result,
+                depth,
+                density=self._config.fog_density,
+                fog_color=self._config.fog_color,
+            )
+        if self._config.bloom_enabled:
+            result = apply_bloom(
+                result,
+                threshold=self._config.bloom_threshold,
+                intensity=self._config.bloom_intensity,
+                passes=self._config.bloom_passes,
+            )
         return aces_tonemap(result, exposure=self._config.exposure)
 
     def quantize(self, rgb: NDArray[np.float32]) -> NDArray[np.uint8]:
