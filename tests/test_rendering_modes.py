@@ -190,7 +190,7 @@ def test_rendering_config_default_mode_is_max() -> None:
 
 
 # =============================================================================
-# B. Matrix test: mode × data_type → visibility
+# B. Matrix test: mode x data_type -> visibility
 # =============================================================================
 
 
@@ -209,7 +209,7 @@ def test_rendering_config_default_mode_is_max() -> None:
 def test_mode_data_type_visibility_matrix(
     mode: str, data_type: str, *, expected_visible: bool
 ) -> None:
-    """Matrix test: mode × data_type → produces visible output."""
+    """Matrix test: mode x data_type -> produces visible output."""
     cfg = RenderingConfig(mode=mode)
     if data_type == "sparse_plume":
         conc = np.zeros((10, 20, 20), dtype=np.float32)

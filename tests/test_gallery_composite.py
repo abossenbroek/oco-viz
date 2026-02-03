@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from scripts.render_gallery import build_oco_overlay_actor
 
 from oco_viz.config.schema import RenderingConfig, load_config
@@ -68,3 +69,32 @@ def test_config_loads_with_new_sections() -> None:
     assert hasattr(config, "cams")
     assert hasattr(config, "rendering")
     assert config.rendering.mode in ("max", "anomaly", "absolute")
+
+
+# =============================================================================
+# Gallery smoke tests for plume_type + mode combinations
+# =============================================================================
+
+
+@pytest.mark.parametrize(
+    ("plume_type", "mode"),
+    [
+        ("gaussian", "max"),
+        ("turbulent", "max"),
+        ("composite", "anomaly"),
+    ],
+)
+def test_gallery_plume_type_mode_produces_nonzero(plume_type: str, mode: str) -> None:
+    """Each plume_type + mode produces non-zero normalized output."""
+    cfg = RenderingConfig(mode=mode)
+    if plume_type in ("gaussian", "turbulent"):
+        # Sparse plume data without background
+        conc = np.zeros((10, 20, 20), dtype=np.float32)
+        conc[5, 10, 10] = 0.001
+        conc[4:7, 9:12, 9:12] = 0.0005
+    else:
+        # Composite: CAMS background + plume enhancement
+        conc = np.full((10, 20, 20), 420.0, dtype=np.float32)
+        conc[5, 10, 10] = 430.0
+    result = normalize_concentration(conc, cfg)
+    assert result.max() > 0.5, f"{plume_type}+{mode} should produce visible output"

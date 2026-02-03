@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pytest
 
 from oco_viz.config import load_config
@@ -110,3 +111,52 @@ def test_base_config_has_material_properties() -> None:
     assert config.scattering.ambient == pytest.approx(0.4)
     assert config.scattering.diffuse == pytest.approx(0.5)
     assert config.scattering.specular == pytest.approx(0.0)
+
+
+# =============================================================================
+# Integration tests for rendering mode regression fix
+# =============================================================================
+
+
+@pytest.mark.skipci
+@pytest.mark.parametrize("mode", ["max", "anomaly", "absolute"])
+def test_renderer_produces_nonzero_rgb_for_mode(mode: str) -> None:
+    """Renderer produces non-black RGB for appropriate data."""
+    config = load_config(
+        "dev_mac",
+        overrides={
+            "output": {"width": 64, "height": 64},
+            "rendering": {"mode": mode},
+        },
+    )
+    renderer = VolumeRenderer(config)
+    renderer.configure()
+    if mode == "max":
+        conc = generate_timestep(config.plume, config.grid, time_index=0)
+    else:
+        # Create composite-style data for anomaly/absolute modes
+        conc = np.full(config.grid.shape, 420.0, dtype=np.float32)
+        conc[config.grid.nz // 2, config.grid.ny // 2, config.grid.nx // 2] = 430.0
+    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    rgb, _ = renderer.render_frame(conc, camera)
+    renderer.finalize()
+    assert rgb.max() > 0.01, f"Mode {mode} produced black output"
+
+
+@pytest.mark.skipci
+def test_sparse_plume_with_max_mode_produces_visible_output() -> None:
+    """Critical regression test: sparse plume + max mode must be visible."""
+    config = load_config(
+        "dev_mac",
+        overrides={
+            "output": {"width": 64, "height": 64},
+            "rendering": {"mode": "max"},
+        },
+    )
+    renderer = VolumeRenderer(config)
+    renderer.configure()
+    conc = generate_timestep(config.plume, config.grid, time_index=0)
+    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    rgb, _ = renderer.render_frame(conc, camera)
+    renderer.finalize()
+    assert rgb.max() > 0.05, "Sparse plume rendered as black - REGRESSION!"
