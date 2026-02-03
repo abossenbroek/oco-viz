@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
@@ -19,7 +19,7 @@ def compute_background_profile(conc: NDArray[np.float32]) -> NDArray[np.float32]
     Returns an array broadcastable to *conc* shape ``(nz, 1, 1)``.
     """
     profile = np.nanmean(conc, axis=(1, 2), keepdims=True)
-    return profile.astype(np.float32)
+    return cast("NDArray[np.float32]", profile.astype(np.float32))
 
 
 def normalize_concentration(
@@ -28,6 +28,10 @@ def normalize_concentration(
 ) -> NDArray[np.float32]:
     """Normalize concentration to [0, 1] based on rendering mode.
 
+    **max** mode:
+        Simple max-normalization: divide by maximum value.
+        Appropriate for pure plume data without background.
+
     **anomaly** mode:
         Subtract horizontal-mean background profile, clip to [0, anomaly_max_ppm],
         then divide by anomaly_max_ppm. Background regions become ~0 (transparent).
@@ -35,14 +39,23 @@ def normalize_concentration(
     **absolute** mode:
         Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
     """
+    if rendering_cfg.mode == "max":
+        max_val = float(np.nanmax(conc))
+        if max_val > 0:
+            return cast("NDArray[np.float32]", (conc / max_val).astype(np.float32))
+        return np.zeros_like(conc)
+
     if rendering_cfg.mode == "anomaly":
         background = compute_background_profile(conc)
         enhancement = np.clip(conc - background, 0, None)
-        return np.clip(
-            enhancement / rendering_cfg.anomaly_max_ppm,
-            0,
-            1,
-        ).astype(np.float32)
+        return cast(
+            "NDArray[np.float32]",
+            np.clip(
+                enhancement / rendering_cfg.anomaly_max_ppm,
+                0,
+                1,
+            ).astype(np.float32),
+        )
 
     # absolute mode
     lo = rendering_cfg.absolute_min_ppm
@@ -50,4 +63,4 @@ def normalize_concentration(
     span = hi - lo
     if span <= 0:
         return np.zeros_like(conc)
-    return np.clip((conc - lo) / span, 0, 1).astype(np.float32)
+    return cast("NDArray[np.float32]", np.clip((conc - lo) / span, 0, 1).astype(np.float32))
