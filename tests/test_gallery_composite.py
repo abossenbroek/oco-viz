@@ -67,4 +67,4 @@ def test_config_loads_with_new_sections() -> None:
     config = load_config()
     assert hasattr(config, "cams")
     assert hasattr(config, "rendering")
-    assert config.rendering.mode in ("anomaly", "absolute")
+    assert config.rendering.mode in ("max", "anomaly", "absolute")
