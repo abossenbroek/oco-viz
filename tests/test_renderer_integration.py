@@ -13,7 +13,10 @@ from oco_viz.render.renderer import VolumeRenderer
 
 @pytest.mark.skipci
 def test_renderer_applies_sky_gradient() -> None:
-    config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
+    config = load_config(
+        "dev_mac",
+        overrides={"output": {"width": 64, "height": 64}, "sky": {"enabled": True}},
+    )
     renderer = VolumeRenderer(config)
     renderer.configure()
 
@@ -29,7 +32,13 @@ def test_renderer_applies_sky_gradient() -> None:
 
 @pytest.mark.skipci
 def test_renderer_adds_ground_plane_actor() -> None:
-    config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
+    config = load_config(
+        "dev_mac",
+        overrides={
+            "output": {"width": 64, "height": 64},
+            "ground_plane": {"enabled": True},
+        },
+    )
     renderer = VolumeRenderer(config)
     renderer.configure()
 
@@ -81,8 +90,9 @@ def test_config_has_sky_and_ground_plane() -> None:
     config = load_config()
     assert isinstance(config.sky, SkyConfig)
     assert isinstance(config.ground_plane, GroundPlaneConfig)
-    assert config.sky.enabled is True
-    assert config.ground_plane.enabled is True
+    # Default tier is study, which disables sky and ground plane (Soot aesthetic)
+    assert config.sky.enabled is False
+    assert config.ground_plane.enabled is False
 
 
 def test_dev_mac_uses_8bit() -> None:
@@ -97,6 +107,6 @@ def test_base_config_has_exposure() -> None:
 
 def test_base_config_has_material_properties() -> None:
     config = load_config()
-    assert config.scattering.ambient == pytest.approx(0.30)
-    assert config.scattering.diffuse == pytest.approx(0.60)
-    assert config.scattering.specular == pytest.approx(0.15)
+    assert config.scattering.ambient == pytest.approx(0.4)
+    assert config.scattering.diffuse == pytest.approx(0.5)
+    assert config.scattering.specular == pytest.approx(0.0)
