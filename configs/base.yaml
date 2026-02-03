@@ -83,7 +83,7 @@ cams:
   cache_dir: data/cams
 
 rendering:
-  mode: anomaly
+  mode: max
   anomaly_max_ppm: 10.0
   absolute_min_ppm: 415.0
   absolute_max_ppm: 435.0

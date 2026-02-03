@@ -1,4 +1,11 @@
-"""Render fixture gallery: 5 TF presets x 3 plume types = 15 example images."""
+"""Render fixture gallery: 5 TF presets x 3 plume types = 15+ example images.
+
+Demonstrates data fusion across four sources:
+- ERA5 reanalysis winds (drive plume advection)
+- CAMS CO2 background (volumetric background field)
+- OCO-2/OCO-3 satellite footprints (ground-plane XCO2 overlay)
+- Gaussian/turbulent plume model (synthetic emission)
+"""
 
 from __future__ import annotations
 
@@ -22,16 +29,15 @@ from oco_viz.data.transform import latlon_to_local_km
 from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.plume.turbulent import apply_turbulence
 from oco_viz.render.camera import FixedCamera
-from oco_viz.render.normalize import normalize_concentration
 from oco_viz.render.renderer import VolumeRenderer
 
 log = structlog.get_logger()
 
 FIXTURES_DIR = Path("tests/fixtures")
-ERA5_FIXTURE = FIXTURES_DIR / "era5_secunda_sample.nc"
+ERA5_FIXTURE = FIXTURES_DIR / "era5_secunda_2025-10-13.nc"
 OCO3_FIXTURE = FIXTURES_DIR / "oco3_secunda_2025-10-26.nc4"
 OCO2_FIXTURE = FIXTURES_DIR / "oco2_secunda_2025-10-13.nc4"
-CAMS_FIXTURE = FIXTURES_DIR / "cams_secunda_sample.nc"
+CAMS_FIXTURE = FIXTURES_DIR / "cams_secunda_2025-10-13.nc"
 
 OUTPUT_DIR = Path("output/examples")
 
@@ -44,17 +50,35 @@ PRESET_NAMES = [
 ]
 
 
-def validate_fixtures() -> None:
-    """Fail hard if any required fixture files are missing."""
-    missing = [
-        str(fixture)
-        for fixture in [ERA5_FIXTURE, OCO3_FIXTURE, OCO2_FIXTURE]
-        if not fixture.exists()
-    ]
+def validate_fixtures() -> dict[str, bool]:
+    """Check fixture availability. All fixtures are required (no synthetic fallbacks).
+
+    Returns a dict of fixture name -> present status for downstream decisions.
+    """
+    fixtures = {
+        "era5": ERA5_FIXTURE,
+        "cams": CAMS_FIXTURE,
+        "oco2": OCO2_FIXTURE,
+        "oco3": OCO3_FIXTURE,
+    }
+    inventory: dict[str, bool] = {}
+    missing: list[str] = []
+    for name, path in fixtures.items():
+        present = path.exists()
+        inventory[name] = present
+        status = "present" if present else "MISSING"
+        log.info("fixture check", name=name, status=status, path=str(path))
+        if not present:
+            missing.append(name)
+
     if missing:
-        log.error("missing fixture files", files=missing)
+        log.error(
+            "missing required fixtures — run: python scripts/download_fixtures.py",
+            missing=missing,
+        )
         sys.exit(1)
-    log.info("all fixtures present")
+
+    return inventory
 
 
 def build_oco_overlay_actor(
@@ -178,10 +202,9 @@ def _build_plume_variants(config, wind_ds):
 
     variants = {"gaussian": gaussian_conc, "turbulent": turbulent_conc}
 
-    if CAMS_FIXTURE.exists():
-        background = load_cams_co2(CAMS_FIXTURE, config.data_source.domain, config.grid)
-        variants["composite"] = background + turbulent_conc
-        log.info("composite field built", max_conc=round(float(variants["composite"].max()), 3))
+    background = load_cams_co2(CAMS_FIXTURE, config.data_source.domain, config.grid)
+    variants["composite"] = background + turbulent_conc
+    log.info("composite field built", max_conc=round(float(variants["composite"].max()), 3))
 
     return variants
 
@@ -195,24 +218,28 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
         for plume_type, conc in plume_variants.items():
             log.info("rendering", preset=preset_name, plume_type=plume_type)
 
-            use_pre_normalized = (
-                plume_type == "composite" and preset_name == "absolute_atmospheric"
-            )
-            render_conc = (
-                normalize_concentration(conc, RenderingConfig(mode="absolute"))
-                if use_pre_normalized
-                else conc
-            )
+            # Determine rendering mode based on preset and plume type
+            if plume_type == "composite":
+                if preset_name == "absolute_atmospheric":
+                    rendering_mode = "absolute"
+                else:
+                    rendering_mode = "anomaly"
+            else:
+                # gaussian/turbulent: use max normalization (original behavior)
+                rendering_mode = "max"
 
             render_config = config.model_copy(
-                update={"transfer_function": TransferFunctionConfig(preset=preset_name)},
+                update={
+                    "transfer_function": TransferFunctionConfig(preset=preset_name),
+                    "rendering": RenderingConfig(mode=rendering_mode),
+                },
             )
             renderer = VolumeRenderer(render_config)
             renderer.configure()
             rgb_pp = renderer.render_frame_postprocessed(
-                render_conc,
+                conc,
                 camera_state,
-                pre_normalized=use_pre_normalized,
+                pre_normalized=False,  # Let renderer handle normalization
             )
             renderer.finalize()
 
@@ -236,16 +263,19 @@ def main() -> None:
     )
 
     log.info("render gallery starting")
-    validate_fixtures()
+    inventory = validate_fixtures()
 
     config = _load_gallery_config()
 
+    # --- ERA5 winds (required) ---
     wind_ds = load_era5_winds(ERA5_FIXTURE, config.data_source.domain, config.grid)
     log.info("ERA5 winds ready", n_times=wind_ds.sizes["time"])
 
+    # --- OCO satellite overlays ---
     oco3_ds = load_granule(OCO3_FIXTURE)
     oco2_ds = load_granule(OCO2_FIXTURE)
 
+    # --- Build plume variants including CAMS fusion ---
     plume_variants = _build_plume_variants(config, wind_ds)
 
     domain = config.data_source.domain
@@ -275,14 +305,22 @@ def main() -> None:
     cx, cy = grid.nx * grid.dx / 2.0, grid.ny * grid.dy / 2.0
     cz = grid.nz * grid.dz / 3.0
     # Scale camera distance to grid extent so plume is visible
+    # Camera lowered (0.3 instead of 0.5) to capture full atmospheric volume
     extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
     camera_state = FixedCamera(
-        position=(cx + extent * 1.2, cy - extent * 0.8, cz + extent * 0.5),
+        position=(cx + extent * 1.2, cy - extent * 0.8, cz + extent * 0.3),
         focal_point=(cx, cy, cz),
     ).evaluate(0.0)
 
     n_rendered = _render_all_presets(config, plume_variants, camera_state)
-    log.info("gallery complete", total_renders=n_rendered, output_dir=str(OUTPUT_DIR))
+
+    sources = [k for k, v in inventory.items() if v]
+    log.info(
+        "gallery complete",
+        total_renders=n_rendered,
+        fused_sources=sources,
+        output_dir=str(OUTPUT_DIR),
+    )
 
 
 if __name__ == "__main__":
