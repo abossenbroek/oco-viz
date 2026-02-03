@@ -198,9 +198,19 @@ class CamsConfig(BaseModel):
 
 
 class RenderingConfig(BaseModel):
-    """Concentration normalization and rendering mode configuration."""
+    """Concentration normalization and rendering mode configuration.
 
-    mode: str = Field(default="anomaly", description="anomaly or absolute")
+    Modes:
+        max: Simple max-normalization. Divides by maximum value. Appropriate for
+            pure plume data (gaussian/turbulent) without background.
+        anomaly: Subtract horizontal-mean background profile, clip to [0, anomaly_max_ppm],
+            then divide by anomaly_max_ppm. Background regions become ~0 (transparent).
+            Appropriate for composite data (CAMS background + plume enhancement).
+        absolute: Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
+            Shows full atmospheric column including background.
+    """
+
+    mode: str = Field(default="max", description="max, anomaly, or absolute")
     anomaly_max_ppm: float = Field(default=10.0, gt=0)
     absolute_min_ppm: float = Field(default=415.0)
     absolute_max_ppm: float = Field(default=435.0, gt=0)
@@ -208,8 +218,8 @@ class RenderingConfig(BaseModel):
     @field_validator("mode")
     @classmethod
     def _valid_mode(cls, v: str) -> str:
-        if v not in ("anomaly", "absolute"):
-            msg = f"Rendering mode must be 'anomaly' or 'absolute', got {v!r}"
+        if v not in ("max", "anomaly", "absolute"):
+            msg = f"Rendering mode must be 'max', 'anomaly', or 'absolute', got {v!r}"
             raise ValueError(msg)
         return v
 
