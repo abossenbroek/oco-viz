@@ -187,3 +187,61 @@ def test_rendering_config_default_mode_is_max() -> None:
     """Default mode is 'max' for backward compatibility."""
     cfg = RenderingConfig()
     assert cfg.mode == "max"
+
+
+# =============================================================================
+# B. Matrix test: mode × data_type → visibility
+# =============================================================================
+
+
+@pytest.mark.parametrize(
+    ("mode", "data_type", "expected_visible"),
+    [
+        ("max", "sparse_plume", True),
+        ("max", "composite", True),
+        ("anomaly", "sparse_plume", False),
+        ("anomaly", "composite", True),
+        # absolute mode expects ppm range [415-435], sparse plume (0.001 ppm) clips to 0
+        ("absolute", "sparse_plume", False),
+        ("absolute", "composite", True),
+    ],
+)
+def test_mode_data_type_visibility_matrix(
+    mode: str, data_type: str, *, expected_visible: bool
+) -> None:
+    """Matrix test: mode × data_type → produces visible output."""
+    cfg = RenderingConfig(mode=mode)
+    if data_type == "sparse_plume":
+        conc = np.zeros((10, 20, 20), dtype=np.float32)
+        conc[5, 10, 10] = 0.001
+    else:
+        conc = np.full((10, 20, 20), 420.0, dtype=np.float32)
+        conc[5, 10, 10] = 430.0
+    result = normalize_concentration(conc, cfg)
+    if expected_visible:
+        assert result.max() > 0.1, f"Expected visible for {mode}+{data_type}"
+    else:
+        assert result.max() < 0.1, f"Expected near-zero for {mode}+{data_type}"
+
+
+# =============================================================================
+# E. Invariant tests
+# =============================================================================
+
+
+def test_max_normalization_idempotent() -> None:
+    """Applying max normalization twice gives same result."""
+    cfg = RenderingConfig(mode="max")
+    conc = np.random.default_rng(42).uniform(0, 100, (5, 10, 10)).astype(np.float32)
+    result1 = normalize_concentration(conc, cfg)
+    result2 = normalize_concentration(result1, cfg)
+    assert np.allclose(result1, result2)
+
+
+def test_max_normalization_monotonic() -> None:
+    """Max normalization preserves monotonicity."""
+    cfg = RenderingConfig(mode="max")
+    conc = np.linspace(0, 100, 1000).reshape(10, 10, 10).astype(np.float32)
+    result = normalize_concentration(conc, cfg)
+    flat = result.flatten()
+    assert np.all(np.diff(flat) >= -1e-6)
