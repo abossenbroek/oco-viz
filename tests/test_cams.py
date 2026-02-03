@@ -87,7 +87,9 @@ def test_hybrid_sigma_to_altitude() -> None:
 
 
 def test_load_cams_co2_shape(
-    tmp_path: Path, domain: DomainConfig, small_grid: GridConfig,
+    tmp_path: Path,
+    domain: DomainConfig,
+    small_grid: GridConfig,
 ) -> None:
     """Loaded array matches target grid shape."""
     fixture = _make_cams_fixture(tmp_path)
@@ -97,7 +99,9 @@ def test_load_cams_co2_shape(
 
 
 def test_load_cams_co2_ppm_range(
-    tmp_path: Path, domain: DomainConfig, small_grid: GridConfig,
+    tmp_path: Path,
+    domain: DomainConfig,
+    small_grid: GridConfig,
 ) -> None:
     """CO2 concentration should be in a plausible ppm range."""
     fixture = _make_cams_fixture(tmp_path)
@@ -107,7 +111,9 @@ def test_load_cams_co2_ppm_range(
 
 
 def test_load_cams_co2_ppm_direct(
-    tmp_path: Path, domain: DomainConfig, small_grid: GridConfig,
+    tmp_path: Path,
+    domain: DomainConfig,
+    small_grid: GridConfig,
 ) -> None:
     """File already in ppm units should not be double-converted."""
     fixture = _make_cams_fixture(tmp_path, units="ppm")
@@ -117,7 +123,9 @@ def test_load_cams_co2_ppm_direct(
 
 
 def test_load_cams_co2_vertical_profile(
-    tmp_path: Path, domain: DomainConfig, small_grid: GridConfig,
+    tmp_path: Path,
+    domain: DomainConfig,
+    small_grid: GridConfig,
 ) -> None:
     """Vertical profile should show decreasing CO2 above boundary layer."""
     fixture = _make_cams_fixture(tmp_path)
@@ -137,7 +145,8 @@ def test_build_cams_request(domain: DomainConfig) -> None:
 
 
 def test_download_cams_co2_mock(
-    tmp_path: Path, domain: DomainConfig,
+    tmp_path: Path,
+    domain: DomainConfig,
 ) -> None:
     """download_cams_co2 calls cdsapi.Client().retrieve."""
     mock_cdsapi = MagicMock()
@@ -151,7 +160,9 @@ def test_download_cams_co2_mock(
 
 
 def test_load_missing_co2_variable(
-    tmp_path: Path, domain: DomainConfig, small_grid: GridConfig,
+    tmp_path: Path,
+    domain: DomainConfig,
+    small_grid: GridConfig,
 ) -> None:
     """Raise KeyError when no CO2 variable found."""
     ds = xr.Dataset(

@@ -170,7 +170,10 @@ def run_data_pipeline(
         ds = build_composite_field(config, cams_path, num_timesteps)
     elif mode == "turbulent":
         ds = generate_turbulent_sequence(
-            config.plume, config.grid, config.turbulence, num_timesteps,
+            config.plume,
+            config.grid,
+            config.turbulence,
+            num_timesteps,
         )
     elif (mode == "wind" and era5_path is not None) or era5_path is not None:
         ds = build_wind_driven_plume(config, era5_path, num_timesteps)

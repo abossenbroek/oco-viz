@@ -97,7 +97,7 @@ def test_temporal_coherence() -> None:
         a = conc[t].ravel()
         b = conc[t + 1].ravel()
         corr = np.corrcoef(a, b)[0, 1]
-        assert corr > 0.5, f"Frame {t} -> {t+1} correlation {corr:.4f} too low"
+        assert corr > 0.5, f"Frame {t} -> {t + 1} correlation {corr:.4f} too low"
 
 
 def test_deterministic_seed() -> None:

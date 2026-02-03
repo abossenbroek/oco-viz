@@ -206,7 +206,8 @@ def load_cams_co2(
     )
 
     tgt_pts = np.stack(
-        np.meshgrid(tgt_z, tgt_y, tgt_x, indexing="ij"), axis=-1,
+        np.meshgrid(tgt_z, tgt_y, tgt_x, indexing="ij"),
+        axis=-1,
     ).reshape(-1, 3)
 
     result = interp(tgt_pts).reshape(grid.nz, grid.ny, grid.nx)

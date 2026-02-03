@@ -90,7 +90,10 @@ def test_run_data_pipeline_composite(tmp_path: Path, small_config: AppConfig) ->
     """Composite mode via run_data_pipeline."""
     cams_path = _make_cams_fixture(tmp_path, small_config)
     ds = run_data_pipeline(
-        small_config, mode="composite", cams_path=cams_path, num_timesteps=2,
+        small_config,
+        mode="composite",
+        cams_path=cams_path,
+        num_timesteps=2,
     )
     assert "concentration" in ds
 

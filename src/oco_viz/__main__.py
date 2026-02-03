@@ -26,7 +26,10 @@ def cmd_generate_plume(args: argparse.Namespace) -> None:
 
     if args.turbulent:
         ds = generate_turbulent_sequence(
-            config.plume, config.grid, config.turbulence, num_timesteps=args.timesteps,
+            config.plume,
+            config.grid,
+            config.turbulence,
+            num_timesteps=args.timesteps,
         )
     else:
         ds = generate_sequence(config.plume, config.grid, num_timesteps=args.timesteps)
@@ -41,7 +44,9 @@ def cmd_render(args: argparse.Namespace) -> None:
     if args.preset:
         overrides["transfer_function"] = {"preset": args.preset}
     config = load_config(
-        args.profile, overrides=overrides if overrides else None, tier=_get_tier(args),
+        args.profile,
+        overrides=overrides if overrides else None,
+        tier=_get_tier(args),
     )
     zarr_path = Path(args.zarr)
     paths = render_sequence(config, zarr_path, num_frames=args.num_frames)

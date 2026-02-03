@@ -67,7 +67,7 @@ def test_temporal_coherence_no_popping() -> None:
         a = conc[t].ravel()
         b = conc[t + 1].ravel()
         corr = float(np.corrcoef(a, b)[0, 1])
-        assert corr > 0.5, f"Frame {t}->{t+1} correlation {corr:.3f} too low"
+        assert corr > 0.5, f"Frame {t}->{t + 1} correlation {corr:.3f} too low"
 
 
 def test_vtk_spacing_matches_grid() -> None:
@@ -107,8 +107,12 @@ def test_preset_dispatch_cinematic_storm() -> None:
 def test_all_presets_known() -> None:
     """All expected presets are wired into PRESETS dict."""
     expected = {
-        "soot", "default_plume", "cinematic_storm", "cinematic_ember",
-        "cinematic_atmospheric", "absolute_atmospheric",
+        "soot",
+        "default_plume",
+        "cinematic_storm",
+        "cinematic_ember",
+        "cinematic_atmospheric",
+        "absolute_atmospheric",
     }
     assert expected == set(PRESETS.keys())
 

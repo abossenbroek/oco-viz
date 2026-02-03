@@ -47,7 +47,8 @@ PRESET_NAMES = [
 def validate_fixtures() -> None:
     """Fail hard if any required fixture files are missing."""
     missing = [
-        str(fixture) for fixture in [ERA5_FIXTURE, OCO3_FIXTURE, OCO2_FIXTURE]
+        str(fixture)
+        for fixture in [ERA5_FIXTURE, OCO3_FIXTURE, OCO2_FIXTURE]
         if not fixture.exists()
     ]
     if missing:
@@ -87,7 +88,10 @@ def build_oco_overlay_actor(
 
     # Convert to local coordinates (meters)
     x_km, y_km = latlon_to_local_km(
-        lats, lons, origin_lat=domain_origin_lat, origin_lon=domain_origin_lon,
+        lats,
+        lons,
+        origin_lat=domain_origin_lat,
+        origin_lon=domain_origin_lon,
     )
     x_m = np.asarray(x_km, dtype=np.float64) * 1000.0
     y_m = np.asarray(y_km, dtype=np.float64) * 1000.0
@@ -138,9 +142,7 @@ def _load_gallery_config() -> object:
     """Load config with small grid for gallery renders."""
     white_bg = "--white-bg" in sys.argv
     sky_override = (
-        {"top_color": [1.0, 1.0, 1.0], "bottom_color": [0.95, 0.95, 0.95]}
-        if white_bg
-        else {}
+        {"top_color": [1.0, 1.0, 1.0], "bottom_color": [0.95, 0.95, 0.95]} if white_bg else {}
     )
     ground_override = {"color": [0.85, 0.85, 0.85]} if white_bg else {}
     return load_config(
@@ -208,7 +210,9 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
             renderer = VolumeRenderer(render_config)
             renderer.configure()
             rgb_pp = renderer.render_frame_postprocessed(
-                render_conc, camera_state, pre_normalized=use_pre_normalized,
+                render_conc,
+                camera_state,
+                pre_normalized=use_pre_normalized,
             )
             renderer.finalize()
 
@@ -223,12 +227,8 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
 
 
 def main() -> None:
-    def yaml_renderer(
-        _logger: object, _name: str, event_dict: dict[str, object]
-    ) -> str:
-        return yaml.dump(
-            dict(event_dict), default_flow_style=False, sort_keys=False
-        ).rstrip()
+    def yaml_renderer(_logger: object, _name: str, event_dict: dict[str, object]) -> str:
+        return yaml.dump(dict(event_dict), default_flow_style=False, sort_keys=False).rstrip()
 
     structlog.configure(
         processors=[structlog.stdlib.add_log_level, yaml_renderer],
@@ -250,14 +250,24 @@ def main() -> None:
 
     domain = config.data_source.domain
     overlay_actors = [
-        a for a in [
+        a
+        for a in [
             build_oco_overlay_actor(
-                oco3_ds, domain.origin_lat, domain.origin_lon, config.grid.dx, config.grid.dy,
+                oco3_ds,
+                domain.origin_lat,
+                domain.origin_lon,
+                config.grid.dx,
+                config.grid.dy,
             ),
             build_oco_overlay_actor(
-                oco2_ds, domain.origin_lat, domain.origin_lon, config.grid.dx, config.grid.dy,
+                oco2_ds,
+                domain.origin_lat,
+                domain.origin_lon,
+                config.grid.dx,
+                config.grid.dy,
             ),
-        ] if a is not None
+        ]
+        if a is not None
     ]
     log.info("OCO overlay actors", count=len(overlay_actors))
 

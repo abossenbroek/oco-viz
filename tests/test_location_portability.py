@@ -22,7 +22,10 @@ def test_domain_bbox_secunda() -> None:
 def test_domain_bbox_seattle() -> None:
     """Seattle domain bbox covers expected area."""
     domain = DomainConfig(
-        origin_lat=47.60, origin_lon=-122.33, extent_x_km=80.0, extent_y_km=80.0,
+        origin_lat=47.60,
+        origin_lon=-122.33,
+        extent_x_km=80.0,
+        extent_y_km=80.0,
     )
     bbox = domain.bbox()
     lon_min, lat_min, lon_max, lat_max = bbox
@@ -49,7 +52,10 @@ def test_load_config_secunda_default() -> None:
 def test_domain_bbox_symmetric() -> None:
     """Bbox should be roughly symmetric around origin."""
     domain = DomainConfig(
-        origin_lat=0.0, origin_lon=0.0, extent_x_km=100.0, extent_y_km=100.0,
+        origin_lat=0.0,
+        origin_lon=0.0,
+        extent_x_km=100.0,
+        extent_y_km=100.0,
     )
     bbox = domain.bbox()
     lon_min, lat_min, lon_max, lat_max = bbox

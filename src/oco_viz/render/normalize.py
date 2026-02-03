@@ -39,7 +39,9 @@ def normalize_concentration(
         background = compute_background_profile(conc)
         enhancement = np.clip(conc - background, 0, None)
         return np.clip(
-            enhancement / rendering_cfg.anomaly_max_ppm, 0, 1,
+            enhancement / rendering_cfg.anomaly_max_ppm,
+            0,
+            1,
         ).astype(np.float32)
 
     # absolute mode

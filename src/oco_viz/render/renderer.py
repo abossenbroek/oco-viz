@@ -169,7 +169,9 @@ class VolumeRenderer:
     ) -> NDArray[np.float32]:
         """Render and apply post-processing pipeline."""
         rgb, depth = self.render_frame(
-            concentration, camera_state, pre_normalized=pre_normalized,
+            concentration,
+            camera_state,
+            pre_normalized=pre_normalized,
         )
         if self._pipeline is not None:
             return self._pipeline.process(rgb, depth)
