@@ -101,3 +101,37 @@ from __future__ import annotations
 | Running gates sequentially | `pixi run check` runs them in parallel — do the same manually |
 | Reading entire codebase for context | Use the ticket's `context.related_files` instead |
 | Fixing a config problem by changing code | If the fix belongs in `pyproject.toml` or `pixi.toml`, it's a CONFIG-FIX |
+
+## 8. Cinematic Pipeline Context
+
+This project generates VTK volumetric data for downstream cinematic rendering. See `plan/coding_guide_2026.md` for the full 2026 production pipeline.
+
+### Pipeline Overview
+
+```
+VTK Generation (oco-viz) → OpenVDB Conversion → Houdini Processing → GPU Rendering
+```
+
+### Critical VTK Design Decisions
+
+| Parameter | Correct Specification | Impact of Error |
+|-----------|----------------------|-----------------|
+| Length Units | Meters (real-world scale) | Wrong volume size, broken physics |
+| Temperature | Kelvin (293-3000K) | Completely wrong fire colors |
+| Voxel Spacing | world_size ÷ resolution | Scale mismatch in Houdini |
+| Grid Names | "density", "vel", "temperature" | Manual renaming, pipeline breaks |
+| Sparse Design | Exact 0.0 where empty | 10× file sizes, slow I/O |
+
+### Quality Philosophy
+
+> "Fix it in pre, not post" — Validate at VTK generation, not at final render.
+
+**Progressive Validation:**
+1. **Scout (128³)** — Motion timing, creative direction approval
+2. **Preview (512³)** — Lighting, materials, technical settings
+3. **Final (1024³)** — Maximum detail, no creative surprises
+
+### Key Quality Principles
+- Physical accuracy from VTK origin (meters, Kelvin, m/s)
+- Non-linear shader response (exponential curves, not linear)
+- Subtle imperfection (grain, variation, turbulence 2.5-4.0)
