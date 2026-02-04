@@ -3,11 +3,16 @@
 from __future__ import annotations
 
 import json
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from oco_viz.data.oco import find_nearest_passes, search_multi_satellite
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from urllib.request import Request
 
 
 def _mock_cmr_response(
@@ -31,10 +36,12 @@ def _mock_cmr_response(
     return json.dumps({"feed": {"entry": entries}}).encode()
 
 
-def _urlopen_side_effect(collection_to_entries: dict[str, bytes]):
+def _urlopen_side_effect(
+    collection_to_entries: dict[str, bytes],
+) -> Callable[[Request | str], MagicMock]:
     """Return a side_effect callable that maps CMR collection_id → response."""
 
-    def _side_effect(req):  # type: ignore[no-untyped-def]
+    def _side_effect(req: Request | str) -> MagicMock:
         url = req.full_url if hasattr(req, "full_url") else str(req)
         for coll_id, data in collection_to_entries.items():
             if coll_id in url:

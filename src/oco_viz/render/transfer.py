@@ -69,8 +69,138 @@ class TransferFunction:
         path.write_text(self.to_json())
 
     @classmethod
+    def cinematic_storm(cls) -> TransferFunction:
+        """Dark, dramatic volumetric look with deep self-shadowing.
+
+        Moody thunderhead palette — dense core is brightest (not darkest).
+        Tuned for sample_distance=250 (half smallest voxel spacing).
+        """
+        return cls(
+            color_points=[
+                ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
+                ControlPoint(scalar=0.15, r=0.25, g=0.23, b=0.22),
+                ControlPoint(scalar=0.35, r=0.35, g=0.38, b=0.45),
+                ControlPoint(scalar=0.55, r=0.50, g=0.52, b=0.58),
+                ControlPoint(scalar=0.75, r=0.65, g=0.63, b=0.60),
+                ControlPoint(scalar=0.90, r=0.75, g=0.72, b=0.68),
+                ControlPoint(scalar=1.0, r=0.80, g=0.78, b=0.75),
+            ],
+            opacity_points=[
+                ControlPoint(scalar=0.0, opacity=0.0),
+                ControlPoint(scalar=0.02, opacity=0.002),
+                ControlPoint(scalar=0.05, opacity=0.008),
+                ControlPoint(scalar=0.10, opacity=0.02),
+                ControlPoint(scalar=0.25, opacity=0.08),
+                ControlPoint(scalar=0.50, opacity=0.20),
+                ControlPoint(scalar=0.70, opacity=0.30),
+                ControlPoint(scalar=0.85, opacity=0.38),
+                ControlPoint(scalar=1.0, opacity=0.45),
+            ],
+        )
+
+    @classmethod
+    def cinematic_ember(cls) -> TransferFunction:
+        """Hot emission look with deep reds to white-yellow.
+
+        Volcanic emission palette — brighter reds/oranges.
+        Tuned for sample_distance=250 (half smallest voxel spacing).
+        """
+        return cls(
+            color_points=[
+                ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
+                ControlPoint(scalar=0.2, r=0.30, g=0.05, b=0.0),
+                ControlPoint(scalar=0.4, r=0.65, g=0.15, b=0.02),
+                ControlPoint(scalar=0.6, r=0.90, g=0.35, b=0.05),
+                ControlPoint(scalar=0.8, r=1.0, g=0.60, b=0.15),
+                ControlPoint(scalar=1.0, r=1.0, g=0.90, b=0.50),
+            ],
+            opacity_points=[
+                ControlPoint(scalar=0.0, opacity=0.0),
+                ControlPoint(scalar=0.02, opacity=0.002),
+                ControlPoint(scalar=0.05, opacity=0.006),
+                ControlPoint(scalar=0.10, opacity=0.015),
+                ControlPoint(scalar=0.25, opacity=0.03),
+                ControlPoint(scalar=0.4, opacity=0.10),
+                ControlPoint(scalar=0.6, opacity=0.22),
+                ControlPoint(scalar=0.8, opacity=0.38),
+                ControlPoint(scalar=1.0, opacity=0.50),
+            ],
+        )
+
+    @classmethod
+    def cinematic_atmospheric(cls) -> TransferFunction:
+        """Realistic atmospheric scattering with Rayleigh blue-shift.
+
+        Bright silvery palette for ethereal look.
+        Tuned for sample_distance=250 (half smallest voxel spacing).
+        """
+        return cls(
+            color_points=[
+                ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
+                ControlPoint(scalar=0.15, r=0.45, g=0.50, b=0.65),
+                ControlPoint(scalar=0.30, r=0.55, g=0.58, b=0.68),
+                ControlPoint(scalar=0.50, r=0.70, g=0.72, b=0.75),
+                ControlPoint(scalar=0.70, r=0.82, g=0.80, b=0.78),
+                ControlPoint(scalar=0.85, r=0.90, g=0.87, b=0.84),
+                ControlPoint(scalar=1.0, r=0.95, g=0.93, b=0.90),
+            ],
+            opacity_points=[
+                ControlPoint(scalar=0.0, opacity=0.0),
+                ControlPoint(scalar=0.02, opacity=0.002),
+                ControlPoint(scalar=0.05, opacity=0.006),
+                ControlPoint(scalar=0.10, opacity=0.012),
+                ControlPoint(scalar=0.15, opacity=0.02),
+                ControlPoint(scalar=0.30, opacity=0.08),
+                ControlPoint(scalar=0.50, opacity=0.18),
+                ControlPoint(scalar=0.70, opacity=0.30),
+                ControlPoint(scalar=0.85, opacity=0.40),
+                ControlPoint(scalar=1.0, opacity=0.50),
+            ],
+        )
+
+    @classmethod
+    def absolute_atmospheric(cls) -> TransferFunction:
+        """Ultra-low opacity for full atmospheric column rendering.
+
+        Designed for absolute-mode normalization where the entire 10 km column
+        has non-zero values. Peak opacity 0.20 prevents the column from going
+        solid opaque.
+        """
+        return cls(
+            color_points=[
+                ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
+                ControlPoint(scalar=0.10, r=0.30, g=0.35, b=0.50),
+                ControlPoint(scalar=0.25, r=0.45, g=0.50, b=0.60),
+                ControlPoint(scalar=0.40, r=0.55, g=0.58, b=0.65),
+                ControlPoint(scalar=0.60, r=0.70, g=0.70, b=0.72),
+                ControlPoint(scalar=0.80, r=0.82, g=0.80, b=0.78),
+                ControlPoint(scalar=1.0, r=0.92, g=0.90, b=0.88),
+            ],
+            opacity_points=[
+                ControlPoint(scalar=0.0, opacity=0.0),
+                ControlPoint(scalar=0.02, opacity=0.001),
+                ControlPoint(scalar=0.05, opacity=0.003),
+                ControlPoint(scalar=0.10, opacity=0.008),
+                ControlPoint(scalar=0.15, opacity=0.01),
+                ControlPoint(scalar=0.30, opacity=0.04),
+                ControlPoint(scalar=0.50, opacity=0.08),
+                ControlPoint(scalar=0.70, opacity=0.14),
+                ControlPoint(scalar=0.85, opacity=0.18),
+                ControlPoint(scalar=1.0, opacity=0.20),
+            ],
+        )
+
+    @classmethod
     def default_plume(cls) -> TransferFunction:
-        """Default transfer function for CO2 plume visualization."""
+        """Default transfer function for CO2 plume visualization.
+
+        Warm scientific palette — dense core is brightest.
+        Tuned for sample_distance=250 (half smallest voxel spacing).
+
+        Opacity ramp designed for composite/anomaly mode where normalized values
+        are typically 0.0-0.3 after ellipsoidal falloff. Matches cinematic_storm
+        opacity behavior at low scalar values to ensure visibility.
+        """
         return cls(
             color_points=[
                 ControlPoint(scalar=0.0, r=0.0, g=0.0, b=0.0),
@@ -82,10 +212,13 @@ class TransferFunction:
             ],
             opacity_points=[
                 ControlPoint(scalar=0.0, opacity=0.0),
-                ControlPoint(scalar=0.1, opacity=0.0),
-                ControlPoint(scalar=0.3, opacity=0.1),
-                ControlPoint(scalar=0.5, opacity=0.3),
-                ControlPoint(scalar=0.8, opacity=0.6),
-                ControlPoint(scalar=1.0, opacity=0.8),
+                ControlPoint(scalar=0.02, opacity=0.002),
+                ControlPoint(scalar=0.05, opacity=0.008),
+                ControlPoint(scalar=0.10, opacity=0.02),
+                ControlPoint(scalar=0.25, opacity=0.08),  # Increased from 0.04 for visibility
+                ControlPoint(scalar=0.50, opacity=0.20),  # Increased for consistency
+                ControlPoint(scalar=0.70, opacity=0.30),  # Added intermediate point
+                ControlPoint(scalar=0.85, opacity=0.38),  # Added for smooth transition
+                ControlPoint(scalar=1.0, opacity=0.45),
             ],
         )

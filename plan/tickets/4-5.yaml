@@ -1,0 +1,49 @@
+id: "4-5"
+title: "Wave 4 Integration Test + CLI Wiring"
+wave: 4
+status: done
+depends: ["4-2", "4-3", "4-4"]
+produces:
+  - tests/test_turbulent_integration.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_turbulent_integration.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    End-to-end test: turbulent plume + retuned cinematic TF + fixed VTK
+    rendering parameters → verify dramatic improvement over smooth Gaussian.
+
+    Tests:
+    1. Turbulent sequence generates valid xr.Dataset with (time, z, y, x)
+    2. Concentration variance higher than smooth Gaussian (turbulence works)
+    3. Total mass preserved within 10% of base Gaussian
+    4. Temporal coherence: frame-to-frame correlation > 0.8 (no popping)
+    5. VTK spacing matches grid config (not 1.0, 1.0, 1.0)
+    6. Post-process order is fog→bloom→tonemap
+    7. Preset dispatch: config preset="cinematic_storm" selects correct TF
+    8. Renders produce non-black, non-uniform frames
+
+    CLI wiring:
+    - Add --turbulent flag to generate-plume command
+    - Add --preset flag to render command (default: from config)
+    - Both pass through to existing pipeline code
+
+    Also fix the 16 test files missing `from __future__ import annotations`
+    (flagged by pixi run future-annotations gate).
+  patterns:
+    - "pytest function style"
+    - "xr.Dataset assertions"
+  related_files:
+    - src/oco_viz/plume/turbulent.py
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/render/transfer.py
+    - src/oco_viz/render/volume.py
+    - src/oco_viz/postprocess/pipeline.py
+    - src/oco_viz/__main__.py
+    - tests/test_renderer_integration.py

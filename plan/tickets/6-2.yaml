@@ -1,0 +1,60 @@
+id: "6-2"
+title: "XCO2 Column Validation (PRD Goal G4)"
+wave: 6
+status: todo
+depends: ["6-1"]
+produces:
+  - src/oco_viz/data/validation.py
+  - tests/test_validation.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_validation.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    PRD Goal G4: "Validate pipeline against OCO-3 observations — modeled
+    column XCO2 within 20% of observed enhancements."
+
+    This is a MISSING requirement from the original wave plan. OCO-3
+    measures column-integrated XCO2, not vertical profiles. We must
+    compute the same quantity from our 3D modeled field and compare.
+
+    Functions:
+    - compute_column_xco2(concentration_3d, grid, background_ppm=415.0) -> NDArray[float32]
+      Integrates concentration along z-axis, converts to column-average XCO2.
+      Returns 2D (y, x) field in ppm.
+
+    - compare_modeled_observed(modeled_column, observed_xco2, grid) -> ValidationResult
+      Computes: RMSE, bias, correlation, fraction within 20% threshold.
+      Returns attrs dataclass with metrics + spatial comparison arrays.
+
+    - generate_validation_report(results, output_dir) -> Path
+      Writes JSON report with metrics and optionally a matplotlib comparison
+      figure (modeled vs observed scatter plot).
+
+    ValidationResult:
+      rmse_ppm: float
+      bias_ppm: float
+      correlation: float
+      fraction_within_threshold: float  # fraction of pixels within 20%
+      n_observations: int
+      passed: bool  # fraction_within_threshold > 0.5
+
+    Add validate CLI command: `oco-viz validate --zarr path --oco3 path`
+
+    This is the scientific credibility anchor for the entire visualization.
+    Without it, the plume is artistic fiction.
+  patterns:
+    - "Column integration along z-axis"
+    - "xr.Dataset comparison"
+    - "attrs dataclass for results"
+  related_files:
+    - src/oco_viz/data/pipeline.py
+    - src/oco_viz/data/oco.py
+    - src/oco_viz/data/transform.py
+    - src/oco_viz/config/schema.py

@@ -1,0 +1,33 @@
+id: "4.5-2"
+title: "Soot Transfer Function Wiring"
+wave: 4.5
+status: done
+depends: ["4-5"]
+produces: []
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Wire the soot transfer function into the preset system.
+
+    Register "soot" in PRESETS dict via TransferFunction.from_json_file().
+    Change default preset from "default_plume" to "soot" in TransferFunctionConfig.
+    Add transfer_function.preset: "soot" to base.yaml.
+    Verify soot.json loads and produces correct VTK transfer functions.
+    Keep legacy presets (ember, storm, atmospheric) for reference.
+  patterns:
+    - "Transfer function preset factory"
+    - "VTK vtkColorTransferFunction + vtkPiecewiseFunction"
+    - "JSON config file loading"
+  related_files:
+    - src/oco_viz/render/transfer.py
+    - src/oco_viz/render/renderer.py
+    - configs/base.yaml
+    - configs/transfer_functions/soot.json

@@ -1,0 +1,42 @@
+id: "5-2"
+title: "Tier-Conditional Post-Processing Pipeline"
+wave: 5
+status: done
+depends: ["4.5-1", "4.5-3"]
+produces:
+  - src/oco_viz/postprocess/compose.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Tier-conditional post-processing pipeline replacing old advanced post-processing.
+
+    Pipeline factory keyed by tier:
+      Sketch: passthrough (return raw RGB)
+      Study: fog (grey) -> bloom (greyscale) -> ACES tonemap
+      Exhibition: ACES tonemap only (DOF added in wave 8)
+
+    Stage enable/disable via PostProcessConfig booleans: fog_enabled, bloom_enabled.
+    Bloom retuned for greyscale: use luminance channel for threshold extraction.
+    PostProcessPipeline.process(rgb, depth, tier) accepts tier parameter.
+    Config-driven: tier overlay sets which stages are active.
+
+    Old 5-2 content (vignette, color grading, film grain) is dropped — Soot uses
+    none of these.
+  patterns:
+    - "Pipeline factory pattern"
+    - "Tier-conditional dispatch"
+    - "ACES tonemap operator"
+  related_files:
+    - src/oco_viz/postprocess/pipeline.py
+    - src/oco_viz/config/schema.py
+    - configs/tiers/exhibition.yaml
+    - configs/tiers/study.yaml
+    - configs/tiers/sketch.yaml

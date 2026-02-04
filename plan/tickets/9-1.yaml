@@ -1,0 +1,18 @@
+id: "9-1"
+title: "HYSPLIT Lagrangian Particle Dispersion"
+wave: 9
+status: todo
+depends: ["5.5-3"]
+produces: []
+gates:
+  - cmd: "pixi run check"
+    expect: exit_0
+context:
+  key_behavior: |
+    Deferred from old wave 8 (was 8-2). Independent of Soot visual language.
+
+    Integrate HYSPLIT Lagrangian particle output as an alternative dispersion
+    layer, replacing or augmenting the Gaussian plume.
+  related_files:
+    - src/oco_viz/data/hysplit.py
+    - src/oco_viz/data/pipeline.py

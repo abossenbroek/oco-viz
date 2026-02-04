@@ -4,7 +4,7 @@ from oco_viz.config.schema import GridConfig, PlumeConfig
 from oco_viz.plume.gaussian import generate_sequence, generate_timestep
 
 
-def test_generate_timestep_shape():
+def test_generate_timestep_shape() -> None:
     grid = GridConfig()
     plume = PlumeConfig()
     result = generate_timestep(plume, grid, time_index=0)
@@ -12,14 +12,14 @@ def test_generate_timestep_shape():
     assert result.dtype == np.float32
 
 
-def test_generate_timestep_non_negative():
+def test_generate_timestep_non_negative() -> None:
     grid = GridConfig()
     plume = PlumeConfig()
     result = generate_timestep(plume, grid, time_index=0)
     assert np.all(result >= 0)
 
 
-def test_generate_timestep_peak_near_source():
+def test_generate_timestep_peak_near_source() -> None:
     grid = GridConfig()
     plume = PlumeConfig()
     result = generate_timestep(plume, grid, time_index=0)
@@ -27,7 +27,7 @@ def test_generate_timestep_peak_near_source():
     assert result.max() > 0
 
 
-def test_zero_concentration_upwind():
+def test_zero_concentration_upwind() -> None:
     grid = GridConfig()
     # Wind from west (270), so upwind is towards x=0 from source
     plume = PlumeConfig(source_x=50.0, wind_direction=270.0)
@@ -38,7 +38,7 @@ def test_zero_concentration_upwind():
     assert upwind_slice.max() < result.max() * 0.5
 
 
-def test_stability_d_narrower_than_a():
+def test_stability_d_narrower_than_a() -> None:
     grid = GridConfig(nx=200)
     plume_a = PlumeConfig(stability_class="A")
     plume_d = PlumeConfig(stability_class="D")
@@ -62,7 +62,7 @@ def test_stability_d_narrower_than_a():
         assert a_std > d_std, f"A std={a_std} should be > D std={d_std}"
 
 
-def test_generate_sequence_returns_dataset():
+def test_generate_sequence_returns_dataset() -> None:
     grid = GridConfig()
     plume = PlumeConfig()
     ds = generate_sequence(plume, grid, num_timesteps=4)

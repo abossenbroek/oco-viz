@@ -26,8 +26,9 @@ SATELLITE_COLLECTION_IDS: dict[str, str] = {
     "oco3": "C2910086168-GES_DISC",
 }
 
-# Sasol Secunda complex bounding box (lon_min, lat_min, lon_max, lat_max)
-_SECUNDA_BBOX = (28.8, -26.7, 29.5, -26.2)
+# Default Secunda bounding box (lon_min, lat_min, lon_max, lat_max)
+# Kept as fallback default; prefer DomainConfig.bbox() for new code.
+_DEFAULT_BBOX = (28.8, -26.7, 29.5, -26.2)
 
 _CMR_SEARCH_URL = "https://cmr.earthdata.nasa.gov/search/granules.json"
 
@@ -36,7 +37,7 @@ def search_granules(
     start_date: str,
     end_date: str,
     *,
-    bbox: tuple[float, float, float, float] = _SECUNDA_BBOX,
+    bbox: tuple[float, float, float, float] = _DEFAULT_BBOX,
     collection_id: str = SATELLITE_COLLECTION_IDS["oco3"],
     page_size: int = 200,
 ) -> list[dict[str, Any]]:
@@ -288,7 +289,7 @@ def search_multi_satellite(
     start_date: str,
     end_date: str,
     *,
-    bbox: tuple[float, float, float, float] = _SECUNDA_BBOX,
+    bbox: tuple[float, float, float, float] = _DEFAULT_BBOX,
     satellites: tuple[str, ...] = ("oco3", "oco2"),
 ) -> list[dict[str, Any]]:
     """Search both OCO-2 and OCO-3, tag entries with satellite name, merge by time_start."""

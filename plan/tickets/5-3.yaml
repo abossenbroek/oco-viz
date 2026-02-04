@@ -1,0 +1,41 @@
+id: "5-3"
+title: "Camera Choreography + Motion Vocabulary"
+wave: 5
+status: todo
+depends: ["4.5-1"]
+produces:
+  - src/oco_viz/render/camera_path.py
+  - src/oco_viz/render/easing.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Camera choreography absorbing old 5-3 keyframe splines + Soot motion vocabulary.
+
+    EasingFunction enum: linear, smoothstep, ease_in_cubic, ease_in_out_cubic,
+    heavy_ease_in (t^4 curve).
+
+    CameraPath with Catmull-Rom spline interpolation via
+    scipy.interpolate.CubicSpline.
+
+    Cinematic presets: "reveal", "orbit_rise", "push_in", "glacial_drift".
+
+    MotionConfig in schema: easing, tempo_multiplier, camera_drift_speed.
+    Exhibition tier overlay: easing=heavy_ease_in, tempo_multiplier=0.3.
+    Study tier: easing=smoothstep, tempo_multiplier=1.0.
+  patterns:
+    - "scipy.interpolate.CubicSpline for Catmull-Rom"
+    - "Enum-based easing dispatch"
+    - "Config-driven motion presets"
+  related_files:
+    - src/oco_viz/render/camera.py
+    - src/oco_viz/config/schema.py
+    - configs/tiers/exhibition.yaml
+    - configs/tiers/study.yaml

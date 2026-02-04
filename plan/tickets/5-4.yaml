@@ -1,0 +1,39 @@
+id: "5-4"
+title: "Composition System"
+wave: 5
+status: todo
+depends: ["4.5-1", "5-3"]
+produces:
+  - src/oco_viz/render/composition.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Composition system replacing old render quality modes.
+
+    CompositionConfig in schema: frame_fill=[0.6, 0.8],
+    asymmetric_offset=[float, float], vertical_emphasis=bool.
+
+    compute_camera_distance(plume_bounds, frame_fill_target, fov) -> distance.
+    Asymmetric framing: offset focal point from plume centroid.
+    Vertical emphasis: bias elevation toward vertical.
+
+    Exhibition tier overlay: full composition constraints.
+    Study tier: default camera (no composition intelligence).
+
+    Plume bounding box estimation from concentration field thresholding.
+  patterns:
+    - "Camera distance computation from FOV + bounds"
+    - "Bounding box from scalar field thresholding"
+    - "Config-driven composition"
+  related_files:
+    - src/oco_viz/render/camera.py
+    - src/oco_viz/config/schema.py
+    - configs/tiers/exhibition.yaml

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Any
 
@@ -48,14 +49,28 @@ class GroundPlaneConfig(BaseModel):
 class ScatteringConfig(BaseModel):
     """Volume scattering parameters for VTK."""
 
-    global_illumination_reach: float = Field(default=0.5, ge=0, le=1)
-    volumetric_scattering_blending: float = Field(default=0.5, ge=0, le=2)
-    anisotropy: float = Field(default=0.3, ge=-1, le=1)
+    global_illumination_reach: float = Field(default=0.6, ge=0, le=1)
+    volumetric_scattering_blending: float = Field(default=1.8, ge=0, le=2)
+    anisotropy: float = Field(default=0.35, ge=-1, le=1)
     jittering: bool = True
     shade: bool = True
-    ambient: float = Field(default=0.3, ge=0, le=1)
-    diffuse: float = Field(default=0.7, ge=0, le=1)
-    specular: float = Field(default=0.2, ge=0, le=1)
+    ambient: float = Field(default=0.4, ge=0, le=1)
+    diffuse: float = Field(default=0.5, ge=0, le=1)
+    specular: float = Field(default=0.0, ge=0, le=1)
+    sample_distance: float = Field(default=0.5, gt=0)
+
+
+class TurbulenceConfig(BaseModel):
+    """Fractal turbulence parameters for plume detail."""
+
+    enabled: bool = True
+    octaves: int = Field(default=6, ge=1, le=10)
+    lacunarity: float = Field(default=2.0, gt=1.0)
+    gain: float = Field(default=0.5, gt=0, lt=1)
+    amplitude: float = Field(default=0.6, ge=0, le=2.0)
+    curl_strength: float = Field(default=0.3, ge=0, le=1.0)
+    temporal_speed: float = Field(default=0.02, gt=0)
+    seed: int = 42
 
 
 class CameraConfig(BaseModel):
@@ -69,19 +84,36 @@ class CameraConfig(BaseModel):
     focal_point: tuple[float, float, float] = (50.0, 50.0, 30.0)
 
 
+class LightingConfig(BaseModel):
+    """Tier-conditional lighting configuration."""
+
+    mode: str = Field(default="basic", description="none, basic, or smoldering")
+
+    @field_validator("mode")
+    @classmethod
+    def _valid_mode(cls, v: str) -> str:
+        valid = {"none", "basic", "smoldering"}
+        if v not in valid:
+            msg = f"Lighting mode must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
+
+
 class TransferFunctionConfig(BaseModel):
     """Transfer function reference."""
 
-    preset: str = "default_plume"
+    preset: str = "soot"
     json_path: str | None = None
 
 
 class PostProcessConfig(BaseModel):
     """Post-processing pipeline configuration."""
 
+    fog_enabled: bool = True
     fog_density: float = Field(default=0.02, ge=0)
-    fog_color: tuple[float, float, float] = (0.7, 0.75, 0.85)
+    fog_color: tuple[float, float, float] = (0.2, 0.2, 0.2)
     tonemap: str = "aces"
+    bloom_enabled: bool = True
     bloom_threshold: float = Field(default=0.8, ge=0, le=1)
     bloom_intensity: float = Field(default=0.3, ge=0)
     bloom_passes: int = Field(default=3, ge=1)
@@ -139,6 +171,90 @@ class DomainConfig(BaseModel):
     extent_y_km: float = Field(default=100.0, gt=0, description="North-south extent in km")
     extent_z_km: float = Field(default=15.0, gt=0, description="Vertical extent in km")
 
+    def bbox(self) -> tuple[float, float, float, float]:
+        """Return (lon_min, lat_min, lon_max, lat_max) bounding box.
+
+        Approximates degree offsets from km extents using equirectangular projection.
+        """
+        half_x = self.extent_x_km / 2.0
+        half_y = self.extent_y_km / 2.0
+        km_per_deg_lat = 111.32
+        km_per_deg_lon = 111.32 * math.cos(math.radians(self.origin_lat))
+        dlat = half_y / km_per_deg_lat
+        dlon = half_x / max(km_per_deg_lon, 1e-6)
+        return (
+            self.origin_lon - dlon,
+            self.origin_lat - dlat,
+            self.origin_lon + dlon,
+            self.origin_lat + dlat,
+        )
+
+
+class CamsConfig(BaseModel):
+    """CAMS high-resolution GHG forecast configuration."""
+
+    dataset: str = "cams-global-ghg-forecasts"
+    cache_dir: str = "data/cams"
+
+
+class RenderingConfig(BaseModel):
+    """Concentration normalization and rendering mode configuration.
+
+    Modes:
+        max: Simple max-normalization. Divides by maximum value. Appropriate for
+            pure plume data (gaussian/turbulent) without background.
+        anomaly: Subtract horizontal-mean background profile, clip to [0, anomaly_max_ppm],
+            then divide by anomaly_max_ppm. Background regions become ~0 (transparent).
+            Appropriate for composite data (CAMS background + plume enhancement).
+        absolute: Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
+            Shows full atmospheric column including background.
+
+    Adaptive normalization (anomaly mode only):
+        When adaptive_normalization=True, divides by the adaptive_percentile-th
+        percentile of positive enhancement values instead of anomaly_max_ppm.
+
+    Gamma correction:
+        Applied after normalization: output = normalized ** (1/gamma).
+        gamma > 1 boosts mid-range values, improving visibility.
+    """
+
+    mode: str = Field(default="max", description="max, anomaly, or absolute")
+    anomaly_max_ppm: float = Field(default=10.0, gt=0)
+    absolute_min_ppm: float = Field(default=415.0)
+    absolute_max_ppm: float = Field(default=435.0, gt=0)
+
+    # Adaptive normalization (anomaly mode only)
+    adaptive_normalization: bool = Field(
+        default=False,
+        description="Use percentile-based max instead of fixed anomaly_max_ppm",
+    )
+    adaptive_percentile: float = Field(
+        default=95.0,
+        ge=50.0,
+        le=100.0,
+        description="Percentile of positive enhancement values to use as divisor",
+    )
+    min_enhancement_ppm: float = Field(
+        default=1.0,
+        gt=0,
+        description="Floor for adaptive divisor to avoid division by tiny values",
+    )
+
+    # Gamma correction
+    opacity_gamma: float = Field(
+        default=1.0,
+        gt=0,
+        description="Gamma for power-law scaling (>1 boosts mid-range values)",
+    )
+
+    @field_validator("mode")
+    @classmethod
+    def _valid_mode(cls, v: str) -> str:
+        if v not in ("max", "anomaly", "absolute"):
+            msg = f"Rendering mode must be 'max', 'anomaly', or 'absolute', got {v!r}"
+            raise ValueError(msg)
+        return v
+
 
 class ERA5Config(BaseModel):
     """ERA5 reanalysis data configuration."""
@@ -173,16 +289,30 @@ class DataSourceConfig(BaseModel):
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
+    tier: str = "study"
     grid: GridConfig = Field(default_factory=GridConfig)
     sky: SkyConfig = Field(default_factory=SkyConfig)
     ground_plane: GroundPlaneConfig = Field(default_factory=GroundPlaneConfig)
     scattering: ScatteringConfig = Field(default_factory=ScatteringConfig)
+    lighting: LightingConfig = Field(default_factory=LightingConfig)
     camera: CameraConfig = Field(default_factory=CameraConfig)
     transfer_function: TransferFunctionConfig = Field(default_factory=TransferFunctionConfig)
     postprocess: PostProcessConfig = Field(default_factory=PostProcessConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
     plume: PlumeConfig = Field(default_factory=PlumeConfig)
+    turbulence: TurbulenceConfig = Field(default_factory=TurbulenceConfig)
+    cams: CamsConfig = Field(default_factory=CamsConfig)
+    rendering: RenderingConfig = Field(default_factory=RenderingConfig)
     data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
+
+    @field_validator("tier")
+    @classmethod
+    def _valid_tier(cls, v: str) -> str:
+        valid = {"sketch", "study", "exhibition"}
+        if v not in valid:
+            msg = f"Tier must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
 
 
 def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
@@ -201,8 +331,12 @@ def load_config(
     *,
     overrides: dict[str, Any] | None = None,
     configs_dir: Path | None = None,
+    tier: str | None = None,
 ) -> AppConfig:
-    """Load config from base.yaml, optionally overlay a profile, then apply overrides."""
+    """Load config from base.yaml, optionally overlay a profile and tier, then apply overrides.
+
+    Loading order: base.yaml -> profile overlay -> tier overlay -> runtime overrides.
+    """
     cdir = configs_dir or _configs_dir()
     base_path = cdir / "base.yaml"
 
@@ -220,6 +354,16 @@ def load_config(
                 overlay = yaml.safe_load(f)
                 if overlay:
                     data = _deep_merge(data, overlay)
+
+    # Determine tier: explicit parameter > overrides > data > default
+    effective_tier = tier or (overrides or {}).get("tier") or data.get("tier", "study")
+    tier_path = cdir / "tiers" / f"{effective_tier}.yaml"
+    if tier_path.exists():
+        with tier_path.open() as f:
+            tier_overlay = yaml.safe_load(f)
+            if tier_overlay:
+                data = _deep_merge(data, tier_overlay)
+    data["tier"] = effective_tier
 
     if overrides:
         data = _deep_merge(data, overrides)

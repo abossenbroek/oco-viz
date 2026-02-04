@@ -1,0 +1,40 @@
+id: "5-5"
+title: "Soot Rendering Integration Test"
+wave: 5
+status: todo
+depends: ["5-1", "5-2", "5-3", "5-4"]
+produces:
+  - tests/test_soot_integration.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_soot_integration.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    End-to-end Soot rendering integration test replacing old sequencer wiring test.
+
+    Test: generate turbulent plume -> render with soot TF -> verify output.
+
+    Study tier assertions: soot TF active, grey fog, basic lighting, bloom active.
+    Exhibition tier assertions: no sky, no ground plane, no fog, no external lights,
+    smoldering scattering params.
+    Sketch tier assertions: passthrough post-processing, no lighting.
+
+    Verify config overlay mechanism works for all three tiers.
+    Verify achromatic output (R~=G~=B in rendered frames).
+  patterns:
+    - "End-to-end integration test"
+    - "Tier-conditional assertions"
+    - "VTK offscreen rendering for test"
+  related_files:
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/render/lighting.py
+    - src/oco_viz/render/transfer.py
+    - src/oco_viz/postprocess/pipeline.py
+    - src/oco_viz/config/tier.py
+    - src/oco_viz/config/schema.py

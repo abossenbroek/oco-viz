@@ -1,9 +1,16 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 
 from oco_viz.sequencer.vdb_export import export_vdb, read_vdb
 
+if TYPE_CHECKING:
+    from pathlib import Path
 
-def test_vdb_file_written(tmp_path):
+
+def test_vdb_file_written(tmp_path: Path) -> None:
     arr = np.random.default_rng(42).random((10, 10, 10)).astype(np.float32)
     out = tmp_path / "test.vdb"
     result = export_vdb(arr, out)
@@ -11,14 +18,14 @@ def test_vdb_file_written(tmp_path):
     assert result.stat().st_size > 0
 
 
-def test_grid_name_is_density(tmp_path):
+def test_grid_name_is_density(tmp_path: Path) -> None:
     arr = np.ones((5, 5, 5), dtype=np.float32)
     path = export_vdb(arr, tmp_path / "test.vdb")
     _, name = read_vdb(path)
     assert name == "density"
 
 
-def test_sparse_active_count(tmp_path):
+def test_sparse_active_count(tmp_path: Path) -> None:
     arr = np.zeros((20, 20, 20), dtype=np.float32)
     # Only a small region has non-zero values
     arr[5:8, 5:8, 5:8] = 1.0
@@ -29,7 +36,7 @@ def test_sparse_active_count(tmp_path):
     assert recovered.size < 20 * 20 * 20
 
 
-def test_round_trip_above_threshold(tmp_path):
+def test_round_trip_above_threshold(tmp_path: Path) -> None:
     rng = np.random.default_rng(7)
     arr = np.zeros((10, 10, 10), dtype=np.float32)
     # Fill entire array so bounding box matches shape

@@ -1,0 +1,35 @@
+id: "5.5-2"
+title: "Rendering Modes (Anomaly/Absolute) with Column-Safe Normalization"
+wave: 5.5
+status: done
+depends: ["5.5-1"]
+produces:
+  - tests/test_rendering_modes.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_rendering_modes.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Mode-aware normalization to prevent 10km atmospheric column from going
+    solid opaque. Two modes:
+    - anomaly: subtract background profile, normalize enhancement (0-10 ppm -> 0-1)
+    - absolute: map 415-435 ppm range to 0-1
+
+    Add CamsConfig and RenderingConfig to schema.py.
+    Add pre_normalized flag to render_frame().
+    Add absolute_atmospheric TF preset (peak opacity 0.20).
+  patterns:
+    - "Pydantic v2 config schema"
+    - "Transfer function preset factory"
+    - "VTK volume property"
+  related_files:
+    - src/oco_viz/config/schema.py
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/render/transfer.py
+    - configs/base.yaml

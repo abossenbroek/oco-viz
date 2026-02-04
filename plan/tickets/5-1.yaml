@@ -1,0 +1,44 @@
+id: "5-1"
+title: "Tier-Conditional Lighting (Internal Smoldering)"
+wave: 5
+status: done
+depends: ["4.5-1", "4.5-3"]
+produces:
+  - src/oco_viz/render/light_rig.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Tier-conditional lighting replacing the old configurable light rig.
+
+    LightingMode enum: none (sketch), basic (study), smoldering (exhibition).
+
+    Study mode: current 3-point lighting (key/fill/rim) — keep existing
+    apply_lighting(). Camera-tracking rim concept retained as study-mode option.
+
+    Exhibition mode: renderer.RemoveAllLights(), ambient=0.4, diffuse=0.0,
+    specular=0.0. VTK scattering does internal glow via
+    GlobalIlluminationReach=0.6 + VolumetricScatteringBlending=1.8.
+
+    Sketch mode: no lighting computation (ShadeOff()).
+
+    Tier selects mode automatically via config overlay.
+    Add LightingConfig to schema with mode field.
+  patterns:
+    - "VTK lighting API"
+    - "Tier-conditional dispatch via config"
+    - "Enum-based mode selection"
+  related_files:
+    - src/oco_viz/render/lighting.py
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/config/schema.py
+    - configs/tiers/exhibition.yaml
+    - configs/tiers/study.yaml
+    - configs/tiers/sketch.yaml

@@ -1,0 +1,37 @@
+id: "5.5-3"
+title: "Composite Pipeline Mode (CAMS + Plume + Turbulence)"
+wave: 5.5
+status: done
+depends: ["5.5-1", "5.5-2"]
+produces:
+  - tests/test_composite_pipeline.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_composite_pipeline.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    New pipeline mode: composite.
+    1. Load CAMS background (3D, ~420 ppm with gradients)
+    2. Generate point-source plume enhancement (gaussian.py)
+    3. Apply turbulent noise (turbulent.py)
+    4. Composite: background + plume_turb
+    5. Normalize via normalize_concentration() per rendering mode
+
+    Backward compat: mode=gaussian and mode=turbulent preserved.
+    CLI: --mode composite flag on pipeline command.
+  patterns:
+    - "Pipeline mode dispatch"
+    - "xr.Dataset contract"
+    - "argparse subcommand extension"
+  related_files:
+    - src/oco_viz/data/pipeline.py
+    - src/oco_viz/data/cams.py
+    - src/oco_viz/plume/gaussian.py
+    - src/oco_viz/plume/turbulent.py
+    - src/oco_viz/__main__.py

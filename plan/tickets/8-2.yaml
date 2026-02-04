@@ -1,0 +1,36 @@
+id: "8-2"
+title: "Shallow Depth of Field"
+wave: 8
+status: todo
+depends: ["5-2", "8-1"]
+produces:
+  - src/oco_viz/postprocess/dof.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Post-process depth of field using depth buffer + variable Gaussian blur.
+
+    DOFConfig: enabled, focal_distance (auto=plume centroid), aperture
+    (default 2.8), max_blur_radius.
+    Focal distance computed from depth buffer at plume centroid.
+    Circle-of-confusion calculation per pixel.
+
+    Exhibition tier overlay: dof.enabled=true.
+    Pipeline insertion: after volume render, before tonemap.
+    Update exhibition pipeline: dissolution -> DOF -> ACES tonemap.
+  patterns:
+    - "Depth buffer post-processing"
+    - "Variable Gaussian blur"
+    - "Circle-of-confusion optics model"
+  related_files:
+    - src/oco_viz/postprocess/pipeline.py
+    - src/oco_viz/config/schema.py
+    - configs/tiers/exhibition.yaml

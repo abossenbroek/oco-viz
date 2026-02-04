@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 import json
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 from PIL import Image
 
 from oco_viz.sequencer.encode import encode_video
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _create_test_frames(frames_dir: Path, n: int = 5, size: int = 64) -> None:
@@ -15,7 +20,7 @@ def _create_test_frames(frames_dir: Path, n: int = 5, size: int = 64) -> None:
         Image.fromarray(arr).save(frames_dir / f"frame_{i:06d}.png")
 
 
-def test_encode_video(tmp_path):
+def test_encode_video(tmp_path: Path) -> None:
     frames_dir = tmp_path / "frames"
     _create_test_frames(frames_dir, n=5)
 
@@ -25,7 +30,7 @@ def test_encode_video(tmp_path):
     assert result.stat().st_size > 0
 
 
-def test_ffprobe_h264(tmp_path):
+def test_ffprobe_h264(tmp_path: Path) -> None:
     frames_dir = tmp_path / "frames"
     _create_test_frames(frames_dir, n=5)
 

@@ -39,15 +39,27 @@ def make_gaussian_blob(
     return result
 
 
-def numpy_to_vtk_image(data: NDArray[np.float32]) -> vtk.vtkImageData:
-    """Convert a 3D numpy array to vtkImageData."""
+def numpy_to_vtk_image(
+    data: NDArray[np.float32],
+    spacing: tuple[float, float, float] = (1.0, 1.0, 1.0),
+) -> vtk.vtkImageData:
+    """Convert a 3D numpy array to vtkImageData.
+
+    Parameters
+    ----------
+    data:
+        3D array with shape (z, y, x).
+    spacing:
+        Physical spacing (dx, dy, dz) for the vtkImageData.
+
+    """
     image = vtk.vtkImageData()
     nz, ny, nx = data.shape
     image.SetDimensions(nx, ny, nz)
-    image.SetSpacing(1.0, 1.0, 1.0)
+    image.SetSpacing(spacing[0], spacing[1], spacing[2])
     image.SetOrigin(0.0, 0.0, 0.0)
 
-    flat = np.ascontiguousarray(data.ravel(order="F"))
+    flat = np.ascontiguousarray(data.ravel(order="C"))
     vtk_arr = numpy_to_vtk(flat, deep=True, array_type=vtk.VTK_FLOAT)
     vtk_arr.SetName("density")
     image.GetPointData().SetScalars(vtk_arr)
@@ -95,6 +107,9 @@ def create_volume(
         volume_property.SetAmbient(scattering.ambient)
         volume_property.SetDiffuse(scattering.diffuse)
         volume_property.SetSpecular(scattering.specular)
+
+        mapper.SetSampleDistance(scattering.sample_distance)
+        mapper.SetAutoAdjustSampleDistances(False)
 
         if scattering.jittering:
             mapper.SetUseJittering(True)

@@ -9,14 +9,17 @@ from oco_viz.config.schema import (
     DomainConfig,
     ERA5Config,
     GridConfig,
+    LightingConfig,
     OCO3Config,
     OutputConfig,
     PlumeConfig,
     PostProcessConfig,
     ScatteringConfig,
     TransferFunctionConfig,
+    TurbulenceConfig,
     load_config,
 )
+from oco_viz.config.tier import Tier
 
 __all__ = [
     "AppConfig",
@@ -25,11 +28,14 @@ __all__ = [
     "DomainConfig",
     "ERA5Config",
     "GridConfig",
+    "LightingConfig",
     "OCO3Config",
     "OutputConfig",
     "PlumeConfig",
     "PostProcessConfig",
     "ScatteringConfig",
+    "Tier",
     "TransferFunctionConfig",
+    "TurbulenceConfig",
     "load_config",
 ]

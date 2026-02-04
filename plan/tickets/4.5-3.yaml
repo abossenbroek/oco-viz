@@ -1,0 +1,41 @@
+id: "4.5-3"
+title: "Config Defaults Alignment for Soot"
+wave: 4.5
+status: done
+depends: ["4.5-1"]
+produces: []
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Align config defaults to Soot visual language specification.
+
+    Fix ScatteringConfig defaults in schema.py:
+      ambient=0.4, diffuse=0.5, specular=0.0, anisotropy=0.35,
+      global_illumination_reach=0.6, volumetric_scattering_blending=1.8
+
+    Fix PostProcessConfig.fog_color: [0.2, 0.2, 0.2] (dark grey, not blue-white).
+    Add fog_enabled: bool = True to PostProcessConfig.
+
+    Tier overlay contents:
+      Exhibition: sky.enabled=false, ground_plane.enabled=false,
+        postprocess.fog_enabled=false
+      Study: sky.enabled=false, ground_plane.enabled=false,
+        postprocess.fog_enabled=true
+      Sketch: minimal rendering config
+  patterns:
+    - "Pydantic v2 field defaults"
+    - "YAML tier overlay"
+  related_files:
+    - src/oco_viz/config/schema.py
+    - configs/base.yaml
+    - configs/tiers/sketch.yaml
+    - configs/tiers/study.yaml
+    - configs/tiers/exhibition.yaml

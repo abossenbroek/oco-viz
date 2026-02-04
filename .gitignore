@@ -137,6 +137,8 @@ celerybeat.pid
 # Environments
 .env
 !.env.op
+.cdsapirc
+!.cdsapirc
 .envrc
 .venv
 env/
@@ -207,5 +209,7 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Project output
-output/
+# Project output (ignore contents but track examples for visual regression)
+output/*
+!output/examples/
+output/examples/.DS_Store

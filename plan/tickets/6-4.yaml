@@ -1,0 +1,60 @@
+id: "6-4"
+title: "Data Pipeline Integration (Advection + Overlay + Annotations)"
+wave: 6
+status: todo
+depends: ["6-1", "6-2", "6-3"]
+produces:
+  - tests/test_full_pipeline.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_full_pipeline.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Integration test + pipeline wiring for all Wave 6 features.
+
+    Pipeline mode selection in pipeline.py:
+    - run_data_pipeline(config, mode="gaussian")  — existing (default)
+    - run_data_pipeline(config, mode="turbulent") — uses generate_turbulent_sequence
+    - run_data_pipeline(config, mode="advected")  — uses advect_sequence with ERA5
+    - run_data_pipeline(config, mode="composite") — CAMS background + plume + turbulence
+
+    Update __main__.py:
+    - Add --mode flag to pipeline command (gaussian|turbulent|advected)
+    - Add validate subcommand
+
+    Tests (using synthetic/mock data):
+    1. Advected plume generates physically plausible time evolution
+       (concentration moves downwind over time)
+    2. Turbulent mode produces higher variance than gaussian
+    3. OCO overlay appears only on frames with observation data
+    4. Annotations render without overlapping each other
+    5. Validation report generates with mock observed data
+    6. Full CLI: generate (advected) → render (cinematic) → encode
+    7. Zarr checkpointing works for all modes
+    8. Resume works correctly after interruption
+
+    Temporal sub-stepping note: For smooth animation at 24fps from hourly
+    data, the render loop should interpolate concentration between hourly
+    Zarr timesteps. Add linear interpolation in controller.py:
+      t_frac = frame_idx / frames_per_hour
+      conc = (1-frac)*ds[t_low] + frac*ds[t_high]
+    This avoids slide-show jumps.
+  patterns:
+    - "Mock data for tests (no network calls)"
+    - "xr.Dataset contract validation"
+    - "Linear temporal interpolation"
+  related_files:
+    - src/oco_viz/data/pipeline.py
+    - src/oco_viz/plume/advection.py
+    - src/oco_viz/data/validation.py
+    - src/oco_viz/render/overlay.py
+    - src/oco_viz/render/annotations.py
+    - src/oco_viz/__main__.py
+    - src/oco_viz/data/cams.py
+    - src/oco_viz/sequencer/controller.py

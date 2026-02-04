@@ -8,7 +8,9 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-_DEFAULT_PATH = Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "oco3_sample.nc4"
+_DEFAULT_PATH = (
+    Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "oco3_secunda_2025-10-26.nc4"
+)
 
 # Secunda facility coordinates
 _SECUNDA_LAT = -26.52
@@ -202,7 +204,7 @@ def main() -> None:
         "path",
         nargs="?",
         default=str(_DEFAULT_PATH),
-        help="Path to the .nc4 file (default: tests/fixtures/oco3_sample.nc4)",
+        help="Path to the .nc4 file (default: tests/fixtures/oco3_secunda_2025-10-26.nc4)",
     )
     parser.add_argument(
         "--secunda",

@@ -1,0 +1,18 @@
+id: "9-2"
+title: "Sentinel-2 RGB Ground Plane Texture"
+wave: 9
+status: todo
+depends: ["5.5-4"]
+produces: []
+gates:
+  - cmd: "pixi run check"
+    expect: exit_0
+context:
+  key_behavior: |
+    Deferred from old wave 8 (was 8-1). Optional even in Soot mode — user can
+    enable ground plane as override.
+
+    Replace translucent grid ground plane with Sentinel-2 RGB satellite imagery
+    texture for geographic context.
+  related_files:
+    - src/oco_viz/render/ground_plane.py

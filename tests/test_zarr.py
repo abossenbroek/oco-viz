@@ -1,8 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pytest
 import xarray as xr
 
 from oco_viz.data.zarr_store import read_zarr, write_zarr
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_dataset(nt: int = 4, nz: int = 10, ny: int = 20, nx: int = 20) -> xr.Dataset:
@@ -19,7 +26,7 @@ def _make_dataset(nt: int = 4, nz: int = 10, ny: int = 20, nx: int = 20) -> xr.D
     )
 
 
-def test_write_and_read_zarr(tmp_path):
+def test_write_and_read_zarr(tmp_path: Path) -> None:
     ds = _make_dataset(nt=24, nz=10, ny=20, nx=20)
     zarr_path = tmp_path / "test.zarr"
     write_zarr(ds, zarr_path)
@@ -30,7 +37,7 @@ def test_write_and_read_zarr(tmp_path):
     assert ds_read.concentration.shape == (24, 10, 20, 20)
 
 
-def test_round_trip_preserves_data(tmp_path):
+def test_round_trip_preserves_data(tmp_path: Path) -> None:
     ds = _make_dataset()
     zarr_path = tmp_path / "test.zarr"
     write_zarr(ds, zarr_path)
@@ -38,14 +45,14 @@ def test_round_trip_preserves_data(tmp_path):
     np.testing.assert_allclose(ds.concentration.values, ds_read.concentration.values, rtol=1e-6)
 
 
-def test_validation_rejects_missing_var(tmp_path):
+def test_validation_rejects_missing_var(tmp_path: Path) -> None:
     ds = xr.Dataset({"other": (["time", "z", "y", "x"], np.zeros((2, 3, 4, 5)))})
     zarr_path = tmp_path / "bad.zarr"
     with pytest.raises(ValueError, match="Missing variable"):
         write_zarr(ds, zarr_path)
 
 
-def test_validation_rejects_missing_dim(tmp_path):
+def test_validation_rejects_missing_dim(tmp_path: Path) -> None:
     ds = xr.Dataset({"concentration": (["time", "level"], np.zeros((2, 3), dtype=np.float32))})
     zarr_path = tmp_path / "bad.zarr"
     with pytest.raises(ValueError, match="Missing dimension"):

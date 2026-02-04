@@ -1,0 +1,74 @@
+id: "4-2"
+title: "VTK Render Fixes (Spacing, Opacity, Scattering, Post-Process Order)"
+wave: 4
+status: done
+depends: []
+produces: []
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/ -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Critical rendering fixes identified by expert review. These are the
+    highest-impact, lowest-effort changes that transform the visual output
+    from "scientific blob" to "cinematic cloud." Do all of them in one ticket
+    because they interact (changing opacity requires changing scattering, etc.)
+
+    FIX 1: VTK spacing must match grid config (volume.py)
+      image.SetSpacing(1.0, 1.0, 1.0)  →
+      Pass grid spacing into numpy_to_vtk_image and use physical values.
+      Without this, VTK computes wrong gradient normals for shading.
+      Add spacing parameter: numpy_to_vtk_image(data, spacing=(dx, dy, dz))
+      Update renderer.py to pass grid config spacing.
+
+    FIX 2: Post-process order wrong (pipeline.py)
+      Current:  fog → tonemap → bloom
+      Correct:  fog → bloom → tonemap
+      Bloom must operate in HDR/linear space before tonemapping compresses range.
+
+    FIX 3: VTK scattering params too conservative (base.yaml + schema defaults)
+      global_illumination_reach: 0.5 → 1.0   (full self-shadowing)
+      volumetric_scattering_blending: 0.5 → 1.8 (full volumetric)
+      anisotropy: 0.3 → 0.75  (strong forward scattering = silver linings)
+      ambient: 0.3 → 0.05   (kills flat light, enables dramatic contrast)
+      diffuse: 0.7 → 0.85
+      specular: 0.2 → 0.1
+
+    FIX 4: Set explicit sample distance (volume.py)
+      mapper.SetSampleDistance(0.5)        # fine sampling
+      mapper.SetAutoAdjustSampleDistances(False)  # no auto-downgrade
+      Add sample_distance to ScatteringConfig with default 0.5
+
+    FIX 5: Volume persistence (renderer.py)
+      Don't recreate volume actor every frame. Keep mapper + volume property.
+      Only update the input data via mapper.SetInputData(). This avoids
+      rebuilding BVH/gradient cache per frame.
+
+    FIX 6: Wire TransferFunctionConfig.preset to renderer (renderer.py)
+      Add preset→classmethod dispatch:
+        PRESETS = {"default_plume": TF.default_plume, "cinematic_storm": TF.cinematic_storm, ...}
+      If json_path is set, load from file. Otherwise use preset mapping.
+      Currently config.transfer_function.preset is dead code.
+
+    UPDATE existing tests to match new defaults and verify:
+    - Spacing flows through to VTK
+    - Post-process order is fog→bloom→tonemap
+    - Preset dispatch works for all known presets
+  patterns:
+    - "Config-driven VTK parameters"
+    - "Backward-compatible default changes"
+  related_files:
+    - src/oco_viz/render/volume.py
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/postprocess/pipeline.py
+    - src/oco_viz/config/schema.py
+    - configs/base.yaml
+    - tests/test_volume.py
+    - tests/test_postprocess.py
+    - tests/test_renderer.py

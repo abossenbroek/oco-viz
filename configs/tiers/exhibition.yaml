@@ -1,0 +1,10 @@
+# Exhibition tier: gallery-quality output (aspirational target)
+sky:
+  enabled: false
+
+ground_plane:
+  enabled: false
+
+postprocess:
+  fog_enabled: false
+  bloom_enabled: false

@@ -1,0 +1,35 @@
+id: "5.5-1"
+title: "CAMS High-Res GHG Forecast Loader"
+wave: 5.5
+status: done
+depends: []
+produces:
+  - src/oco_viz/data/cams.py
+  - tests/test_cams.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_cams.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    CAMS data loader with CDS API download and regridding pipeline.
+
+    download_cams_co2(date, domain, cache_dir) -> Path
+    load_cams_co2(path, domain, grid) -> np.ndarray
+
+    Regridding: hybrid-sigma -> altitude via hypsometric equation,
+    9km -> 1km bilinear via scipy.interpolate.RegularGridInterpolator.
+    Unit conversion: kg/kg -> ppm (* 1e6 * M_air / M_co2).
+  patterns:
+    - "CDS API download with cdsapi"
+    - "RegularGridInterpolator for regridding"
+    - "xr.Dataset as interchange format"
+  related_files:
+    - src/oco_viz/data/era5.py
+    - src/oco_viz/config/schema.py
+    - src/oco_viz/data/transform.py
