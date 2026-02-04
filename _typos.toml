@@ -15,6 +15,7 @@ azimuth = "azimuth"
 arange = "arange"
 precessing = "precessing"
 ND = "ND"
+LOD = "LOD"
 
 [default.extend-identifiers]
 GES_DISC = "GES_DISC"

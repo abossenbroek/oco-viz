@@ -218,20 +218,27 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
         for plume_type, conc in plume_variants.items():
             log.info("rendering", preset=preset_name, plume_type=plume_type)
 
-            # Determine rendering mode based on preset and plume type
+            # Determine rendering config based on preset and plume type
             if plume_type == "composite":
                 if preset_name == "absolute_atmospheric":
-                    rendering_mode = "absolute"
+                    rendering_cfg = RenderingConfig(mode="absolute")
                 else:
-                    rendering_mode = "anomaly"
+                    # Enable adaptive normalization + gamma for composite visibility
+                    rendering_cfg = RenderingConfig(
+                        mode="anomaly",
+                        adaptive_normalization=True,
+                        adaptive_percentile=95.0,
+                        min_enhancement_ppm=1.0,
+                        opacity_gamma=2.2,
+                    )
             else:
                 # gaussian/turbulent: use max normalization (original behavior)
-                rendering_mode = "max"
+                rendering_cfg = RenderingConfig(mode="max")
 
             render_config = config.model_copy(
                 update={
                     "transfer_function": TransferFunctionConfig(preset=preset_name),
-                    "rendering": RenderingConfig(mode=rendering_mode),
+                    "rendering": rendering_cfg,
                 },
             )
             renderer = VolumeRenderer(render_config)

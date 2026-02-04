@@ -208,12 +208,44 @@ class RenderingConfig(BaseModel):
             Appropriate for composite data (CAMS background + plume enhancement).
         absolute: Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
             Shows full atmospheric column including background.
+
+    Adaptive normalization (anomaly mode only):
+        When adaptive_normalization=True, divides by the adaptive_percentile-th
+        percentile of positive enhancement values instead of anomaly_max_ppm.
+
+    Gamma correction:
+        Applied after normalization: output = normalized ** (1/gamma).
+        gamma > 1 boosts mid-range values, improving visibility.
     """
 
     mode: str = Field(default="max", description="max, anomaly, or absolute")
     anomaly_max_ppm: float = Field(default=10.0, gt=0)
     absolute_min_ppm: float = Field(default=415.0)
     absolute_max_ppm: float = Field(default=435.0, gt=0)
+
+    # Adaptive normalization (anomaly mode only)
+    adaptive_normalization: bool = Field(
+        default=False,
+        description="Use percentile-based max instead of fixed anomaly_max_ppm",
+    )
+    adaptive_percentile: float = Field(
+        default=95.0,
+        ge=50.0,
+        le=100.0,
+        description="Percentile of positive enhancement values to use as divisor",
+    )
+    min_enhancement_ppm: float = Field(
+        default=1.0,
+        gt=0,
+        description="Floor for adaptive divisor to avoid division by tiny values",
+    )
+
+    # Gamma correction
+    opacity_gamma: float = Field(
+        default=1.0,
+        gt=0,
+        description="Gamma for power-law scaling (>1 boosts mid-range values)",
+    )
 
     @field_validator("mode")
     @classmethod

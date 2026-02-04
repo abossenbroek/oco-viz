@@ -147,20 +147,30 @@ def load_era5_winds(
     src_pressure = ds["pressure_level"].values
     n_times = ds.sizes["time"]
 
-    # Convert source coords to local km / altitude m
+    # Convert source coords to local km / altitude m.
+    # Use center latitude for consistent coordinate mapping (avoids skew from Earth's curvature).
+    center_lat = domain.origin_lat
     src_x_km, _ = latlon_to_local_km(
-        src_lats[0], src_lons, origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+        np.full_like(src_lons, center_lat),
+        src_lons,
+        origin_lat=domain.origin_lat,
+        origin_lon=domain.origin_lon,
     )
     _, src_y_km = latlon_to_local_km(
-        src_lats, src_lons[0], origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+        src_lats,
+        np.full_like(src_lats, domain.origin_lon),
+        origin_lat=domain.origin_lat,
+        origin_lon=domain.origin_lon,
     )
     src_x_m = np.asarray(src_x_km, dtype=np.float64) * 1000.0
     src_y_m = np.asarray(src_y_km, dtype=np.float64) * 1000.0
     src_z_m = np.asarray(pressure_to_altitude_m(src_pressure), dtype=np.float64)
 
-    # Target grid coordinates in meters
-    tgt_x = np.arange(grid.nx, dtype=np.float64) * grid.dx
-    tgt_y = np.arange(grid.ny, dtype=np.float64) * grid.dy
+    # Target grid (centered around domain origin to match geographic source data)
+    half_extent_x = grid.nx * grid.dx / 2.0
+    half_extent_y = grid.ny * grid.dy / 2.0
+    tgt_x = np.linspace(-half_extent_x + grid.dx / 2, half_extent_x - grid.dx / 2, grid.nx)
+    tgt_y = np.linspace(-half_extent_y + grid.dy / 2, half_extent_y - grid.dy / 2, grid.ny)
     tgt_z = np.arange(grid.nz, dtype=np.float64) * grid.dz
 
     # Sort source axes (RegularGridInterpolator needs ascending)

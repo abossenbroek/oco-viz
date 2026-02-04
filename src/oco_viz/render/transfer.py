@@ -87,7 +87,8 @@ class TransferFunction:
             ],
             opacity_points=[
                 ControlPoint(scalar=0.0, opacity=0.0),
-                ControlPoint(scalar=0.05, opacity=0.0),
+                ControlPoint(scalar=0.02, opacity=0.002),
+                ControlPoint(scalar=0.05, opacity=0.008),
                 ControlPoint(scalar=0.10, opacity=0.02),
                 ControlPoint(scalar=0.25, opacity=0.08),
                 ControlPoint(scalar=0.50, opacity=0.20),
@@ -115,7 +116,9 @@ class TransferFunction:
             ],
             opacity_points=[
                 ControlPoint(scalar=0.0, opacity=0.0),
-                ControlPoint(scalar=0.1, opacity=0.0),
+                ControlPoint(scalar=0.02, opacity=0.002),
+                ControlPoint(scalar=0.05, opacity=0.006),
+                ControlPoint(scalar=0.10, opacity=0.015),
                 ControlPoint(scalar=0.25, opacity=0.03),
                 ControlPoint(scalar=0.4, opacity=0.10),
                 ControlPoint(scalar=0.6, opacity=0.22),
@@ -143,7 +146,9 @@ class TransferFunction:
             ],
             opacity_points=[
                 ControlPoint(scalar=0.0, opacity=0.0),
-                ControlPoint(scalar=0.05, opacity=0.0),
+                ControlPoint(scalar=0.02, opacity=0.002),
+                ControlPoint(scalar=0.05, opacity=0.006),
+                ControlPoint(scalar=0.10, opacity=0.012),
                 ControlPoint(scalar=0.15, opacity=0.02),
                 ControlPoint(scalar=0.30, opacity=0.08),
                 ControlPoint(scalar=0.50, opacity=0.18),
@@ -173,7 +178,9 @@ class TransferFunction:
             ],
             opacity_points=[
                 ControlPoint(scalar=0.0, opacity=0.0),
-                ControlPoint(scalar=0.05, opacity=0.0),
+                ControlPoint(scalar=0.02, opacity=0.001),
+                ControlPoint(scalar=0.05, opacity=0.003),
+                ControlPoint(scalar=0.10, opacity=0.008),
                 ControlPoint(scalar=0.15, opacity=0.01),
                 ControlPoint(scalar=0.30, opacity=0.04),
                 ControlPoint(scalar=0.50, opacity=0.08),
@@ -189,6 +196,10 @@ class TransferFunction:
 
         Warm scientific palette — dense core is brightest.
         Tuned for sample_distance=250 (half smallest voxel spacing).
+
+        Opacity ramp designed for composite/anomaly mode where normalized values
+        are typically 0.0-0.3 after ellipsoidal falloff. Matches cinematic_storm
+        opacity behavior at low scalar values to ensure visibility.
         """
         return cls(
             color_points=[
@@ -201,10 +212,13 @@ class TransferFunction:
             ],
             opacity_points=[
                 ControlPoint(scalar=0.0, opacity=0.0),
-                ControlPoint(scalar=0.1, opacity=0.0),
-                ControlPoint(scalar=0.25, opacity=0.04),
-                ControlPoint(scalar=0.5, opacity=0.15),
-                ControlPoint(scalar=0.8, opacity=0.35),
+                ControlPoint(scalar=0.02, opacity=0.002),
+                ControlPoint(scalar=0.05, opacity=0.008),
+                ControlPoint(scalar=0.10, opacity=0.02),
+                ControlPoint(scalar=0.25, opacity=0.08),  # Increased from 0.04 for visibility
+                ControlPoint(scalar=0.50, opacity=0.20),  # Increased for consistency
+                ControlPoint(scalar=0.70, opacity=0.30),  # Added intermediate point
+                ControlPoint(scalar=0.85, opacity=0.38),  # Added for smooth transition
                 ControlPoint(scalar=1.0, opacity=0.45),
             ],
         )

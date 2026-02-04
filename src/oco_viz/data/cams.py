@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import importlib
-from typing import TYPE_CHECKING, Any
+import zipfile
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import xarray as xr
@@ -39,11 +40,9 @@ def _build_cams_request(
     dlon = half_x / (111.32 * np.cos(np.radians(domain.origin_lat)))
 
     return {
-        "type": "forecast",
-        "variable": ["carbon_dioxide", "temperature"],
+        "variable": ["carbon_dioxide"],
         "model_level": [str(i) for i in range(60, 138)],  # lower atmosphere
         "date": date,
-        "time": "00:00",
         "leadtime_hour": [str(h) for h in range(0, 25, 3)],
         "area": [
             float(domain.origin_lat + dlat),
@@ -51,7 +50,7 @@ def _build_cams_request(
             float(domain.origin_lat - dlat),
             float(domain.origin_lon + dlon),
         ],
-        "data_format": "netcdf",
+        "data_format": "netcdf_zip",
     }
 
 
@@ -60,19 +59,32 @@ def download_cams_co2(
     domain: DomainConfig,
     cache_dir: Path,
 ) -> Path:
-    """Download CAMS high-res GHG forecast via CDS API.
+    """Download CAMS high-res GHG forecast via ADS API.
 
-    Dataset: ``cams-global-ghg-forecasts``.
-    Returns path to the downloaded NetCDF file.
+    Dataset: ``cams-global-greenhouse-gas-forecasts``.
+    Returns path to the extracted NetCDF file.
     """
     cdsapi = importlib.import_module("cdsapi")
     request = _build_cams_request(date, domain)
-    dest = cache_dir / f"cams_co2_{date}.nc"
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    zip_dest = cache_dir / f"cams_co2_{date}.netcdf_zip"
+    nc_dest = cache_dir / f"cams_co2_{date}.nc"
+    cache_dir.mkdir(parents=True, exist_ok=True)
 
-    client = cdsapi.Client()
-    client.retrieve("cams-global-ghg-forecasts", request, str(dest))
-    return dest
+    client = cdsapi.Client(url="https://ads.atmosphere.copernicus.eu/api")
+    client.retrieve("cams-global-greenhouse-gas-forecasts", request, str(zip_dest))
+
+    with zipfile.ZipFile(zip_dest) as zf:
+        nc_names = [n for n in zf.namelist() if n.endswith(".nc")]
+        if not nc_names:
+            msg = f"No .nc file found in downloaded archive: {zf.namelist()}"
+            raise FileNotFoundError(msg)
+        zf.extract(nc_names[0], cache_dir)
+        extracted = cache_dir / nc_names[0]
+        if extracted != nc_dest:
+            extracted.rename(nc_dest)
+
+    zip_dest.unlink()
+    return nc_dest
 
 
 def _kgkg_to_ppm(mass_fraction: NDArray[np.floating[Any]]) -> NDArray[np.float64]:
@@ -115,7 +127,7 @@ def _hybrid_sigma_to_altitude(
     return altitudes
 
 
-def load_cams_co2(
+def load_cams_co2(  # noqa: C901, PLR0915
     path: Path,
     domain: DomainConfig,
     grid: GridConfig,
@@ -138,9 +150,10 @@ def load_cams_co2(
 
     co2_raw = ds[co2_var]
 
-    # Select first time step if multiple
-    if "time" in co2_raw.dims:
-        co2_raw = co2_raw.isel(time=0)
+    # Select first time step if multiple (handle various CAMS dimension names)
+    for time_dim in ("time", "forecast_reference_time", "forecast_period"):
+        if time_dim in co2_raw.dims:
+            co2_raw = co2_raw.isel({time_dim: 0})
 
     co2_values = co2_raw.values  # (level, lat, lon) or similar
 
@@ -174,20 +187,30 @@ def load_cams_co2(
     src_lats = ds[lat_name].values
     src_lons = ds[lon_name].values
 
-    # Convert to local meters
+    # Convert to local meters using center latitude for consistent coordinate mapping.
+    # Using center latitude avoids skew from Earth's curvature over the domain.
+    center_lat = domain.origin_lat
     src_x_km, _ = latlon_to_local_km(
-        src_lats[0], src_lons, origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+        np.full_like(src_lons, center_lat),
+        src_lons,
+        origin_lat=domain.origin_lat,
+        origin_lon=domain.origin_lon,
     )
     _, src_y_km = latlon_to_local_km(
-        src_lats, src_lons[0], origin_lat=domain.origin_lat, origin_lon=domain.origin_lon
+        src_lats,
+        np.full_like(src_lats, domain.origin_lon),
+        origin_lat=domain.origin_lat,
+        origin_lon=domain.origin_lon,
     )
     src_x_m = np.asarray(src_x_km, dtype=np.float64) * 1000.0
     src_y_m = np.asarray(src_y_km, dtype=np.float64) * 1000.0
     src_z_m = np.asarray(src_z, dtype=np.float64)
 
-    # Target grid
-    tgt_x = np.arange(grid.nx, dtype=np.float64) * grid.dx
-    tgt_y = np.arange(grid.ny, dtype=np.float64) * grid.dy
+    # Target grid (centered around domain origin to match geographic source data)
+    half_extent_x = grid.nx * grid.dx / 2.0
+    half_extent_y = grid.ny * grid.dy / 2.0
+    tgt_x = np.linspace(-half_extent_x + grid.dx / 2, half_extent_x - grid.dx / 2, grid.nx)
+    tgt_y = np.linspace(-half_extent_y + grid.dy / 2, half_extent_y - grid.dy / 2, grid.ny)
     tgt_z = np.arange(grid.nz, dtype=np.float64) * grid.dz
 
     # Sort source axes for RegularGridInterpolator
@@ -202,7 +225,7 @@ def load_cams_co2(
         co2_sorted,
         method="linear",
         bounds_error=False,
-        fill_value=float(np.nanmean(co2_ppm)),
+        fill_value=np.nan,
     )
 
     tgt_pts = np.stack(
@@ -211,4 +234,11 @@ def load_cams_co2(
     ).reshape(-1, 3)
 
     result = interp(tgt_pts).reshape(grid.nz, grid.ny, grid.nx)
-    return result.astype(np.float32)
+
+    # Handle OOB regions: fill NaN with background median
+    # NOTE: Edge feathering moved to normalization stage (normalize.py)
+    # to avoid corrupting background profile estimation for anomaly mode
+    background_ppm = float(np.nanmedian(result))
+    result = np.nan_to_num(result, nan=background_ppm)
+
+    return cast("NDArray[np.float32]", result.astype(np.float32))

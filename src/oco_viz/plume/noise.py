@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import structlog
@@ -213,6 +213,8 @@ def curl_noise_3d(
             arr = arr / amax
         return arr.astype(np.float32)
 
-    cx, cy, cz = _normalize_to_unit(curl_x), _normalize_to_unit(curl_y), _normalize_to_unit(curl_z)
+    cx = _normalize_to_unit(cast("NDArray[np.float64]", curl_x))
+    cy = _normalize_to_unit(cast("NDArray[np.float64]", curl_y))
+    cz = _normalize_to_unit(cast("NDArray[np.float64]", curl_z))
     log.info("curl_noise_3d generated", shape=shape, octaves=octaves, seed=seed)
     return cx, cy, cz

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import xarray as xr
@@ -92,7 +92,7 @@ def apply_turbulence(
     # Step 5: clamp negatives
     np.maximum(warped, 0.0, out=warped)
 
-    return warped.astype(np.float32)
+    return cast("NDArray[np.float32]", warped.astype(np.float32))
 
 
 def generate_turbulent_timestep(

@@ -67,6 +67,7 @@ reportMissingImports = "warning"
 reportUnknownLambdaType = false
 reportOptionalMemberAccess = false
 reportUnnecessaryContains = false
+reportUnnecessaryCast = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

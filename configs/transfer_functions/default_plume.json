@@ -52,32 +52,53 @@
       "opacity": 0.0
     },
     {
+      "scalar": 0.02,
+      "r": 0.0,
+      "g": 0.0,
+      "b": 0.0,
+      "opacity": 0.002
+    },
+    {
+      "scalar": 0.05,
+      "r": 0.0,
+      "g": 0.0,
+      "b": 0.0,
+      "opacity": 0.008
+    },
+    {
       "scalar": 0.1,
       "r": 0.0,
       "g": 0.0,
       "b": 0.0,
-      "opacity": 0.0
+      "opacity": 0.02
     },
     {
       "scalar": 0.25,
       "r": 0.0,
       "g": 0.0,
       "b": 0.0,
-      "opacity": 0.04
+      "opacity": 0.08
     },
     {
       "scalar": 0.5,
       "r": 0.0,
       "g": 0.0,
       "b": 0.0,
-      "opacity": 0.15
+      "opacity": 0.2
     },
     {
-      "scalar": 0.8,
+      "scalar": 0.7,
       "r": 0.0,
       "g": 0.0,
       "b": 0.0,
-      "opacity": 0.35
+      "opacity": 0.3
+    },
+    {
+      "scalar": 0.85,
+      "r": 0.0,
+      "g": 0.0,
+      "b": 0.0,
+      "opacity": 0.38
     },
     {
       "scalar": 1.0,

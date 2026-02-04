@@ -17,8 +17,8 @@ from oco_viz.data.pipeline import (
 from oco_viz.data.zarr_store import read_zarr
 
 _FIXTURES = Path(__file__).parent / "fixtures"
-_ERA5_PATH = _FIXTURES / "era5_secunda_sample.nc"
-_OCO3_PATH = _FIXTURES / "oco3_sample.nc4"
+_ERA5_PATH = _FIXTURES / "era5_secunda_2025-10-13.nc"
+_OCO3_PATH = _FIXTURES / "oco3_secunda_2025-10-26.nc4"
 
 _has_era5 = _ERA5_PATH.exists()
 _has_oco3 = _OCO3_PATH.exists()

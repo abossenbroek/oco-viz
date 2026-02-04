@@ -9,8 +9,8 @@ import pytest
 import xarray as xr
 
 _FIXTURES = Path(__file__).parent / "fixtures"
-_ERA5_PATH = _FIXTURES / "era5_secunda_sample.nc"
-_OCO3_PATH = _FIXTURES / "oco3_sample.nc4"
+_ERA5_PATH = _FIXTURES / "era5_secunda_2025-10-13.nc"
+_OCO3_PATH = _FIXTURES / "oco3_secunda_2025-10-26.nc4"
 
 # ---------------------------------------------------------------------------
 # ERA5 fixture
@@ -18,7 +18,7 @@ _OCO3_PATH = _FIXTURES / "oco3_sample.nc4"
 
 _skip_era5 = pytest.mark.skipif(
     not _ERA5_PATH.exists(),
-    reason="ERA5 fixture not found — run tests/create_test_fixtures.py",
+    reason="ERA5 fixture not found — run scripts/download_fixtures.py",
 )
 
 
@@ -60,7 +60,7 @@ def test_era5_fixture_has_expected_shape() -> None:
 
 _skip_oco3 = pytest.mark.skipif(
     not _OCO3_PATH.exists(),
-    reason="OCO-3 fixture not found — run tests/create_test_fixtures.py",
+    reason="OCO-3 fixture not found — run scripts/download_fixtures.py",
 )
 
 

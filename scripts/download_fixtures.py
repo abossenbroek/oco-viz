@@ -1,11 +1,12 @@
-"""Download test fixtures for Wave 2 data pipeline tests.
+"""Download test fixtures for data pipeline tests.
 
 Requires:
-- CDS API credentials (~/.cdsapirc) for ERA5 download
+- CDS API credentials (~/.cdsapirc) for ERA5 and CAMS downloads
 - NASA Earthdata token (EARTHDATA_TOKEN env var) for OCO-2/OCO-3 download
 
 Usage:
-    python scripts/download_fixtures.py [--era5-only | --oco3-only | --oco2-only]
+    python scripts/download_fixtures.py [--era5-only | --cams-only | --oco3-only | --oco2-only]
+    python scripts/download_fixtures.py --date 2025-10-13  # single-date override
 
 The OCO-2 and OCO-3 downloaders use ``find_nearest_passes`` to pick the
 granule closest to a reference date (default 2025-10-15) so that both
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -27,20 +29,40 @@ _REFERENCE_DATE = "2025-10-15"
 _SECUNDA_LAT = -26.52
 _SECUNDA_LON = 29.17
 
+# Actual OCO pass dates over Secunda
+_OCO2_DATE = "2025-10-13"
+_OCO3_DATE = "2025-10-26"
+_PASS_DATES = [_OCO2_DATE, _OCO3_DATE]
 
-def download_era5_fixture(dest: Path) -> None:
+
+def download_era5_fixture(dest: Path, date: str) -> None:
     """Download ERA5 sample: 1 day over Sasol Secunda bbox."""
     from oco_viz.data.era5 import build_cds_request, download_era5  # noqa: PLC0415
 
-    print(f"Downloading ERA5 fixture to {dest}")
+    print(f"Downloading ERA5 fixture for {date} to {dest}")
     request = build_cds_request(
-        "2024-01-15",
+        date,
         lat=-26.5,
         lon=29.2,
         pressure_levels=[1000, 975, 950, 925, 900, 850, 800, 700, 600, 500],
     )
     download_era5(request, dest)
     print(f"ERA5 fixture saved: {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
+
+
+def download_cams_fixture(dest: Path, date: str) -> None:
+    """Download CAMS CO2 forecast for Secunda domain."""
+    from oco_viz.config.schema import DomainConfig  # noqa: PLC0415
+    from oco_viz.data.cams import download_cams_co2  # noqa: PLC0415
+
+    print(f"Downloading CAMS fixture for {date} to {dest}")
+    domain = DomainConfig()  # Secunda defaults
+    cache_dir = dest.parent
+    downloaded = download_cams_co2(date, domain, cache_dir)
+    # Rename to destination if needed
+    if downloaded != dest:
+        shutil.move(str(downloaded), str(dest))
+    print(f"CAMS fixture saved: {dest} ({dest.stat().st_size / 1e6:.1f} MB)")
 
 
 def _download_satellite_fixture(
@@ -107,26 +129,43 @@ def download_oco3_fixture(dest: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Download test fixtures for Wave 2")
+    parser = argparse.ArgumentParser(description="Download test fixtures")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--era5-only", action="store_true", help="Download ERA5 only")
+    group.add_argument("--cams-only", action="store_true", help="Download CAMS only")
     group.add_argument("--oco3-only", action="store_true", help="Download OCO-3 only")
     group.add_argument("--oco2-only", action="store_true", help="Download OCO-2 only")
+    parser.add_argument(
+        "--date",
+        type=str,
+        default=None,
+        help="Single date override (YYYY-MM-DD); default downloads both pass dates",
+    )
     args = parser.parse_args()
 
     fixtures_dir = Path(__file__).resolve().parents[1] / "tests" / "fixtures"
     fixtures_dir.mkdir(parents=True, exist_ok=True)
 
+    dates = [args.date] if args.date else _PASS_DATES
+
     if args.era5_only:
-        download_era5_fixture(fixtures_dir / "era5_secunda_sample.nc")
+        for d in dates:
+            download_era5_fixture(fixtures_dir / f"era5_secunda_{d}.nc", d)
+    elif args.cams_only:
+        for d in dates:
+            download_cams_fixture(fixtures_dir / f"cams_secunda_{d}.nc", d)
     elif args.oco3_only:
-        download_oco3_fixture(fixtures_dir / "oco3_sample.nc4")
+        download_oco3_fixture(fixtures_dir / "oco3_secunda_2025-10-26.nc4")
     elif args.oco2_only:
-        download_oco2_fixture(fixtures_dir / "oco2_sample.nc4")
+        download_oco2_fixture(fixtures_dir / "oco2_secunda_2025-10-13.nc4")
     else:
-        download_era5_fixture(fixtures_dir / "era5_secunda_sample.nc")
-        download_oco3_fixture(fixtures_dir / "oco3_sample.nc4")
-        download_oco2_fixture(fixtures_dir / "oco2_sample.nc4")
+        # Download everything: ERA5 + CAMS for both dates, OCO-2 + OCO-3
+        for d in dates:
+            download_era5_fixture(fixtures_dir / f"era5_secunda_{d}.nc", d)
+        for d in dates:
+            download_cams_fixture(fixtures_dir / f"cams_secunda_{d}.nc", d)
+        download_oco3_fixture(fixtures_dir / "oco3_secunda_2025-10-26.nc4")
+        download_oco2_fixture(fixtures_dir / "oco2_secunda_2025-10-13.nc4")
 
     print("Done!")
 

@@ -12,6 +12,7 @@ from oco_viz.render.camera import CameraState, apply_camera
 from oco_viz.render.depth import extract_depth, extract_rgb
 from oco_viz.render.ground_plane import create_ground_plane
 from oco_viz.render.light_rig import apply_lighting_for_tier
+from oco_viz.render.normalize import normalize_concentration
 from oco_viz.render.sky_gradient import apply_sky_gradient
 from oco_viz.render.transfer import TransferFunction
 from oco_viz.render.volume import create_volume, numpy_to_vtk_image
@@ -126,8 +127,7 @@ class VolumeRenderer:
         if pre_normalized:
             normalized = concentration
         else:
-            max_val = concentration.max()
-            normalized = concentration / max_val if max_val > 0 else concentration
+            normalized = normalize_concentration(concentration, self._config.rendering)
 
         grid = self._config.grid
         spacing = (grid.dx, grid.dy, grid.dz)
@@ -151,6 +151,7 @@ class VolumeRenderer:
             self._renderer.AddVolume(self._volume)
         else:
             # Subsequent frames: only update input data (preserves BVH/gradient cache)
+            assert self._mapper is not None
             self._mapper.SetInputData(image_data)
 
         apply_camera(camera_state, self._renderer)

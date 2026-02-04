@@ -12,7 +12,7 @@ from oco_viz.config.schema import DomainConfig, ERA5Config, GridConfig
 from oco_viz.data.era5 import build_era5_request_for_domain, load_era5_winds
 
 _FIXTURES = Path(__file__).parent / "fixtures"
-_ERA5_PATH = _FIXTURES / "era5_secunda_sample.nc"
+_ERA5_PATH = _FIXTURES / "era5_secunda_2025-10-13.nc"
 
 pytestmark = pytest.mark.skipif(
     not _ERA5_PATH.exists(),
