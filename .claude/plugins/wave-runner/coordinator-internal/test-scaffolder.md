@@ -173,6 +173,80 @@ def test_invalid_inputs(invalid_input, error_type):
 
 ---
 
+## VTK / Volumetric Data Assertions
+
+Tickets producing VTK output or VDB exports must validate physical correctness.
+See `plan/coding_guide_2026.md` for full pipeline context.
+
+### VTK ImageData fixture
+
+```python
+@pytest.fixture
+def sample_vtk_dataset():
+    return xr.Dataset(
+        {
+            "concentration": (["time", "z", "y", "x"], np.zeros((2, 16, 16, 16), dtype=np.float32)),
+        },
+        coords={
+            "time": np.arange(2),
+            "z": np.linspace(0, 1000, 16, dtype=np.float32),
+            "y": np.linspace(0, 1000, 16, dtype=np.float32),
+            "x": np.linspace(0, 1000, 16, dtype=np.float32),
+        },
+    )
+```
+
+### Grid spacing validation
+
+```python
+spacing = (grid_cfg.dx, grid_cfg.dy, grid_cfg.dz)
+assert all(s > 0 for s in spacing), "Spacing must be positive meters"
+expected = grid_cfg.world_size / grid_cfg.resolution
+np.testing.assert_allclose(spacing[0], expected, rtol=1e-5)
+```
+
+### Grid name conventions
+
+`"concentration"` is the primary variable for CO2 plume data. `"temperature"` and
+`"vel"` are optional atmospheric context fields.
+
+```python
+assert "concentration" in ds.data_vars, "Dataset must contain 'concentration'"
+OPTIONAL_GRID_NAMES = {"temperature", "vel"}
+```
+
+### Sparsity check (exact zero where empty)
+
+```python
+data = ds["concentration"].values
+empty_mask = data == 0.0
+assert empty_mask.sum() / data.size > 0.5, (
+    "Volume should be mostly empty (>50% exact zeros for sparsity)"
+)
+```
+
+### Temperature range (Kelvin, atmospheric CO2 plume context)
+
+CO2 plumes exist at atmospheric temperatures (~150K upper stratosphere to ~330K
+hot surface). Values outside this range indicate a unit error (e.g. Celsius) or
+data corruption.
+
+```python
+if "temperature" in ds:
+    temp = ds["temperature"].values
+    assert temp[temp > 0].min() >= 150, "Temperature below 150K — check units or data source"
+    assert temp.max() <= 350, "Temperature exceeds atmospheric range (>350K)"
+```
+
+### Value range bounds
+
+```python
+assert (ds["concentration"].values >= 0).all(), "Concentration must be non-negative"
+assert ds["concentration"].values.max() <= 10.0, "Concentration exceeds expected range"
+```
+
+---
+
 ## Test Organization
 
 - One test file per source module: `src/oco_viz/plume/gaussian.py` → `tests/test_plume_gaussian.py`
