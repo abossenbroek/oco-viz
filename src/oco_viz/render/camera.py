@@ -7,14 +7,10 @@ from typing import TYPE_CHECKING
 import attr
 import numpy as np
 
+from oco_viz.render.easing import EasingFunction, apply_easing
+
 if TYPE_CHECKING:
     import vtk
-
-
-def _smoothstep(t: float) -> float:
-    """Hermite smoothstep interpolation."""
-    t = max(0.0, min(1.0, t))
-    return t * t * (3.0 - 2.0 * t)
 
 
 @attr.s(auto_attribs=True, frozen=True, slots=True)
@@ -83,7 +79,7 @@ class DollyCamera:
         self._focal = focal_point
 
     def evaluate(self, t: float) -> CameraState:
-        s = _smoothstep(t)
+        s = apply_easing(t, EasingFunction.smoothstep)
         pos = self._start + s * (self._end - self._start)
         return CameraState(
             position=(float(pos[0]), float(pos[1]), float(pos[2])),

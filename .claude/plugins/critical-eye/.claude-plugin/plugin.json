@@ -1,0 +1,7 @@
+{
+  "name": "critical-eye",
+  "version": "1.0.0",
+  "description": "Two-agent visual quality review: VFX technical eye + independent art director with tier-specific personas",
+  "author": { "name": "oco-viz team" },
+  "keywords": ["visual-review", "vfx", "art-direction", "quality-gate", "rendering"]
+}

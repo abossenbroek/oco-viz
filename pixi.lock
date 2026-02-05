@@ -269,7 +269,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-inspection-0.4.2-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/linux-64/typos-1.42.3-hdab8a38_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/typos-1.43.1-hdab8a38_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/ukkonen-1.1.0-py312hd9148b4_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/unicodedata2-17.0.0-py312h4c3975b_1.conda
@@ -552,7 +552,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-extensions-4.15.0-h396c80c_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing-inspection-0.4.2-pyhd8ed1ab_1.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/typing_extensions-4.15.0-pyhcf101f3_0.conda
-      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/typos-1.42.3-h748bcf4_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/typos-1.43.0-h748bcf4_0.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ukkonen-1.1.0-py312h766f71e_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/unicodedata2-17.0.0-py312h4409184_1.conda
@@ -6689,31 +6689,35 @@ packages:
   - pkg:pypi/typing-extensions?source=hash-mapping
   size: 51692
   timestamp: 1756220668932
-- conda: https://conda.anaconda.org/conda-forge/linux-64/typos-1.42.3-hdab8a38_0.conda
-  sha256: 023a9dd2253c4364119afa1444590ce340d6e503da7e4a091e331dd64e654047
-  md5: 849ec790628a683f2fdb813e203ac581
+- conda: https://conda.anaconda.org/conda-forge/linux-64/typos-1.43.1-hdab8a38_0.conda
+  sha256: bc4f2292ad1ea102585fee30ee21b0ffb48e9af29821e9b74a36fd52f0e988a4
+  md5: e4ecb72ff373864d285c6e4d7b4ccf08
   depends:
   - __glibc >=2.17,<3.0.a0
   - libgcc >=14
   constrains:
   - __glibc >=2.17
+  arch: x86_64
+  platform: linux
   license: MIT
   license_family: MIT
   purls: []
-  size: 3337871
-  timestamp: 1769683307716
-- conda: https://conda.anaconda.org/conda-forge/osx-arm64/typos-1.42.3-h748bcf4_0.conda
-  sha256: 73ae26c14e40bca5d9e7d08f67b603d215e67de6ee66456ff130127ee6a19790
-  md5: b7586cd5684d97068d91a57ccfa61282
+  size: 3323234
+  timestamp: 1770148829866
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/typos-1.43.0-h748bcf4_0.conda
+  sha256: 4df4ebda70e06f384291f3f8b77e7a52bca98bd5c99fc8b37d3dab9528b4727b
+  md5: 7f163598f5ef13bffe47246301eae584
   depends:
   - __osx >=11.0
   constrains:
   - __osx >=11.0
+  arch: arm64
+  platform: osx
   license: MIT
   license_family: MIT
   purls: []
-  size: 2984457
-  timestamp: 1769683734076
+  size: 2935329
+  timestamp: 1770057025664
 - conda: https://conda.anaconda.org/conda-forge/noarch/tzdata-2025c-hc9c84f9_1.conda
   sha256: 1d30098909076af33a35017eed6f2953af1c769e273a0626a04722ac4acaba3c
   md5: ad659d0a2b3e47e38d829aa8cad2d610

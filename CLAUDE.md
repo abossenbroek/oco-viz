@@ -69,14 +69,58 @@ Four gates run **in parallel** via `pixi run check`:
 | `/wave-runner:wave <n>` | Orchestrate a full wave of tickets |
 | `/wave-runner:wave-status` | Show progress across all waves |
 
-## 5. Best Practices
+### 4.1 Pre-PR Checklist
+
+Before raising or pushing to a PR, **always** run these two commands locally and confirm they pass:
+
+```bash
+pixi run spell       # typos spellcheck (must match CI version >= 1.43)
+pixi run ci          # full CI suite: format, lint, typecheck, test, spell, dead-code, complexity, etc.
+```
+
+If either fails, fix the issue before pushing. This prevents CI failures on GitHub that could have been caught locally.
+
+## 5. Visual Quality Gate
+
+The `output/examples/` directory contains gallery PNGs (tracked via Git LFS) that serve as **visual regression baselines**. These are the ground truth for rendering quality.
+
+**Any change that could affect rendered output** — transfer functions, scattering/lighting configs, post-processing, camera, normalization, volume construction, tier definitions — **must include a gallery re-render and visual inspection before the PR is raised.**
+
+### 5.1 Gallery Scripts as Living Coverage
+
+The gallery scripts in `scripts/` (`render_*_gallery.py`) must collectively exercise every stage of the rendering pipeline — normalization, transfer functions, volume construction, lighting, camera paths, easing, composition, post-processing, and tier configs. **When a new rendering capability is added, the gallery scripts must be extended to generate images that cover it.** The gallery is not a static snapshot; it grows with the pipeline so that `output/examples/` always provides end-to-end visual proof that the full pipeline works.
+
+### 5.2 Re-render and Inspect
+
+1. Run **all** gallery scripts in `scripts/` to regenerate the full image set.
+2. If any image regresses — darker, flatter, clipped, banded, loses structure, or simply looks worse — the PR is not ready. Fix the root cause, re-render, re-inspect.
+
+### 5.3 Critical Eye Review via Opus Agent
+
+The visual inspection must be performed by a **dedicated Opus agent** (via the Task tool) that reviews the generated images out of context — without access to the code changes, config diffs, or rationale. The agent receives only the images and judges them on their own merit as a supercritical Pixar/Disney lighting TD would review a final shot. This ensures the review is unbiased by implementation knowledge.
+
+The agent should evaluate each image against these criteria:
+- Does the plume have visible edges and a wispy halo, or does it clip to a hard blob?
+- Is there directional depth from lighting, or is the volume flat and lifeless?
+- Is cross-tier coherence maintained — same plume structure, different cinematic mood?
+- Are bloom, fog, exposure, and tonemapping contributing to the intended look?
+- Do camera paths and easing produce smooth, intentional motion across keyframes?
+- Would this frame hold up projected on a gallery wall at 4K?
+
+The agent must return a pass/fail verdict per image with specific critique. A single fail blocks the PR.
+
+### 5.4 Gallery Images as PR Evidence
+
+The gallery images are committed to the repo so reviewers can compare before/after visually in the PR diff. **Treat output/examples/ as the definitive proof that the rendering pipeline produces exhibition-quality results.**
+
+## 6. Best Practices
 
 - Every `.py` file under `src/` starts with `from __future__ import annotations`.
 - **Untyped deps** (vtk, openvdb, cdsapi, scipy, xarray, zarr): import at top of file, handle via mypy `[[tool.mypy.overrides]]` in `pyproject.toml`. Do NOT put runtime-used imports inside `TYPE_CHECKING`.
 - **Selective context:** Read only files listed in a ticket's `related_files`. Do not scan the entire codebase for context.
 - **Ticket-driven:** Implement features via YAML specs in `plan/tickets/`. Each ticket declares `produces`, `depends`, `gates`, and `context.related_files`.
 
-## 6. Coding Standards
+## 7. Coding Standards
 
 - **Python:** >=3.11, line-length 99
 - **Linting:** ruff with `select = ["ALL"]`, ignores documented in `pyproject.toml` `[tool.ruff.lint]`
@@ -92,7 +136,7 @@ Standard module header:
 from __future__ import annotations
 ```
 
-## 7. Common Pitfalls
+## 8. Common Pitfalls
 
 | Pitfall | Why it matters |
 |---------|---------------|

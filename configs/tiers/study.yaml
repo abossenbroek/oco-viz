@@ -1,10 +1,25 @@
-# Study tier: density/TF refinement, MVP quality (base defaults apply)
+# Study tier: density/TF refinement, MVP quality
 sky:
   enabled: false
 
 ground_plane:
   enabled: false
 
+scattering:
+  volumetric_scattering_blending: 0.0
+  global_illumination_reach: 0.0
+  ambient: 0.12
+  diffuse: 0.75
+
 postprocess:
   fog_enabled: true
   bloom_enabled: true
+  exposure: 1.3
+  fog_color: [0.08, 0.08, 0.12]
+
+motion:
+  easing: smoothstep
+  tempo_multiplier: 1.0
+
+composition:
+  enabled: false

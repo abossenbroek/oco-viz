@@ -286,6 +286,41 @@ class DataSourceConfig(BaseModel):
     oco3: OCO3Config = Field(default_factory=OCO3Config)
 
 
+class MotionConfig(BaseModel):
+    """Camera motion and easing configuration."""
+
+    easing: str = "smoothstep"
+    tempo_multiplier: float = Field(default=1.0, gt=0, le=10.0)
+    camera_drift_speed: float = Field(default=0.0, ge=0, le=1.0)
+
+    @field_validator("easing")
+    @classmethod
+    def _valid_easing(cls, v: str) -> str:
+        valid = {"linear", "smoothstep", "ease_in_cubic", "ease_in_out_cubic", "heavy_ease_in"}
+        if v not in valid:
+            msg = f"Easing must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
+
+
+class CompositionConfig(BaseModel):
+    """Automatic camera composition from plume geometry."""
+
+    enabled: bool = False
+    frame_fill: tuple[float, float] = (0.6, 0.8)
+    asymmetric_offset: tuple[float, float] = (0.0, 0.0)
+    vertical_emphasis: bool = False
+    threshold_fraction: float = Field(default=0.01, ge=0.001, le=0.5)
+
+    @field_validator("frame_fill")
+    @classmethod
+    def _valid_frame_fill(cls, v: tuple[float, float]) -> tuple[float, float]:
+        if not (0 < v[0] <= v[1] <= 1):
+            msg = f"frame_fill must satisfy 0 < min <= max <= 1, got {v}"
+            raise ValueError(msg)
+        return v
+
+
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
@@ -304,6 +339,8 @@ class AppConfig(BaseModel):
     cams: CamsConfig = Field(default_factory=CamsConfig)
     rendering: RenderingConfig = Field(default_factory=RenderingConfig)
     data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
+    motion: MotionConfig = Field(default_factory=MotionConfig)
+    composition: CompositionConfig = Field(default_factory=CompositionConfig)
 
     @field_validator("tier")
     @classmethod

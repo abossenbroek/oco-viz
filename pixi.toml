@@ -44,6 +44,7 @@ py-typed = "test -f src/oco_viz/py.typed"
 fix = "ruff format src/ tests/ scripts/ && ruff check --fix src/ tests/"
 check = { depends-on = ["lint", "typecheck", "test"] }
 ci = { depends-on = ["format-check", "import-sort", "lint", "typecheck", "test", "spell", "dead-code", "complexity", "yaml-lint", "dockerfile-lint", "file-size", "future-annotations", "py-typed"] }
+image-stats = "python scripts/image_stats.py"
 find-passes = "python scripts/find_passes.py"
 find-secunda-granule = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/find_secunda_granule.py"
 download-fixtures = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/download_fixtures.py"
@@ -57,7 +58,7 @@ pre-commit = ">=4"
 pillow = ">=10"
 types-pyyaml = ">=6"
 pytest-cov = ">=5"
-typos = ">=1"
+typos = ">=1.43"
 
 [feature.dev.pypi-dependencies]
 vulture = ">=2.11"
