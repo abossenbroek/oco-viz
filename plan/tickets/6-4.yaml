@@ -1,7 +1,7 @@
 id: "6-4"
 title: "Data Pipeline Integration (Advection + Overlay + Annotations)"
 wave: 6
-status: todo
+status: done
 depends: ["6-1", "6-2", "6-3"]
 produces:
   - tests/test_full_pipeline.py
