@@ -65,12 +65,12 @@ def cmd_encode(args: argparse.Namespace) -> None:
 
 def cmd_validate(args: argparse.Namespace) -> None:
     """Validate modeled plume against observations."""
-    from oco_viz.data.validation import (
+    from oco_viz.data.validation import (  # noqa: PLC0415
         compare_modeled_observed,
         compute_column_xco2,
         generate_validation_report,
     )
-    from oco_viz.data.zarr_store import read_zarr
+    from oco_viz.data.zarr_store import read_zarr  # noqa: PLC0415
 
     config = load_config(args.profile, tier=_get_tier(args))
     zarr_path = Path(args.zarr)

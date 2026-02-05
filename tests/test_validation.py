@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 from oco_viz.config.schema import GridConfig, ValidationConfig
 from oco_viz.data.validation import (
@@ -47,7 +50,6 @@ def test_compute_column_xco2_uniform() -> None:
 def test_pressure_weighted_vs_simple() -> None:
     """Pressure-weighted average differs from simple mean when profile varies with z."""
     grid = _make_grid()
-    rng = np.random.default_rng(99)
     # Create a concentration gradient: lower layers have higher values
     conc = np.zeros((8, 10, 10), dtype=np.float32)
     for k in range(8):
