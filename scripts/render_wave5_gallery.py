@@ -74,7 +74,9 @@ def render_tier_comparison() -> None:
 
         grid = config.grid
         focal, distance, elevation = compose_camera_from_plume(
-            conc, config.composition, (grid.dz, grid.dy, grid.dx),
+            conc,
+            config.composition,
+            (grid.dz, grid.dy, grid.dx),
         )
         elev_rad = math.radians(elevation)
         az_rad = math.radians(30.0)
@@ -111,7 +113,9 @@ def render_camera_paths() -> None:
 
     grid = config.grid
     focal, distance, _elevation = compose_camera_from_plume(
-        conc, config.composition, (grid.dz, grid.dy, grid.dx),
+        conc,
+        config.composition,
+        (grid.dz, grid.dy, grid.dx),
     )
 
     presets = {
@@ -218,7 +222,9 @@ def render_easing_comparison() -> None:
 
     grid = config.grid
     focal, distance, _elevation = compose_camera_from_plume(
-        conc, config.composition, (grid.dz, grid.dy, grid.dx),
+        conc,
+        config.composition,
+        (grid.dz, grid.dy, grid.dx),
     )
 
     easings = [

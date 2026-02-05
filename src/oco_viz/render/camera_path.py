@@ -86,7 +86,10 @@ def orbit_rise_path(
     for i in range(n_keyframes):
         frac = i / (n_keyframes - 1)
         pos = _spherical_position(
-            focal_point, distance, np.radians(20.0 + frac * 30.0), np.radians(frac * 90.0),
+            focal_point,
+            distance,
+            np.radians(20.0 + frac * 30.0),
+            np.radians(frac * 90.0),
         )
         keyframes.append((frac, CameraState(position=pos, focal_point=focal_point)))
     return CameraPath(keyframes, easing=easing)

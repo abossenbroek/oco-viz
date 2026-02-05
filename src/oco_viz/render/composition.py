@@ -118,12 +118,15 @@ def compose_camera_from_plume(
 ) -> tuple[tuple[float, float, float], float, float]:
     """Top-level composition: returns (focal_point, distance, elevation)."""
     centroid, bmin, bmax = plume_bounding_box(
-        concentration, config.threshold_fraction, grid_spacing,
+        concentration,
+        config.threshold_fraction,
+        grid_spacing,
     )
     fill_target = (config.frame_fill[0] + config.frame_fill[1]) / 2.0
     distance = compute_camera_distance((bmin, bmax), fill_target, fov_degrees)
     focal = compute_focal_point(centroid, config.asymmetric_offset)
     elevation = compute_elevation_bias(
-        base_elevation, vertical_emphasis=config.vertical_emphasis,
+        base_elevation,
+        vertical_emphasis=config.vertical_emphasis,
     )
     return focal, distance, elevation

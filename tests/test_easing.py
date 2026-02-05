@@ -39,8 +39,7 @@ class TestMonotonicity:
         samples = [apply_easing(t / 100.0, easing) for t in range(101)]
         for i in range(len(samples) - 1):
             assert samples[i] <= samples[i + 1] + 1e-12, (
-                f"{easing.value} not monotonic at t={i / 100.0}: "
-                f"{samples[i]} > {samples[i + 1]}"
+                f"{easing.value} not monotonic at t={i / 100.0}: {samples[i]} > {samples[i + 1]}"
             )
 
 

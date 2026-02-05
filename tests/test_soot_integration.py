@@ -101,7 +101,9 @@ def test_camera_path_with_plume_composition() -> None:
     )
     conc = generate_turbulent_timestep(config.plume, SMALL_GRID, config.turbulence, 0)
     focal, distance, _elevation = compose_camera_from_plume(
-        conc, config.composition, (SMALL_GRID.dz, SMALL_GRID.dy, SMALL_GRID.dx),
+        conc,
+        config.composition,
+        (SMALL_GRID.dz, SMALL_GRID.dy, SMALL_GRID.dx),
     )
     path = reveal_path(focal, distance, EasingFunction(config.motion.easing))
     state = path.evaluate(0.5)
@@ -119,7 +121,9 @@ def test_plume_bounds_from_turbulent_field() -> None:
     )
     conc = generate_turbulent_timestep(config.plume, SMALL_GRID, config.turbulence, 0)
     centroid, bmin, bmax = plume_bounding_box(
-        conc, 0.01, (SMALL_GRID.dz, SMALL_GRID.dy, SMALL_GRID.dx),
+        conc,
+        0.01,
+        (SMALL_GRID.dz, SMALL_GRID.dy, SMALL_GRID.dx),
     )
     # Non-degenerate: extent > 0 in at least one axis
     extents = [mx - mn for mx, mn in zip(bmax, bmin, strict=True)]

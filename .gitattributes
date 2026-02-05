@@ -2,3 +2,4 @@ tests/fixtures/*.nc filter=lfs diff=lfs merge=lfs -text
 tests/fixtures/*.nc4 filter=lfs diff=lfs merge=lfs -text
 output/examples/**/*.png filter=lfs diff=lfs merge=lfs -text
 output/examples/*.png filter=lfs diff=lfs merge=lfs -text
+plan/idea_board/*.png filter=lfs diff=lfs merge=lfs -text

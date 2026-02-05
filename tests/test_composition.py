@@ -122,7 +122,9 @@ class TestComposeCameraFromPlume:
         field = np.ones((10, 10, 10), dtype=np.float32)
         config = CompositionConfig(enabled=True)
         focal, distance, elevation = compose_camera_from_plume(
-            field, config, (500.0, 1000.0, 1000.0),
+            field,
+            config,
+            (500.0, 1000.0, 1000.0),
         )
         assert len(focal) == 3
         assert distance > 0
