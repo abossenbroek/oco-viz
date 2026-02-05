@@ -15,13 +15,14 @@ Optional features:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import xarray as xr
 from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import maximum_filter, minimum_filter
 
+from oco_viz.config.schema import AdvectionConfig
 from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.plume.noise import curl_noise_3d
 
@@ -29,7 +30,6 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from oco_viz.config.schema import (
-        AdvectionConfig,
         GridConfig,
         PlumeConfig,
         TurbulenceConfig,
@@ -90,7 +90,7 @@ def _inject_source(
     injected = plume_cfg.emission_rate * dt / cell_vol
 
     result = conc.astype(np.float64) + kernel * injected
-    return result.astype(np.float32)
+    return cast("NDArray[np.float32]", result.astype(np.float32))
 
 
 def _briggs_plume_rise(
@@ -158,7 +158,7 @@ def _briggs_plume_rise(
     # Convert m/s to grid-cells/s (divide by dz)
     w_grid = w_ms * vert_decay * horiz_decay / grid.dz
 
-    return w_grid.astype(np.float32)
+    return cast("NDArray[np.float32]", w_grid.astype(np.float32))
 
 
 def _semi_lagrangian_step(
@@ -221,7 +221,7 @@ def _semi_lagrangian_step(
     points = np.stack([dep_z.ravel(), dep_y.ravel(), dep_x.ravel()], axis=-1)
     result = interp(points).reshape((nz, ny, nx))
 
-    return result.astype(np.float32)
+    return cast("NDArray[np.float32]", result.astype(np.float32))
 
 
 def _maccormack_step(
@@ -281,6 +281,48 @@ def _maccormack_step(
     corrected = np.clip(corrected, local_min, local_max)
 
     return corrected.astype(np.float32)
+
+
+# ------------------------------------------------------------------ #
+# Public API helpers (reduce advect_step complexity)
+# ------------------------------------------------------------------ #
+
+
+def _apply_turbulent_curl(
+    u_wind: NDArray[np.float32],
+    v_wind: NDArray[np.float32],
+    w_wind: NDArray[np.float32],
+    turb_cfg: TurbulenceConfig,
+    grid: GridConfig,
+    t_idx: int,
+    dt: float,
+) -> tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]]:
+    """Add curl-noise turbulent diffusion to the velocity fields."""
+    seed_offset = int(t_idx * turb_cfg.temporal_speed * 1000)
+    curl_dx, curl_dy, curl_dz = curl_noise_3d(
+        grid.shape,
+        octaves=min(turb_cfg.octaves, 4),
+        lacunarity=turb_cfg.lacunarity,
+        gain=turb_cfg.gain,
+        seed=turb_cfg.seed + seed_offset,
+    )
+    curl_scale = turb_cfg.curl_strength * turb_cfg.amplitude
+    u_out = u_wind + curl_dx * float(curl_scale * grid.dx / max(dt, 1.0))
+    v_out = v_wind + curl_dy * float(curl_scale * grid.dy / max(dt, 1.0))
+    w_out = w_wind + curl_dz * float(curl_scale)
+    return u_out, v_out, w_out
+
+
+def _apply_mass_correction(
+    result: NDArray[np.float32],
+    mass_before: float,
+) -> NDArray[np.float32]:
+    """Rescale result so total mass matches *mass_before*."""
+    mass_after = float(result.sum())
+    if mass_after > 0:
+        correction = min(max(mass_before / mass_after, 0.5), 2.0)
+        return (result.astype(np.float64) * correction).astype(np.float32)
+    return result
 
 
 # ------------------------------------------------------------------ #
@@ -344,43 +386,34 @@ def advect_step(
 
     # Use defaults if not provided
     if adv_cfg is None:
-        from oco_viz.config.schema import AdvectionConfig as _AdvCfg
+        adv_cfg = AdvectionConfig()
 
-        adv_cfg = _AdvCfg()
-
-    # Record initial mass for correction
     mass_before = float(conc.sum()) if adv_cfg.mass_correction else 0.0
 
-    # 1. Compute vertical velocity from Briggs buoyancy
+    # 1. Vertical velocity from Briggs buoyancy
     nz, ny, nx = grid.shape
     w_wind = np.zeros((nz, ny, nx), dtype=np.float32)
     if adv_cfg.buoyancy_flux > 0 and plume_cfg is not None:
         u_mean = max(float(np.mean(np.abs(u_wind))), 0.1)
         w_wind = _briggs_plume_rise(plume_cfg, adv_cfg, grid, u_mean)
 
-    # 2. Apply turbulent diffusion (curl noise displacement added to wind)
+    # 2. Turbulent curl-noise
     if turb_cfg.enabled:
-        seed_offset = int(t_idx * turb_cfg.temporal_speed * 1000)
-        curl_dx, curl_dy, curl_dz = curl_noise_3d(
-            grid.shape,
-            octaves=min(turb_cfg.octaves, 4),
-            lacunarity=turb_cfg.lacunarity,
-            gain=turb_cfg.gain,
-            seed=turb_cfg.seed + seed_offset,
+        u_wind, v_wind, w_wind = _apply_turbulent_curl(
+            u_wind,
+            v_wind,
+            w_wind,
+            turb_cfg,
+            grid,
+            t_idx,
+            dt,
         )
-        # Scale curl displacement to wind velocity
-        curl_scale = turb_cfg.curl_strength * turb_cfg.amplitude
-        u_wind = u_wind + curl_dx * float(curl_scale * grid.dx / max(dt, 1.0))
-        v_wind = v_wind + curl_dy * float(curl_scale * grid.dy / max(dt, 1.0))
-        w_wind = w_wind + curl_dz * float(curl_scale)
 
-    # 3. Advect using selected scheme
-    if adv_cfg.scheme == "maccormack":
-        result = _maccormack_step(conc, u_wind, v_wind, w_wind, dt, grid)
-    else:
-        result = _semi_lagrangian_step(conc, u_wind, v_wind, w_wind, dt, grid)
+    # 3. Advect
+    scheme_fn = _maccormack_step if adv_cfg.scheme == "maccormack" else _semi_lagrangian_step
+    result = scheme_fn(conc, u_wind, v_wind, w_wind, dt, grid)
 
-    # 4. Inject source
+    # 4. Source injection
     if plume_cfg is not None:
         result = _inject_source(result, plume_cfg, grid, adv_cfg.source_injection_sigma, dt)
 
@@ -395,12 +428,7 @@ def advect_step(
 
     # 7. Mass correction
     if adv_cfg.mass_correction and mass_before > 0:
-        mass_after = float(result.sum())
-        if mass_after > 0:
-            correction = mass_before / mass_after
-            # Limit correction factor to avoid wild swings
-            correction = min(max(correction, 0.5), 2.0)
-            result = (result.astype(np.float64) * correction).astype(np.float32)
+        result = _apply_mass_correction(result, mass_before)
 
     return result.astype(np.float32)
 
@@ -443,9 +471,7 @@ def advect_sequence(
 
     """
     if adv_cfg is None:
-        from oco_viz.config.schema import AdvectionConfig as _AdvCfg
-
-        adv_cfg = _AdvCfg()
+        adv_cfg = AdvectionConfig()
 
     # Initialise from Gaussian plume at t=0
     conc = generate_timestep(plume_cfg, grid, 0)
@@ -464,7 +490,7 @@ def advect_sequence(
         u_wind = wind_ds["u_wind"].values[wind_t].astype(np.float32)
         v_wind = wind_ds["v_wind"].values[wind_t].astype(np.float32)
 
-        for sub in range(sub_steps):
+        for _sub in range(sub_steps):
             conc = advect_step(
                 conc,
                 u_wind,

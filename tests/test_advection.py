@@ -313,27 +313,42 @@ def test_briggs_plume_rise() -> None:
     wind = _uniform_wind(grid, u=3.0)
     turb = _make_turb_cfg()
     plume = _make_plume_cfg()
-    adv = _make_adv_cfg(buoyancy_flux=100.0)
+    # Use no buoyancy as baseline, then compare with strong buoyancy
+    adv_no_buoy = _make_adv_cfg(buoyancy_flux=0.0, source_injection_sigma=0.5)
+    adv_buoy = _make_adv_cfg(buoyancy_flux=200.0, source_injection_sigma=0.5)
 
-    z0, _, _ = _center_of_mass(conc)
-
-    result = conc.copy()
+    result_no = conc.copy()
+    result_buoy = conc.copy()
     for t in range(5):
-        result = advect_step(
-            result,
+        result_no = advect_step(
+            result_no,
             wind["u_wind"].values[0],
             wind["v_wind"].values[0],
-            adv.dt,
+            adv_no_buoy.dt,
             grid,
             turb,
             t,
             plume_cfg=plume,
-            adv_cfg=adv,
+            adv_cfg=adv_no_buoy,
+        )
+        result_buoy = advect_step(
+            result_buoy,
+            wind["u_wind"].values[0],
+            wind["v_wind"].values[0],
+            adv_buoy.dt,
+            grid,
+            turb,
+            t,
+            plume_cfg=plume,
+            adv_cfg=adv_buoy,
         )
 
-    z1, _, _ = _center_of_mass(result)
-    # Buoyancy should cause upward drift
-    assert z1 > z0, f"Expected z-COM to rise: {z0:.2f} -> {z1:.2f}"
+    z_no, _, _ = _center_of_mass(result_no)
+    z_buoy, _, _ = _center_of_mass(result_buoy)
+    # Buoyancy should raise COM relative to the no-buoyancy case
+    assert z_buoy > z_no, (
+        f"Buoyancy COM {z_buoy:.2f} should exceed no-buoyancy COM {z_no:.2f}"
+    )
 
 
 # ------------------------------------------------------------------ #
@@ -341,35 +356,61 @@ def test_briggs_plume_rise() -> None:
 # ------------------------------------------------------------------ #
 def test_mass_correction() -> None:
     grid = _make_grid()
-    conc = _initial_conc(grid)
-    wind = _uniform_wind(grid, u=2.0)
+    wind = _uniform_wind(grid, u=0.5, v=0.0)
     turb = _make_turb_cfg()
-    plume = _make_plume_cfg()
-    adv = _make_adv_cfg(mass_correction=True, source_injection_sigma=0.01)
+    # Large mixing height so lid doesn't interfere
+    plume = PlumeConfig(
+        source_x=12.0,
+        source_y=12.0,
+        source_z=8.0,
+        emission_rate=1000.0,
+        wind_speed=0.5,
+        wind_direction=270.0,
+        mixing_height=50000.0,
+        stack_height=200.0,
+    )
+    adv_corr = _make_adv_cfg(mass_correction=True, dt=100.0, source_injection_sigma=0.01)
+    adv_no = _make_adv_cfg(mass_correction=False, dt=100.0, source_injection_sigma=0.01)
 
-    # Use a fixed initial mass and disable source injection effectively
-    # by using tiny sigma
-    result = conc.copy()
+    # Place blob in centre of domain so it won't drift out
+    conc = _initial_conc(grid)
+
+    result_corr = conc.copy()
+    result_no = conc.copy()
     initial_mass = float(conc.sum())
     for t in range(24):
-        result = advect_step(
-            result,
+        result_corr = advect_step(
+            result_corr,
             wind["u_wind"].values[0],
             wind["v_wind"].values[0],
-            adv.dt,
+            adv_corr.dt,
             grid,
             turb,
             t,
             plume_cfg=plume,
-            adv_cfg=adv,
+            adv_cfg=adv_corr,
+        )
+        result_no = advect_step(
+            result_no,
+            wind["u_wind"].values[0],
+            wind["v_wind"].values[0],
+            adv_no.dt,
+            grid,
+            turb,
+            t,
+            plume_cfg=plume,
+            adv_cfg=adv_no,
         )
 
-    final_mass = float(result.sum())
-    # With mass correction the total mass should be within 1% of initial
-    # Note: source injection adds a small amount; we check relative to
-    # a reasonable tolerance
-    ratio = final_mass / max(initial_mass, 1e-8)
-    assert 0.5 < ratio < 2.0, f"Mass ratio {ratio:.4f} out of range"
+    mass_corr = float(result_corr.sum())
+    mass_no = float(result_no.sum())
+    # Mass-corrected version should be closer to initial mass
+    err_corr = abs(mass_corr - initial_mass) / max(initial_mass, 1e-8)
+    err_no = abs(mass_no - initial_mass) / max(initial_mass, 1e-8)
+    assert err_corr <= err_no * 1.1 + 0.01, (
+        f"Mass correction error {err_corr:.4f} should be <= "
+        f"no-correction error {err_no:.4f}"
+    )
 
 
 # ------------------------------------------------------------------ #
