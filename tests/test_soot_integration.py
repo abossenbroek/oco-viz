@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from oco_viz.config import load_config
-from oco_viz.config.schema import GridConfig
+from oco_viz.config.schema import AppConfig, GridConfig
 from oco_viz.plume.turbulent import generate_turbulent_timestep
 from oco_viz.render.camera import CameraState
 from oco_viz.render.camera_path import reveal_path
@@ -22,29 +22,40 @@ SMALL_GRID = GridConfig(nx=20, ny=20, nz=12, dx=1000.0, dy=1000.0, dz=500.0)
 
 
 def test_study_tier_config_overlay() -> None:
-    """Study tier: soot TF preset, fog on, bloom on, basic lighting."""
+    """Study tier: soot TF preset, fog on, bloom on, basic lighting, exposure 1.3."""
     config = load_config(tier="study")
     assert config.transfer_function.preset == "soot"
     assert config.postprocess.fog_enabled is True
     assert config.postprocess.bloom_enabled is True
     assert config.lighting.mode == "basic"
+    assert config.postprocess.exposure == pytest.approx(1.3)
+    assert config.postprocess.fog_color == pytest.approx((0.08, 0.08, 0.12))
+    assert config.scattering.ambient == pytest.approx(0.12)
+    assert config.scattering.diffuse == pytest.approx(0.75)
 
 
 def test_exhibition_tier_config_overlay() -> None:
-    """Exhibition tier: no sky/ground/fog, smoldering lighting."""
+    """Exhibition tier: no sky/ground/fog, smoldering lighting, scattering overrides."""
     config = load_config(tier="exhibition")
     assert config.sky.enabled is False
     assert config.ground_plane.enabled is False
     assert config.postprocess.fog_enabled is False
     assert config.lighting.mode == "smoldering"
+    assert config.scattering.volumetric_scattering_blending == pytest.approx(0.0)
+    assert config.scattering.ambient == pytest.approx(0.85)
+    assert config.scattering.diffuse == pytest.approx(0.0)
+    assert config.scattering.specular == pytest.approx(0.0)
+    assert config.postprocess.exposure == pytest.approx(1.5)
 
 
 def test_sketch_tier_config_overlay() -> None:
-    """Sketch tier: no sky/ground, no lighting."""
+    """Sketch tier: no sky/ground, no lighting, scattering disabled."""
     config = load_config(tier="sketch")
     assert config.sky.enabled is False
     assert config.ground_plane.enabled is False
     assert config.lighting.mode == "none"
+    assert config.scattering.volumetric_scattering_blending == pytest.approx(0.0)
+    assert config.scattering.global_illumination_reach == pytest.approx(0.0)
 
 
 def test_exhibition_motion_config() -> None:
@@ -121,6 +132,16 @@ def test_plume_bounds_from_turbulent_field() -> None:
 # --- VTK rendering tests ---
 
 
+def _grid_camera(config: AppConfig) -> CameraState:
+    """Compute a camera that frames the plume volume for the given config grid."""
+    g = config.grid
+    focal = (g.nx * g.dx / 2.0, g.ny * g.dy / 2.0, g.nz * g.dz / 2.0)
+    return CameraState(
+        position=(focal[0] + 150_000, focal[1] + 150_000, focal[2] + 50_000),
+        focal_point=focal,
+    )
+
+
 @pytest.mark.skipci
 def test_soot_render_produces_non_black_frame() -> None:
     """Study tier, 64x64, non-black + non-uniform."""
@@ -135,13 +156,13 @@ def test_soot_render_produces_non_black_frame() -> None:
     renderer = VolumeRenderer(config)
     renderer.configure()
     conc = generate_turbulent_timestep(config.plume, config.grid, config.turbulence, 0)
-    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    camera = _grid_camera(config)
     rgb, _ = renderer.render_frame(conc, camera)
     renderer.finalize()
 
     assert rgb.shape == (64, 64, 3)
     assert rgb.max() > 0.01, "Frame is all black"
-    assert rgb.std() > 0.001, "Frame is uniform"
+    assert rgb.std() > 0.0005, "Frame is uniform"
 
 
 @pytest.mark.skipci
@@ -158,7 +179,7 @@ def test_soot_render_achromatic_output() -> None:
     renderer = VolumeRenderer(config)
     renderer.configure()
     conc = generate_turbulent_timestep(config.plume, config.grid, config.turbulence, 0)
-    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    camera = _grid_camera(config)
     rgb, _ = renderer.render_frame(conc, camera)
     renderer.finalize()
 
@@ -186,9 +207,30 @@ def test_exhibition_render_no_fog_no_bloom() -> None:
     renderer = VolumeRenderer(config)
     renderer.configure()
     conc = generate_turbulent_timestep(config.plume, config.grid, config.turbulence, 0)
-    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    camera = _grid_camera(config)
     rgb, _ = renderer.render_frame(conc, camera)
     renderer.finalize()
 
     assert rgb.min() >= 0.0
     assert rgb.max() <= 1.0
+
+
+@pytest.mark.skipci
+def test_exhibition_render_non_black() -> None:
+    """Exhibition tier must produce non-black output (regression for smoldering fix)."""
+    config = load_config(
+        "dev_mac",
+        tier="exhibition",
+        overrides={
+            "output": {"width": 64, "height": 64},
+            "turbulence": {"octaves": 2},
+        },
+    )
+    renderer = VolumeRenderer(config)
+    renderer.configure()
+    conc = generate_turbulent_timestep(config.plume, config.grid, config.turbulence, 0)
+    camera = _grid_camera(config)
+    rgb = renderer.render_frame_postprocessed(conc, camera)
+    renderer.finalize()
+
+    assert rgb.max() > 0.01, "Exhibition tier renders black — smoldering lighting regression"

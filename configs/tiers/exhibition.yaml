@@ -1,13 +1,22 @@
-# Exhibition tier: gallery-quality output (aspirational target)
+# Exhibition tier: gallery-quality output
 sky:
   enabled: false
 
 ground_plane:
   enabled: false
 
+scattering:
+  volumetric_scattering_blending: 0.0
+  global_illumination_reach: 0.0
+  ambient: 0.85
+  diffuse: 0.0
+  specular: 0.0
+  sample_distance: 125.0
+
 postprocess:
   fog_enabled: false
   bloom_enabled: false
+  exposure: 1.5
 
 lighting:
   mode: smoldering
