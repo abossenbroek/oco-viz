@@ -75,15 +75,30 @@ The `output/examples/` directory contains gallery PNGs (tracked via Git LFS) tha
 
 **Any change that could affect rendered output** — transfer functions, scattering/lighting configs, post-processing, camera, normalization, volume construction, tier definitions — **must include a gallery re-render and visual inspection before the PR is raised.**
 
-1. Run all gallery scripts in `scripts/` (any `render_*_gallery.py`) to regenerate the full image set.
-2. Visually inspect **every** generated PNG with the critical eye of a Pixar/Disney lighting TD reviewing a final shot. This is not a rubber stamp — it is the most important quality gate in the project. Ask yourself:
-   - Does the plume have visible edges and a wispy halo, or does it clip to a hard blob?
-   - Is there directional depth from lighting, or is the volume flat and lifeless?
-   - Is cross-tier coherence maintained — same plume structure, different cinematic mood?
-   - Are bloom, fog, exposure, and tonemapping contributing to the intended look?
-   - Do camera paths and easing produce smooth, intentional motion across keyframes?
-   - Would this frame hold up projected on a gallery wall at 4K?
-3. If any image regresses — darker, flatter, clipped, banded, loses structure, or simply looks worse — the PR is not ready. Fix the root cause, re-render, re-inspect.
+### 5.1 Gallery Scripts as Living Coverage
+
+The gallery scripts in `scripts/` (`render_*_gallery.py`) must collectively exercise every stage of the rendering pipeline — normalization, transfer functions, volume construction, lighting, camera paths, easing, composition, post-processing, and tier configs. **When a new rendering capability is added, the gallery scripts must be extended to generate images that cover it.** The gallery is not a static snapshot; it grows with the pipeline so that `output/examples/` always provides end-to-end visual proof that the full pipeline works.
+
+### 5.2 Re-render and Inspect
+
+1. Run **all** gallery scripts in `scripts/` to regenerate the full image set.
+2. If any image regresses — darker, flatter, clipped, banded, loses structure, or simply looks worse — the PR is not ready. Fix the root cause, re-render, re-inspect.
+
+### 5.3 Critical Eye Review via Opus Agent
+
+The visual inspection must be performed by a **dedicated Opus agent** (via the Task tool) that reviews the generated images out of context — without access to the code changes, config diffs, or rationale. The agent receives only the images and judges them on their own merit as a supercritical Pixar/Disney lighting TD would review a final shot. This ensures the review is unbiased by implementation knowledge.
+
+The agent should evaluate each image against these criteria:
+- Does the plume have visible edges and a wispy halo, or does it clip to a hard blob?
+- Is there directional depth from lighting, or is the volume flat and lifeless?
+- Is cross-tier coherence maintained — same plume structure, different cinematic mood?
+- Are bloom, fog, exposure, and tonemapping contributing to the intended look?
+- Do camera paths and easing produce smooth, intentional motion across keyframes?
+- Would this frame hold up projected on a gallery wall at 4K?
+
+The agent must return a pass/fail verdict per image with specific critique. A single fail blocks the PR.
+
+### 5.4 Gallery Images as PR Evidence
 
 The gallery images are committed to the repo so reviewers can compare before/after visually in the PR diff. **Treat output/examples/ as the definitive proof that the rendering pipeline produces exhibition-quality results.**
 
