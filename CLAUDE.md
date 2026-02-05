@@ -73,17 +73,19 @@ Four gates run **in parallel** via `pixi run check`:
 
 The `output/examples/` directory contains gallery PNGs (tracked via Git LFS) that serve as **visual regression baselines**. These are the ground truth for rendering quality.
 
-**Before raising a PR that touches rendering, configs, or transfer functions:**
+**Any change that could affect rendered output** — transfer functions, scattering/lighting configs, post-processing, camera, normalization, volume construction, tier definitions — **must include a gallery re-render and visual inspection before the PR is raised.**
 
-1. Run `python scripts/render_wave5_gallery.py` (or the relevant gallery script) to regenerate all images.
-2. Visually inspect every generated PNG as if you were a supercritical Pixar/Disney lighting TD reviewing a final shot. Ask yourself:
+1. Run all gallery scripts in `scripts/` (any `render_*_gallery.py`) to regenerate the full image set.
+2. Visually inspect **every** generated PNG with the critical eye of a Pixar/Disney lighting TD reviewing a final shot. This is not a rubber stamp — it is the most important quality gate in the project. Ask yourself:
    - Does the plume have visible edges and a wispy halo, or does it clip to a hard blob?
-   - Is there directional depth from lighting (study tier) or dramatic glow (exhibition tier)?
-   - Is cross-tier coherence maintained — same plume structure, different mood?
-   - Are bloom, fog, and exposure contributing to the intended cinematic look?
-3. If images regress (darker, flatter, clipped, or lose structure), the PR is not ready.
+   - Is there directional depth from lighting, or is the volume flat and lifeless?
+   - Is cross-tier coherence maintained — same plume structure, different cinematic mood?
+   - Are bloom, fog, exposure, and tonemapping contributing to the intended look?
+   - Do camera paths and easing produce smooth, intentional motion across keyframes?
+   - Would this frame hold up projected on a gallery wall at 4K?
+3. If any image regresses — darker, flatter, clipped, banded, loses structure, or simply looks worse — the PR is not ready. Fix the root cause, re-render, re-inspect.
 
-The gallery images are committed to the repo so reviewers can compare before/after visually in the PR diff.
+The gallery images are committed to the repo so reviewers can compare before/after visually in the PR diff. **Treat output/examples/ as the definitive proof that the rendering pipeline produces exhibition-quality results.**
 
 ## 6. Best Practices
 
