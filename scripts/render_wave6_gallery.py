@@ -41,7 +41,7 @@ ERA5_FIXTURE = FIXTURES_DIR / "era5_secunda_2025-10-13.nc"
 OUTPUT_DIR = Path("output/examples/wave6")
 
 # Advection frames to render (sub-frame indices within the advect_sequence output)
-FRAME_INDICES = [0, 4, 8, 12]
+FRAME_INDICES = [0, 8, 16, 24]
 
 
 def _parse_args() -> argparse.Namespace:
@@ -95,29 +95,54 @@ def _load_wind(config: object, *, use_fixture: bool) -> xr.Dataset:
 
 
 def _load_gallery_config() -> object:
-    """Load config with small grid for gallery renders (study tier, soot preset)."""
+    """Load config with small grid for gallery renders (study tier, soot preset).
+
+    Key gallery overrides vs base config:
+    - Smaller grid (48x48x32) for fast rendering
+    - Higher emission rate (8000) to keep plume visible after advection
+    - More sub-steps (4) with MacCormack scheme
+    - Lower bloom threshold (0.25) and higher fog density (0.06) for atmosphere
+    """
     return load_config(
         "dev_mac",
         overrides={
             "grid": {"nx": 48, "ny": 48, "nz": 32},
-            "plume": {"source_x": 10.0, "source_y": 24.0, "source_z": 3.0},
+            "plume": {
+                "source_x": 10.0,
+                "source_y": 24.0,
+                "source_z": 3.0,
+                "emission_rate": 8000.0,
+            },
             "scattering": {"shade": False, "sample_distance": 250.0},
             "advection": {"dt": 3600.0, "sub_steps": 4, "scheme": "maccormack"},
+            "postprocess": {
+                "bloom_threshold": 0.25,
+                "bloom_intensity": 0.30,
+                "fog_density": 0.06,
+                "exposure": 1.6,
+            },
         },
         tier="study",
     )
 
 
 def _build_camera(config: object) -> object:
-    """Build a fixed camera positioned to show the full grid."""
+    """Build a fixed camera positioned to frame the plume.
+
+    Camera is placed close enough that the plume occupies ~30-50% of the frame.
+    Focal point targets the plume source area offset slightly downwind.
+    """
     grid = config.grid  # type: ignore[attr-defined]
-    cx = grid.nx * grid.dx / 2.0
-    cy = grid.ny * grid.dy / 2.0
-    cz = grid.nz * grid.dz / 3.0
-    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
+    plume = config.plume  # type: ignore[attr-defined]
+    # Focus slightly downwind of the plume source
+    fx = plume.source_x * grid.dx + 8000.0
+    fy = plume.source_y * grid.dy
+    fz = plume.source_z * grid.dz + 2000.0
+    # Place camera at moderate distance — ~20km for a 48km grid
+    cam_dist = max(grid.nx * grid.dx, grid.ny * grid.dy) * 0.4
     return FixedCamera(
-        position=(cx + extent * 1.2, cy - extent * 0.8, cz + extent * 0.3),
-        focal_point=(cx, cy, cz),
+        position=(fx + cam_dist * 0.7, fy - cam_dist * 0.5, fz + cam_dist * 0.3),
+        focal_point=(fx, fy, fz),
     ).evaluate(0.0)
 
 
@@ -131,7 +156,7 @@ def _render_and_save(
     render_config = config.model_copy(  # type: ignore[attr-defined]
         update={
             "transfer_function": TransferFunctionConfig(preset="soot"),
-            "rendering": RenderingConfig(mode="max"),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
         },
     )
     renderer = VolumeRenderer(render_config)
@@ -161,7 +186,7 @@ def _render_annotated(
     render_config = config.model_copy(  # type: ignore[attr-defined]
         update={
             "transfer_function": TransferFunctionConfig(preset="soot"),
-            "rendering": RenderingConfig(mode="max"),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
         },
     )
     renderer = VolumeRenderer(render_config)
@@ -205,7 +230,7 @@ def _render_advected_time_series(
     adv_ds: xr.Dataset,
     camera_state: object,
 ) -> int:
-    """Render 4 advected plume frames at sub-frame indices 0, 4, 8, 12.
+    """Render 4 advected plume frames at sub-frame indices 0, 8, 16, 24.
 
     Returns the number of images rendered.
     """
@@ -229,9 +254,9 @@ def _render_annotated_frame(
     adv_ds: xr.Dataset,
     camera_state: object,
 ) -> int:
-    """Render annotated frame at t=8. Returns 1 on success."""
+    """Render annotated frame at t=16 (mid-sequence). Returns 1 on success."""
     total_frames = adv_ds.sizes["time"]
-    target_idx = 8
+    target_idx = 16
     if target_idx >= total_frames:
         log.warning("annotated frame index out of range", idx=target_idx, total=total_frames)
         return 0
@@ -288,9 +313,9 @@ def _render_comparison(
     )
     n_rendered += 1
 
-    # Advected plume at t=8
+    # Advected plume at sub-frame 8 (2 major timesteps of transport)
     total_frames = adv_ds.sizes["time"]
-    target_idx = 8
+    target_idx = 8  # Early enough to retain visible concentration
     if target_idx < total_frames:
         adv_conc = adv_ds["concentration"].values[target_idx].astype(np.float32)
         log.info("advected plume (t=8)", max_conc=round(float(adv_conc.max()), 6))
@@ -327,14 +352,16 @@ def main() -> None:
     wind_ds = _load_wind(config, use_fixture=use_fixture)
     log.info("wind data ready", n_times=wind_ds.sizes["time"])
 
-    # 4. Run advect_sequence for 3 major timesteps (= 3*4+1 = 13 sub-frames)
-    adv_cfg = AdvectionConfig(dt=3600.0, sub_steps=4, scheme="maccormack")
+    # 4. Run advect_sequence for 8 major timesteps (= 8*4+1 = 33 sub-frames)
+    adv_cfg = AdvectionConfig(
+        dt=3600.0, sub_steps=4, scheme="maccormack", mass_correction=True,
+    )
     adv_ds = advect_sequence(
         config.plume,  # type: ignore[attr-defined]
         config.grid,  # type: ignore[attr-defined]
         wind_ds,
         config.turbulence,  # type: ignore[attr-defined]
-        n_steps=3,
+        n_steps=8,
         adv_cfg=adv_cfg,
     )
     n_total_frames = adv_ds.sizes["time"]
