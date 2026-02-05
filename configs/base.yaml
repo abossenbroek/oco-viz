@@ -119,6 +119,12 @@ overlay:
   colormap: turbo
   emissive_brightness: 1.5
 
+validation:
+  background_ppm: 415.0
+  threshold_fraction: 0.20
+  pass_criterion: 0.50
+  pressure_weighted: true
+
 data_source:
   start_date: "2024-01-15"
   end_date: "2024-01-15"

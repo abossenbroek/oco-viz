@@ -346,6 +346,21 @@ class AdvectionConfig(BaseModel):
         return v
 
 
+class ValidationConfig(BaseModel):
+    """Column XCO2 validation configuration."""
+
+    background_ppm: float = Field(default=415.0, gt=0, description="Background CO2 in ppm")
+    threshold_fraction: float = Field(
+        default=0.20, gt=0, le=1, description="Fraction threshold for pass/fail"
+    )
+    pass_criterion: float = Field(
+        default=0.50, gt=0, le=1, description="Min fraction within threshold to pass"
+    )
+    pressure_weighted: bool = Field(
+        default=True, description="Use pressure-weighted column average"
+    )
+
+
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
@@ -367,6 +382,7 @@ class AppConfig(BaseModel):
     data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
     annotations: AnnotationConfig = Field(default_factory=AnnotationConfig)
     overlay: OverlayConfig = Field(default_factory=OverlayConfig)
+    validation: ValidationConfig = Field(default_factory=ValidationConfig)
 
     @field_validator("tier")
     @classmethod
