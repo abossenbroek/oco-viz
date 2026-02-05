@@ -1,0 +1,23 @@
+{
+  "name": "oco-viz-local",
+  "owner": {
+    "name": "oco-viz team"
+  },
+  "metadata": {
+    "description": "Local plugins for oco-viz"
+  },
+  "plugins": [
+    {
+      "name": "wave-runner",
+      "source": "./wave-runner",
+      "description": "Wave-based ticket orchestration with parallel quality gates and auto-fix for Python projects",
+      "version": "1.0.0"
+    },
+    {
+      "name": "critical-eye",
+      "source": "./critical-eye",
+      "description": "Two-agent visual quality review: VFX technical eye + independent art director with tier-specific personas",
+      "version": "1.0.0"
+    }
+  ]
+}
