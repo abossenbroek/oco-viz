@@ -108,9 +108,10 @@ def render_sequence(
 
     # Overlay: add observation markers if present and enabled
     overlay_active = config.overlay.enabled and has_observations(ds)
+    overlay_actor = None
     if overlay_active:
         overlay_actor = create_observation_overlay(ds, config.grid, config.overlay)
-        renderer._renderer.AddActor(overlay_actor)  # noqa: SLF001
+        renderer.add_actor(overlay_actor)
         logger.info("Added observation overlay with %d points", ds.sizes.get("obs", 0))
 
     use_16bit = config.output.bit_depth == 16
@@ -173,8 +174,8 @@ def render_sequence(
         logger.info("Rendered frame %d/%d -> %s", i + 1, n, frame_path)
 
     # Clean up overlay actor
-    if overlay_active:
-        renderer._renderer.RemoveActor(overlay_actor)  # noqa: SLF001
+    if overlay_actor is not None:
+        renderer.remove_actor(overlay_actor)
 
     renderer.finalize()
     return output_paths

@@ -40,7 +40,6 @@ from oco_viz.plume.turbulent import generate_turbulent_sequence
 from oco_viz.render.annotations import apply_annotations
 from oco_viz.render.overlay import create_observation_overlay, has_observations
 
-
 # ------------------------------------------------------------------ #
 # Helpers
 # ------------------------------------------------------------------ #
@@ -50,7 +49,7 @@ def _small_grid() -> GridConfig:
     return GridConfig(nx=24, ny=24, nz=16, dx=1000.0, dy=1000.0, dz=500.0)
 
 
-def _small_config(**overrides: Any) -> AppConfig:
+def _small_config(**overrides: object) -> AppConfig:
     defaults: dict[str, Any] = {
         "grid": {"nx": 24, "ny": 24, "nz": 16, "dx": 1000.0, "dy": 1000.0, "dz": 500.0},
         "plume": {
@@ -261,14 +260,14 @@ def test_validation_report_generates(tmp_path: Path) -> None:
     val_cfg = ValidationConfig()
 
     # Mock 3D concentration field
-    conc_3d = np.random.default_rng(42).uniform(415, 425, size=grid.shape).astype(np.float32)  # noqa: NPY002
+    conc_3d = np.random.default_rng(42).uniform(415, 425, size=grid.shape).astype(np.float32)
 
     # Compute column XCO2
     modeled = compute_column_xco2(conc_3d, grid, val_cfg)
     assert modeled.shape == (grid.ny, grid.nx)
 
     # Mock observed with some NaN
-    observed = modeled.copy() + np.random.default_rng(43).normal(0, 1, modeled.shape).astype(  # noqa: NPY002
+    observed = modeled.copy() + np.random.default_rng(43).normal(0, 1, modeled.shape).astype(
         np.float32
     )
     observed[0, 0] = np.nan
@@ -358,7 +357,7 @@ def test_substep_no_ghosting() -> None:
         if threshold < 1e-10:
             continue
         binary = frame > threshold
-        labelled, n_features = label(binary)
+        _labelled, n_features = label(binary)
         # With source injection, we may have source + advected, which gives 2 features
         # but should not have more than ~3 disconnected blobs (source + plume + small artifacts)
         assert n_features <= 5, (

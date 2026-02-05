@@ -105,6 +105,18 @@ class VolumeRenderer:
 
         self._pipeline = create_pipeline(self._config.postprocess, self._config.tier)
 
+    def add_actor(self, actor: vtk.vtkActor) -> None:
+        """Add a VTK actor to the renderer (e.g. overlay markers)."""
+        if self._renderer is None:
+            msg = "Call configure() before add_actor()"
+            raise RuntimeError(msg)
+        self._renderer.AddActor(actor)
+
+    def remove_actor(self, actor: vtk.vtkActor) -> None:
+        """Remove a VTK actor from the renderer."""
+        if self._renderer is not None:
+            self._renderer.RemoveActor(actor)
+
     def render_frame(
         self,
         concentration: NDArray[np.float32],

@@ -171,7 +171,9 @@ def main() -> None:
         help="Pipeline mode (default: gaussian)",
     )
     p_pipe.add_argument("--cams", default=None, help="Path to CAMS NetCDF (for composite mode)")
-    p_pipe.add_argument("--era5", default=None, help="Path to ERA5 NetCDF (for wind/advected mode)")
+    p_pipe.add_argument(
+        "--era5", default=None, help="Path to ERA5 NetCDF (for wind/advected mode)"
+    )
     p_pipe.set_defaults(func=cmd_pipeline)
 
     # validate
