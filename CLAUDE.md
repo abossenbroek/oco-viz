@@ -69,6 +69,17 @@ Four gates run **in parallel** via `pixi run check`:
 | `/wave-runner:wave <n>` | Orchestrate a full wave of tickets |
 | `/wave-runner:wave-status` | Show progress across all waves |
 
+### 4.1 Pre-PR Checklist
+
+Before raising or pushing to a PR, **always** run these two commands locally and confirm they pass:
+
+```bash
+pixi run spell       # typos spellcheck (must match CI version >= 1.43)
+pixi run ci          # full CI suite: format, lint, typecheck, test, spell, dead-code, complexity, etc.
+```
+
+If either fails, fix the issue before pushing. This prevents CI failures on GitHub that could have been caught locally.
+
 ## 5. Visual Quality Gate
 
 The `output/examples/` directory contains gallery PNGs (tracked via Git LFS) that serve as **visual regression baselines**. These are the ground truth for rendering quality.
