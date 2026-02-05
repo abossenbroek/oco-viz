@@ -63,6 +63,38 @@ def cmd_encode(args: argparse.Namespace) -> None:
     print(f"Encoded video: {output_path}")
 
 
+def cmd_validate(args: argparse.Namespace) -> None:
+    """Validate modeled plume against observations."""
+    from oco_viz.data.validation import (
+        compare_modeled_observed,
+        compute_column_xco2,
+        generate_validation_report,
+    )
+    from oco_viz.data.zarr_store import read_zarr
+
+    config = load_config(args.profile, tier=_get_tier(args))
+    zarr_path = Path(args.zarr)
+    ds = read_zarr(zarr_path)
+
+    # Compute column XCO2 from last timestep
+    conc_3d = ds["concentration"].isel(time=-1).values
+    modeled_column = compute_column_xco2(conc_3d, config.grid, config.validation)
+
+    # Check for observed data
+    if "xco2_observed" not in ds:
+        print("No xco2_observed in dataset — skipping comparison")
+        return
+
+    observed = ds["xco2_observed"].values
+    result = compare_modeled_observed(modeled_column, observed, config.validation)
+
+    output_dir = Path(args.output_dir)
+    report_path = generate_validation_report(result, output_dir)
+    print(f"Validation report: {report_path}")
+    status = "PASSED" if result.passed else "FAILED"
+    print(f"Status: {status} (RMSE={result.rmse_ppm:.2f} ppm, r={result.correlation:.3f})")
+
+
 def cmd_pipeline(args: argparse.Namespace) -> None:
     """Run full pipeline: generate -> render -> encode."""
     config = load_config(args.profile, tier=_get_tier(args))
@@ -138,6 +170,16 @@ def main() -> None:
     )
     p_pipe.add_argument("--cams", default=None, help="Path to CAMS NetCDF (for composite mode)")
     p_pipe.set_defaults(func=cmd_pipeline)
+
+    # validate
+    p_validate = sub.add_parser("validate", help="Validate modeled plume against observations")
+    p_validate.add_argument("--profile", default="dev_mac")
+    p_validate.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
+    p_validate.add_argument("--zarr", required=True, help="Path to Zarr store")
+    p_validate.add_argument(
+        "--output-dir", default="output/validation", help="Report output dir"
+    )
+    p_validate.set_defaults(func=cmd_validate)
 
     args = parser.parse_args()
     args.func(args)
