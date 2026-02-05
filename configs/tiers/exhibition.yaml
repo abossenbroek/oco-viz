@@ -8,3 +8,15 @@ ground_plane:
 postprocess:
   fog_enabled: false
   bloom_enabled: false
+
+lighting:
+  mode: smoldering
+
+motion:
+  easing: heavy_ease_in
+  tempo_multiplier: 0.3
+
+composition:
+  enabled: true
+  asymmetric_offset: [0.05, 0.02]
+  vertical_emphasis: true

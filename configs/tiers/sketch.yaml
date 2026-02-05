@@ -4,3 +4,6 @@ sky:
 
 ground_plane:
   enabled: false
+
+lighting:
+  mode: none

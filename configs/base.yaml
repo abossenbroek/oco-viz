@@ -93,6 +93,18 @@ rendering:
   min_enhancement_ppm: 1.0
   opacity_gamma: 1.0
 
+motion:
+  easing: smoothstep
+  tempo_multiplier: 1.0
+  camera_drift_speed: 0.0
+
+composition:
+  enabled: false
+  frame_fill: [0.6, 0.8]
+  asymmetric_offset: [0.0, 0.0]
+  vertical_emphasis: false
+  threshold_fraction: 0.01
+
 data_source:
   start_date: "2024-01-15"
   end_date: "2024-01-15"
