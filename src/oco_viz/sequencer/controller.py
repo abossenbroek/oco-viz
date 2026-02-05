@@ -4,20 +4,66 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
 from oco_viz.data.zarr_store import read_zarr
+from oco_viz.render.annotations import apply_annotations
 from oco_viz.render.camera import OrbitCamera
 from oco_viz.render.frame_sidecar import write_sidecar
 from oco_viz.render.frame_writer import save_frame_8bit, save_frame_16bit
+from oco_viz.render.overlay import create_observation_overlay, has_observations
 from oco_viz.render.renderer import VolumeRenderer
 
 if TYPE_CHECKING:
+    import xarray as xr
+
     from oco_viz.config.schema import AppConfig
 
 logger = logging.getLogger(__name__)
+
+
+def _interpolate_concentration(
+    ds: xr.Dataset,
+    frame_idx: int,
+    num_frames: int,
+) -> np.ndarray[Any, np.dtype[np.float32]]:
+    """Interpolate concentration between dataset timesteps for smooth animation.
+
+    When the dataset has more or fewer timesteps than requested frames,
+    linearly maps frame indices to dataset time and interpolates between
+    adjacent timesteps.
+
+    Parameters
+    ----------
+    ds
+        Dataset with ``concentration`` variable, dims ``(time, z, y, x)``.
+    frame_idx
+        Current frame index (0-based).
+    num_frames
+        Total number of output frames.
+
+    Returns
+    -------
+    np.ndarray
+        Interpolated concentration field of shape ``(z, y, x)`` as float32.
+    """
+    total_timesteps = ds.sizes["time"]
+
+    # Map frame index to continuous time coordinate
+    t_frac = frame_idx * (total_timesteps - 1) / max(num_frames - 1, 1)
+    t_low = int(t_frac)
+    t_high = min(t_low + 1, total_timesteps - 1)
+    frac = t_frac - t_low
+
+    conc_low = ds["concentration"].isel(time=t_low).values.astype(np.float32)
+
+    if t_low == t_high or frac < 1e-8:
+        return conc_low
+
+    conc_high = ds["concentration"].isel(time=t_high).values.astype(np.float32)
+    return ((1.0 - frac) * conc_low + frac * conc_high).astype(np.float32)
 
 
 def render_sequence(
@@ -31,6 +77,16 @@ def render_sequence(
     Supports resume: skips frames that already exist.
     Uses 16-bit or 8-bit PNG output based on ``config.output.bit_depth``.
     Writes a YAML sidecar file per frame with metadata.
+
+    Temporal interpolation: when the dataset has more or fewer timesteps than
+    the requested frame count, smoothly interpolates concentration between
+    adjacent timesteps (avoids slide-show jumps at low temporal resolution).
+
+    Overlay: if the dataset contains ``xco2_observed`` and overlay is enabled,
+    adds observation point markers to the VTK renderer.
+
+    Annotations: if any annotation elements are enabled, applies text overlays
+    (timestamp, facility, credits, scale bar) after post-processing.
     """
     ds = read_zarr(zarr_path)
     total_timesteps = ds.sizes["time"]
@@ -50,8 +106,25 @@ def render_sequence(
     renderer = VolumeRenderer(config)
     renderer.configure()
 
+    # Overlay: add observation markers if present and enabled
+    overlay_active = config.overlay.enabled and has_observations(ds)
+    if overlay_active:
+        overlay_actor = create_observation_overlay(ds, config.grid, config.overlay)
+        renderer._renderer.AddActor(overlay_actor)  # noqa: SLF001
+        logger.info("Added observation overlay with %d points", ds.sizes.get("obs", 0))
+
     use_16bit = config.output.bit_depth == 16
     save_frame = save_frame_16bit if use_16bit else save_frame_8bit
+
+    # Check if any annotation is enabled
+    annotations_enabled = any(
+        [
+            config.annotations.show_timestamp,
+            config.annotations.show_facility,
+            config.annotations.show_credits,
+            config.annotations.show_scale_bar,
+        ]
+    )
 
     output_paths: list[Path] = []
 
@@ -66,8 +139,20 @@ def render_sequence(
         t = i / max(n - 1, 1)
         camera_state = camera_rig.evaluate(t)
 
-        concentration = ds["concentration"].isel(time=i).values.astype(np.float32)
+        # Temporal interpolation between dataset timesteps
+        concentration = _interpolate_concentration(ds, i, n)
+
         rgb_pp = renderer.render_frame_postprocessed(concentration, camera_state)
+
+        # Annotations: apply text overlays after post-processing
+        if annotations_enabled:
+            frame_meta: dict[str, Any] = {
+                "timestamp": str(float(i) / max(n - 1, 1)),
+                "frame_index": i,
+                "total_frames": n,
+                "grid_dx_m": config.grid.dx,
+            }
+            rgb_pp = apply_annotations(rgb_pp, config.annotations, frame_meta)
 
         save_frame(rgb_pp, frame_path)
 
@@ -86,6 +171,10 @@ def render_sequence(
         )
 
         logger.info("Rendered frame %d/%d -> %s", i + 1, n, frame_path)
+
+    # Clean up overlay actor
+    if overlay_active:
+        renderer._renderer.RemoveActor(overlay_actor)  # noqa: SLF001
 
     renderer.finalize()
     return output_paths
