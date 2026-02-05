@@ -69,14 +69,30 @@ Four gates run **in parallel** via `pixi run check`:
 | `/wave-runner:wave <n>` | Orchestrate a full wave of tickets |
 | `/wave-runner:wave-status` | Show progress across all waves |
 
-## 5. Best Practices
+## 5. Visual Quality Gate
+
+The `output/examples/` directory contains gallery PNGs (tracked via Git LFS) that serve as **visual regression baselines**. These are the ground truth for rendering quality.
+
+**Before raising a PR that touches rendering, configs, or transfer functions:**
+
+1. Run `python scripts/render_wave5_gallery.py` (or the relevant gallery script) to regenerate all images.
+2. Visually inspect every generated PNG as if you were a supercritical Pixar/Disney lighting TD reviewing a final shot. Ask yourself:
+   - Does the plume have visible edges and a wispy halo, or does it clip to a hard blob?
+   - Is there directional depth from lighting (study tier) or dramatic glow (exhibition tier)?
+   - Is cross-tier coherence maintained — same plume structure, different mood?
+   - Are bloom, fog, and exposure contributing to the intended cinematic look?
+3. If images regress (darker, flatter, clipped, or lose structure), the PR is not ready.
+
+The gallery images are committed to the repo so reviewers can compare before/after visually in the PR diff.
+
+## 6. Best Practices
 
 - Every `.py` file under `src/` starts with `from __future__ import annotations`.
 - **Untyped deps** (vtk, openvdb, cdsapi, scipy, xarray, zarr): import at top of file, handle via mypy `[[tool.mypy.overrides]]` in `pyproject.toml`. Do NOT put runtime-used imports inside `TYPE_CHECKING`.
 - **Selective context:** Read only files listed in a ticket's `related_files`. Do not scan the entire codebase for context.
 - **Ticket-driven:** Implement features via YAML specs in `plan/tickets/`. Each ticket declares `produces`, `depends`, `gates`, and `context.related_files`.
 
-## 6. Coding Standards
+## 7. Coding Standards
 
 - **Python:** >=3.11, line-length 99
 - **Linting:** ruff with `select = ["ALL"]`, ignores documented in `pyproject.toml` `[tool.ruff.lint]`
@@ -92,7 +108,7 @@ Standard module header:
 from __future__ import annotations
 ```
 
-## 7. Common Pitfalls
+## 8. Common Pitfalls
 
 | Pitfall | Why it matters |
 |---------|---------------|
