@@ -58,7 +58,7 @@ pre-commit = ">=4"
 pillow = ">=10"
 types-pyyaml = ">=6"
 pytest-cov = ">=5"
-typos = ">=1"
+typos = ">=1.43"
 
 [feature.dev.pypi-dependencies]
 vulture = ">=2.11"

@@ -17,6 +17,7 @@ precessing = "precessing"
 ND = "ND"
 LOD = "LOD"
 PNGs = "PNGs"
+PN = "PN"
 
 [default.extend-identifiers]
 GES_DISC = "GES_DISC"
