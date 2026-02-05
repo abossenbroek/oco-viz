@@ -9,6 +9,21 @@ from oco_viz.render.camera import CameraState
 from oco_viz.render.easing import EasingFunction, apply_easing
 
 
+def _spherical_position(
+    focal_point: tuple[float, float, float],
+    distance: float,
+    elevation_rad: float,
+    azimuth_rad: float = 0.0,
+) -> tuple[float, float, float]:
+    """Compute cartesian position from spherical coordinates around a focal point."""
+    fx, fy, fz = focal_point
+    return (
+        float(fx + distance * np.cos(elevation_rad) * np.cos(azimuth_rad)),
+        float(fy + distance * np.cos(elevation_rad) * np.sin(azimuth_rad)),
+        float(fz + distance * np.sin(elevation_rad)),
+    )
+
+
 class CameraPath:
     """Camera path interpolating between keyframes via cubic spline."""
 
@@ -49,23 +64,12 @@ def reveal_path(
     easing: EasingFunction = EasingFunction.smoothstep,
 ) -> CameraPath:
     """Start high above, descend to eye level."""
-    fx, fy, fz = focal_point
-    high_elev = np.radians(75.0)
-    low_elev = np.radians(25.0)
-    start_pos = (
-        fx + distance * np.cos(high_elev) * 1.0,
-        fy + distance * np.cos(high_elev) * 0.0,
-        fz + distance * np.sin(high_elev),
-    )
-    end_pos = (
-        fx + distance * np.cos(low_elev) * 1.0,
-        fy + distance * np.cos(low_elev) * 0.0,
-        fz + distance * np.sin(low_elev),
-    )
+    start_pos = _spherical_position(focal_point, distance, np.radians(75.0))
+    end_pos = _spherical_position(focal_point, distance, np.radians(25.0))
     return CameraPath(
         [
-            (0.0, CameraState(position=_ftuple(start_pos), focal_point=focal_point)),
-            (1.0, CameraState(position=_ftuple(end_pos), focal_point=focal_point)),
+            (0.0, CameraState(position=start_pos, focal_point=focal_point)),
+            (1.0, CameraState(position=end_pos, focal_point=focal_point)),
         ],
         easing=easing,
     )
@@ -77,19 +81,14 @@ def orbit_rise_path(
     easing: EasingFunction = EasingFunction.smoothstep,
 ) -> CameraPath:
     """Orbit around focal point while rising in elevation."""
-    fx, fy, fz = focal_point
     keyframes: list[tuple[float, CameraState]] = []
     n_keyframes = 5
     for i in range(n_keyframes):
         frac = i / (n_keyframes - 1)
-        az = np.radians(frac * 90.0)
-        elev = np.radians(20.0 + frac * 30.0)
-        pos = (
-            fx + distance * np.cos(elev) * np.cos(az),
-            fy + distance * np.cos(elev) * np.sin(az),
-            fz + distance * np.sin(elev),
+        pos = _spherical_position(
+            focal_point, distance, np.radians(20.0 + frac * 30.0), np.radians(frac * 90.0),
         )
-        keyframes.append((frac, CameraState(position=_ftuple(pos), focal_point=focal_point)))
+        keyframes.append((frac, CameraState(position=pos, focal_point=focal_point)))
     return CameraPath(keyframes, easing=easing)
 
 
@@ -99,24 +98,13 @@ def push_in_path(
     easing: EasingFunction = EasingFunction.smoothstep,
 ) -> CameraPath:
     """Slow approach from far to close."""
-    fx, fy, fz = focal_point
     elev = np.radians(30.0)
-    far_dist = distance * 2.0
-    close_dist = distance * 0.5
-    start_pos = (
-        fx + far_dist * np.cos(elev),
-        fy,
-        fz + far_dist * np.sin(elev),
-    )
-    end_pos = (
-        fx + close_dist * np.cos(elev),
-        fy,
-        fz + close_dist * np.sin(elev),
-    )
+    start_pos = _spherical_position(focal_point, distance * 2.0, elev)
+    end_pos = _spherical_position(focal_point, distance * 0.5, elev)
     return CameraPath(
         [
-            (0.0, CameraState(position=_ftuple(start_pos), focal_point=focal_point)),
-            (1.0, CameraState(position=_ftuple(end_pos), focal_point=focal_point)),
+            (0.0, CameraState(position=start_pos, focal_point=focal_point)),
+            (1.0, CameraState(position=end_pos, focal_point=focal_point)),
         ],
         easing=easing,
     )
@@ -128,13 +116,11 @@ def glacial_drift_path(
     easing: EasingFunction = EasingFunction.smoothstep,
 ) -> CameraPath:
     """Barely perceptible lateral drift."""
-    fx, fy, fz = focal_point
     elev = np.radians(30.0)
     drift = distance * 0.05
-    base_x = fx + distance * np.cos(elev)
-    base_z = fz + distance * np.sin(elev)
-    start_pos = (float(base_x), fy - drift, float(base_z))
-    end_pos = (float(base_x), fy + drift, float(base_z))
+    base = _spherical_position(focal_point, distance, elev)
+    start_pos = (base[0], base[1] - drift, base[2])
+    end_pos = (base[0], base[1] + drift, base[2])
     return CameraPath(
         [
             (0.0, CameraState(position=start_pos, focal_point=focal_point)),
@@ -142,7 +128,3 @@ def glacial_drift_path(
         ],
         easing=easing,
     )
-
-
-def _ftuple(vals: tuple[float, ...]) -> tuple[float, float, float]:
-    return (float(vals[0]), float(vals[1]), float(vals[2]))
