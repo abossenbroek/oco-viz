@@ -190,7 +190,10 @@ def run_data_pipeline(
             num_timesteps,
             adv_cfg=config.advection,
         )
-    elif (mode == "wind" and era5_path is not None) or era5_path is not None:
+    elif mode == "wind":
+        if era5_path is None:
+            msg = "mode='wind' requires era5_path"
+            raise ValueError(msg)
         ds = build_wind_driven_plume(config, era5_path, num_timesteps)
     else:
         ds = generate_sequence(config.plume, config.grid, num_timesteps)
