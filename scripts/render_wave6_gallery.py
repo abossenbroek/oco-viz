@@ -120,7 +120,7 @@ def _load_gallery_config() -> AppConfig:
                 "bloom_threshold": 0.25,
                 "bloom_intensity": 0.30,
                 "fog_density": 0.06,
-                "exposure": 1.6,
+                "exposure": 6.0,
             },
         },
         tier="study",

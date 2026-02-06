@@ -189,7 +189,7 @@ def render_postprocess_aces() -> None:
             "bloom_passes": 4,
             "fog_enabled": True,
             "fog_density": 0.04,
-            "exposure": 1.4,
+            "exposure": 6.0,
         },
     )
     camera = _build_camera(config)
