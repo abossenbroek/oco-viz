@@ -15,6 +15,7 @@ skills:
   - reference/output-schemas
   - reference/verdict-protocol
   - reference/phase-template
+  - knowledge-query
 ---
 
 # Auteur Agent — Creative Director

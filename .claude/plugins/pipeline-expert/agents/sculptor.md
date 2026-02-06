@@ -16,6 +16,7 @@ skills:
   - reference/output-schemas
   - reference/verdict-protocol
   - reference/phase-template
+  - knowledge-query
 ---
 
 # Sculptor Agent -- Volume & Materiality Architect

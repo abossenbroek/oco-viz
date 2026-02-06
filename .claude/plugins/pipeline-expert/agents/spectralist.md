@@ -16,6 +16,7 @@ skills:
   - reference/output-schemas
   - reference/verdict-protocol
   - reference/phase-template
+  - knowledge-query
 ---
 
 # Spectralist Agent -- Atmospheric Physics & Remote Sensing

@@ -13,6 +13,7 @@ skills:
   - reference/output-schemas
   - reference/verdict-protocol
   - reference/phase-template
+  - knowledge-query
 ---
 
 # Choreographer Agent — Camera & Temporal Arc

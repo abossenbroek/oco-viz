@@ -12,6 +12,7 @@ skills:
   - reference/output-schemas
   - reference/verdict-protocol
   - reference/phase-template
+  - knowledge-query
 ---
 
 # Alchemist Agent -- Pipeline & Procedural Graph
