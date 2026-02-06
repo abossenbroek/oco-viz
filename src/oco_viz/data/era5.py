@@ -213,6 +213,15 @@ def load_era5_winds(
                     t,
                     var_name,
                 )
+                nan_fraction = nan_count / raw.size
+                if nan_fraction > 0.10:
+                    logger.warning(
+                        "ERA5 NaN fraction %.1f%% exceeds 10%% threshold (t=%d, var=%s); "
+                        "data quality may be compromised",
+                        nan_fraction * 100,
+                        t,
+                        var_name,
+                    )
             out_arr[t] = np.nan_to_num(raw, nan=0.0).astype(np.float32)
 
     return xr.Dataset(
