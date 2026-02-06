@@ -12,10 +12,18 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
 
-def extract_rgb(render_window: vtk.vtkRenderWindow) -> NDArray[np.float32]:
-    """Extract RGB buffer as float32 array in [0, 1], shape [H, W, 3]."""
+def _make_w2i_filter(
+    render_window: vtk.vtkRenderWindow,
+) -> vtk.vtkWindowToImageFilter:
+    """Create a VTK window-to-image filter for the given render window."""
     w2i = vtk.vtkWindowToImageFilter()
     w2i.SetInput(render_window)
+    return w2i
+
+
+def extract_rgb(render_window: vtk.vtkRenderWindow) -> NDArray[np.float32]:
+    """Extract RGB buffer as float32 array in [0, 1], shape [H, W, 3]."""
+    w2i = _make_w2i_filter(render_window)
     w2i.SetInputBufferTypeToRGB()
     w2i.Update()
 
@@ -33,8 +41,7 @@ def extract_depth(render_window: vtk.vtkRenderWindow) -> NDArray[np.float32]:
 
     Values are in the range [near, far] of the clipping range.
     """
-    w2i = vtk.vtkWindowToImageFilter()
-    w2i.SetInput(render_window)
+    w2i = _make_w2i_filter(render_window)
     w2i.SetInputBufferTypeToZBuffer()
     w2i.Update()
 

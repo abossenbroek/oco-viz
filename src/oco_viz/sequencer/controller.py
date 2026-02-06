@@ -119,12 +119,12 @@ def render_sequence(
 
     # Check if any annotation is enabled
     annotations_enabled = any(
-        [
+        (
             config.annotations.show_timestamp,
             config.annotations.show_facility,
             config.annotations.show_credits,
             config.annotations.show_scale_bar,
-        ]
+        )
     )
 
     output_paths: list[Path] = []
