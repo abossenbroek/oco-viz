@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 from pathlib import Path
 from typing import Any
@@ -58,6 +59,16 @@ class ScatteringConfig(BaseModel):
     diffuse: float = Field(default=0.5, ge=0, le=1)
     specular: float = Field(default=0.0, ge=0, le=1)
     sample_distance: float = Field(default=0.5, gt=0)
+
+    @field_validator("anisotropy")
+    @classmethod
+    def _validate_anisotropy(cls, v: float) -> float:
+        if abs(v) > 0.9:
+            logging.getLogger(__name__).warning(
+                "Extreme anisotropy %.2f may cause rendering artifacts",
+                v,
+            )
+        return v
 
 
 class TurbulenceConfig(BaseModel):
