@@ -348,10 +348,10 @@ def advect_step(
     1. Compute vertical velocity from Briggs buoyancy (if buoyancy_flux > 0).
     2. Apply turbulent diffusion displacement via curl noise on departure points.
     3. Delegate to semi-Lagrangian or MacCormack based on scheme.
+    3b. Apply mass correction if enabled (before injection to avoid undoing source).
     4. Inject source emission.
     5. Apply mixing-height lid.
     6. Clamp to >= 0.
-    7. Apply mass correction if enabled.
 
     Parameters
     ----------
@@ -413,6 +413,10 @@ def advect_step(
     scheme_fn = _maccormack_step if adv_cfg.scheme == "maccormack" else _semi_lagrangian_step
     result = scheme_fn(conc, u_wind, v_wind, w_wind, dt, grid)
 
+    # 3b. Mass correction (before injection to avoid undoing source emission)
+    if adv_cfg.mass_correction and mass_before > 0:
+        result = _apply_mass_correction(result, mass_before)
+
     # 4. Source injection
     if plume_cfg is not None:
         result = _inject_source(result, plume_cfg, grid, adv_cfg.source_injection_sigma, dt)
@@ -425,10 +429,6 @@ def advect_step(
 
     # 6. Clamp negatives
     np.maximum(result, 0.0, out=result)
-
-    # 7. Mass correction
-    if adv_cfg.mass_correction and mass_before > 0:
-        result = _apply_mass_correction(result, mass_before)
 
     return result.astype(np.float32)
 

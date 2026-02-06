@@ -509,3 +509,45 @@ def test_sub_stepping_smoother() -> None:
         f"Sub-stepped gradient {grad_4.mean():.4f} should be <= "
         f"single-step gradient {grad_1.mean():.4f} * 1.5"
     )
+
+
+# ------------------------------------------------------------------ #
+# 13. Mass correction preserves injection
+# ------------------------------------------------------------------ #
+def test_mass_correction_preserves_injection() -> None:
+    """Mass correction should not undo source injection."""
+    grid = _make_grid()
+    conc = _initial_conc(grid)
+    wind = _uniform_wind(grid, u=0.5, v=0.0)
+    turb = _make_turb_cfg()
+    # High mixing height so lid doesn't remove mass
+    plume = PlumeConfig(
+        source_x=12.0,
+        source_y=6.0,
+        source_z=2.0,
+        emission_rate=1000.0,
+        wind_speed=5.0,
+        wind_direction=270.0,
+        mixing_height=50000.0,
+        stack_height=200.0,
+    )
+    adv = _make_adv_cfg(mass_correction=True, dt=100.0)
+
+    initial_mass = float(conc.sum())
+    result = advect_step(
+        conc,
+        wind["u_wind"].values[0],
+        wind["v_wind"].values[0],
+        adv.dt,
+        grid,
+        turb,
+        0,
+        plume_cfg=plume,
+        adv_cfg=adv,
+    )
+    final_mass = float(result.sum())
+    # With source injection, final mass should EXCEED initial mass
+    # (injection adds mass, correction should not undo it)
+    assert final_mass > initial_mass, (
+        f"Mass after injection ({final_mass:.4f}) should exceed initial ({initial_mass:.4f})"
+    )
