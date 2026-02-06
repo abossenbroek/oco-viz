@@ -4,3 +4,10 @@ sky:
 
 ground_plane:
   enabled: false
+
+scattering:
+  volumetric_scattering_blending: 0.0
+  global_illumination_reach: 0.0
+
+lighting:
+  mode: none

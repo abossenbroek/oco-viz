@@ -173,6 +173,7 @@ class VolumeRenderer:
                 self._renderer,
                 self._volume.GetProperty(),
                 self._config.lighting.mode,
+                self._config.scattering,
             )
             self._renderer.AddVolume(self._volume)
         else:

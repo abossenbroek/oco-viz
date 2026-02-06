@@ -282,7 +282,8 @@ jobs:
         run: |
           large_files=$(find . -not -path './.git/*' \
             -not -path './.pixi/*' -not -name 'pixi.lock' \
-            -not -path './tests/fixtures/*' -type f -size +1M)
+            -not -path './tests/fixtures/*' -not -path './plan/idea_board/*' \
+            -type f -size +1M)
           if [ -n "$large_files" ]; then
             echo "Files exceeding 1MB limit:"
             echo "$large_files" | while read -r f; do

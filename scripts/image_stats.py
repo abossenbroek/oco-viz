@@ -249,9 +249,7 @@ def tier_verdicts(
             "total_offset": com["total_offset"],
             "threshold": t["com_offset_min"],
         }
-    all_pass = all(
-        v["pass"] for v in verdicts.values() if isinstance(v, dict) and "pass" in v
-    )
+    all_pass = all(v["pass"] for v in verdicts.values() if isinstance(v, dict) and "pass" in v)
     verdicts["overall"] = "pass" if all_pass else "fail"
     return verdicts
 

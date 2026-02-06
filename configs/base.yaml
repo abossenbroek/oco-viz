@@ -78,14 +78,6 @@ plume:
   mixing_height: 1500.0
   stack_height: 200.0
 
-advection:
-  dt: 3600.0
-  sub_steps: 4
-  source_injection_sigma: 2.0
-  scheme: maccormack
-  mass_correction: true
-  buoyancy_flux: 50.0
-
 cams:
   dataset: cams-global-ghg-forecasts
   cache_dir: data/cams
@@ -101,29 +93,17 @@ rendering:
   min_enhancement_ppm: 1.0
   opacity_gamma: 1.0
 
-annotations:
-  show_timestamp: true
-  show_facility: true
-  show_credits: true
-  show_scale_bar: true
-  font_size: 18
-  facility_name: "Sasol Secunda"
-  text_color: [0.9, 0.9, 0.9]
-  panel_opacity: 0.4
+motion:
+  easing: smoothstep
+  tempo_multiplier: 1.0
+  camera_drift_speed: 0.0
 
-overlay:
-  enabled: true
-  dot_scale: 0.5
-  max_enhancement_ppm: 10.0
-  background_ppm: 415.0
-  colormap: turbo
-  emissive_brightness: 1.5
-
-validation:
-  background_ppm: 415.0
-  threshold_fraction: 0.20
-  pass_criterion: 0.50
-  pressure_weighted: true
+composition:
+  enabled: false
+  frame_fill: [0.6, 0.8]
+  asymmetric_offset: [0.0, 0.0]
+  vertical_emphasis: false
+  threshold_fraction: 0.01
 
 data_source:
   start_date: "2024-01-15"

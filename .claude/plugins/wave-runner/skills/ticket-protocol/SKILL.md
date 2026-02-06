@@ -195,6 +195,9 @@ For each test file in `produces`:
 - Follow test patterns from the file read in Phase 1
 - Use pytest function style (no classes)
 - Include edge cases from `context.key_behavior`
+- For tickets producing VTK/VDB output, include volumetric data assertions from
+  the test-scaffolder (grid spacing, grid names, sparsity, temperature range).
+  See `plan/coding_guide_2026.md` for the full cinematic pipeline context.
 
 ### Phase 4: Gate Execution
 
