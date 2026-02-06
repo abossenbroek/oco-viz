@@ -15,6 +15,7 @@ Optional features:
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, cast
 
 import numpy as np
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
         TurbulenceConfig,
     )
 
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------ #
 # Internal helpers
@@ -121,7 +123,7 @@ def _briggs_plume_rise(
     Returns
     -------
     NDArray[np.float32]
-        Vertical velocity field (z, y, x) in grid-cells-per-second / dz.
+        Vertical velocity field (z, y, x) in grid cells per second.
 
     """
     nz, ny, nx = grid.shape
@@ -183,7 +185,7 @@ def _semi_lagrangian_step(
     v_wind:
         Y-velocity field (z, y, x) in m/s.
     w_wind:
-        Z-velocity field (z, y, x) in grid-cells/s / dz.
+        Z-velocity field (z, y, x) in grid cells per second.
     dt:
         Timestep in seconds.
     grid:
@@ -248,7 +250,7 @@ def _maccormack_step(
     v_wind:
         Y-velocity field (z, y, x) in m/s.
     w_wind:
-        Z-velocity field (z, y, x) in grid-cells/s / dz.
+        Z-velocity field (z, y, x) in grid cells per second.
     dt:
         Timestep in seconds.
     grid:
@@ -430,7 +432,7 @@ def advect_step(
     # 6. Clamp negatives
     np.maximum(result, 0.0, out=result)
 
-    return result.astype(np.float32)
+    return result
 
 
 def advect_sequence(
@@ -477,7 +479,7 @@ def advect_sequence(
     conc = generate_timestep(plume_cfg, grid, 0)
     nz, ny, nx = grid.shape
 
-    frames: list[NDArray[np.float32]] = [conc.copy()]
+    frames: list[NDArray[np.float32]] = [conc.astype(np.float32)]
     sub_steps = adv_cfg.sub_steps
     sub_dt = adv_cfg.dt / sub_steps
 
@@ -487,6 +489,11 @@ def advect_sequence(
     frame_idx = 0
     for step in range(n_steps):
         wind_t = min(step, n_wind_times - 1)
+        if step == n_wind_times:
+            logger.warning(
+                "Wind data exhausted at step %d/%d; reusing last time slice for remaining steps",
+                step, n_wind_times,
+            )
         u_wind = wind_ds["u_wind"].values[wind_t].astype(np.float32)
         v_wind = wind_ds["v_wind"].values[wind_t].astype(np.float32)
 
@@ -503,7 +510,7 @@ def advect_sequence(
                 adv_cfg=adv_cfg,
             )
             frame_idx += 1
-            frames.append(conc.copy())
+            frames.append(conc.astype(np.float32))
 
     data = np.stack(frames, axis=0)  # (time, z, y, x)
 
