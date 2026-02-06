@@ -208,7 +208,15 @@ def run_data_pipeline(
 
 
 def _write_pipeline_zarr(ds: xr.Dataset, path: Path) -> None:
-    """Write pipeline output to Zarr, handling auxiliary variables."""
+    """Write pipeline output to Zarr with two-phase validation.
+
+    Phase 1: write ``concentration`` via :func:`write_zarr`, which validates
+    the required variable name, dimensions ``(time, z, y, x)``, and dtype.
+
+    Phase 2: append any auxiliary variables (e.g. ``u_wind``, ``v_wind``,
+    ``xco2_observed``) directly via xarray's ``to_zarr`` in append mode,
+    bypassing the strict validation since these are supplementary data.
+    """
     # write_zarr validates 'concentration' exists — strip auxiliary vars for validation,
     # then write the full dataset
     conc_ds = ds[["concentration"]].copy()

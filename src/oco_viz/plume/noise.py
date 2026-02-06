@@ -152,6 +152,11 @@ def fbm_4d(
         blended = (1.0 - frac) * cache[seed_low] + frac * cache[seed_high]
         frames.append(blended.astype(np.float32))
 
+        # Evict cache entries that won't be reused.
+        # seed_low for the *next* iteration is current seed_high,
+        # so seed_low is safe to drop once used.
+        cache.pop(seed_low, None)
+
     return np.stack(frames, axis=0)
 
 
