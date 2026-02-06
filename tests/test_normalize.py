@@ -227,6 +227,18 @@ class TestAnomalyNormalizationRegression:
         )
 
 
+class TestAllNanGuard:
+    """Guard against all-NaN concentration input."""
+
+    def test_max_mode_all_nan_returns_zeros(self) -> None:
+        """All-NaN input must return zeros, not propagate NaN."""
+        data = np.full((2, 3, 4), np.nan, dtype=np.float32)
+        cfg = RenderingConfig(mode="max")
+        result = normalize_concentration(data, cfg)
+        assert np.all(result == 0)
+        assert not np.any(np.isnan(result))
+
+
 class TestNormalizationModes:
     """Tests for individual normalization modes."""
 

@@ -156,6 +156,8 @@ def normalize_concentration(
         Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
     """
     if rendering_cfg.mode == "max":
+        if np.all(np.isnan(conc)):
+            return np.zeros_like(conc)
         max_val = float(np.nanmax(conc))
         if max_val > 0:
             # Clip to [0, max_val] before division to handle negative inputs
