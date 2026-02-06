@@ -21,15 +21,23 @@ import xarray as xr
 
 from oco_viz.config.schema import (
     AdvectionConfig,
+    AppConfig,
     DomainConfig,
     GridConfig,
+    RenderingConfig,
     TurbulenceConfig,
 )
+from oco_viz.data.cams import _M_AIR, _M_CO2, _kgkg_to_ppm
+from oco_viz.data.era5 import wind_components_from_direction
+from oco_viz.data.oco import filter_quality
+from oco_viz.data.pipeline import run_data_pipeline
 from oco_viz.data.transform import (
     latlon_to_local_km,
     local_km_to_latlon,
     pressure_to_altitude_m,
 )
+from oco_viz.data.zarr_store import _REQUIRED_DIMS, _validate_dataset
+from oco_viz.plume.advection import advect_step
 
 # ------------------------------------------------------------------
 # Pressure-to-altitude (ISA barometric formula)
@@ -215,8 +223,6 @@ class TestXCO2Range:
 
     def test_rendering_config_absolute_range(self) -> None:
         """RenderingConfig absolute_min/max should be within physical XCO2 bounds."""
-        from oco_viz.config.schema import RenderingConfig
-
         rc = RenderingConfig()
         assert rc.absolute_min_ppm >= 380.0, "absolute_min too low for current atmosphere"
         assert rc.absolute_max_ppm <= 500.0, "absolute_max too high for current atmosphere"
@@ -233,40 +239,30 @@ class TestWindConvention:
 
     def test_meteorological_direction_north_wind(self) -> None:
         """Wind FROM the north: direction = 0/360, u=0, v < 0."""
-        from oco_viz.data.era5 import wind_components_from_direction
-
         u, v = wind_components_from_direction(5.0, 0.0)
         assert abs(u) < 0.01, f"North wind should have u~0, got {u}"
         assert v < 0, f"North wind (from N) should have v < 0, got {v}"
 
     def test_meteorological_direction_east_wind(self) -> None:
         """Wind FROM the east: direction = 90, u < 0, v~0."""
-        from oco_viz.data.era5 import wind_components_from_direction
-
         u, v = wind_components_from_direction(5.0, 90.0)
         assert u < 0, f"East wind (from E) should have u < 0, got {u}"
         assert abs(v) < 0.01, f"East wind should have v~0, got {v}"
 
     def test_meteorological_direction_south_wind(self) -> None:
         """Wind FROM the south: direction = 180, u~0, v > 0."""
-        from oco_viz.data.era5 import wind_components_from_direction
-
         u, v = wind_components_from_direction(5.0, 180.0)
         assert abs(u) < 0.01, f"South wind should have u~0, got {u}"
         assert v > 0, f"South wind (from S) should have v > 0, got {v}"
 
     def test_meteorological_direction_west_wind(self) -> None:
         """Wind FROM the west: direction = 270, u > 0, v~0."""
-        from oco_viz.data.era5 import wind_components_from_direction
-
         u, v = wind_components_from_direction(5.0, 270.0)
         assert u > 0, f"West wind (from W) should have u > 0, got {u}"
         assert abs(v) < 0.01, f"West wind should have v~0, got {v}"
 
     def test_speed_magnitude_preserved(self) -> None:
         """|u, v| should equal the input speed for all directions."""
-        from oco_viz.data.era5 import wind_components_from_direction
-
         for direction in [0, 45, 90, 135, 180, 225, 270, 315]:
             u, v = wind_components_from_direction(10.0, float(direction))
             speed = math.sqrt(u**2 + v**2)
@@ -283,24 +279,18 @@ class TestCAMSConversion:
 
     def test_kgkg_to_ppm_typical_value(self) -> None:
         """~6.06e-4 kg/kg CO2 should yield ~400 ppm."""
-        from oco_viz.data.cams import _kgkg_to_ppm
-
-        # 400 ppm mole fraction × (M_CO2/M_air) = 400e-6 × 44.01/28.97 ≈ 6.075e-4
+        # 400 ppm mole fraction x (M_CO2/M_air) = 400e-6 x 44.01/28.97 ~ 6.075e-4
         mass_fraction = np.array([6.075e-4], dtype=np.float64)
         ppm = _kgkg_to_ppm(mass_fraction)
         assert abs(float(ppm[0]) - 400.0) < 5.0, f"Expected ~400 ppm, got {float(ppm[0]):.1f}"
 
     def test_kgkg_to_ppm_zero(self) -> None:
         """Zero mass fraction should give zero ppm."""
-        from oco_viz.data.cams import _kgkg_to_ppm
-
         ppm = _kgkg_to_ppm(np.array([0.0]))
         assert float(ppm[0]) == 0.0
 
     def test_molar_mass_ratio(self) -> None:
         """M_air / M_CO2 should be ~0.658."""
-        from oco_viz.data.cams import _M_AIR, _M_CO2
-
         ratio = _M_AIR / _M_CO2
         assert abs(ratio - 0.6583) < 0.001, f"M_air/M_CO2 = {ratio:.4f}, expected ~0.6583"
 
@@ -313,15 +303,15 @@ class TestCAMSConversion:
 class TestAdvectionDirection:
     """Validate that semi-Lagrangian advection moves mass in the correct direction."""
 
-    @pytest.fixture()
+    @pytest.fixture
     def small_grid(self) -> GridConfig:
         return GridConfig(nx=24, ny=24, nz=16, dx=1000.0, dy=1000.0, dz=500.0)
 
-    @pytest.fixture()
+    @pytest.fixture
     def no_turbulence(self) -> TurbulenceConfig:
         return TurbulenceConfig(enabled=False)
 
-    @pytest.fixture()
+    @pytest.fixture
     def simple_advection(self) -> AdvectionConfig:
         return AdvectionConfig(
             dt=3600.0,
@@ -338,8 +328,6 @@ class TestAdvectionDirection:
         simple_advection: AdvectionConfig,
     ) -> None:
         """Positive u_wind (eastward) should move concentration in +x direction."""
-        from oco_viz.plume.advection import advect_step
-
         nz, ny, nx = small_grid.shape
         conc = np.zeros(small_grid.shape, dtype=np.float32)
         conc[8, 12, 12] = 1.0  # Center point
@@ -359,7 +347,7 @@ class TestAdvectionDirection:
         )
 
         # Center of mass should move in +x direction
-        z, y, x = np.mgrid[0:nz, 0:ny, 0:nx]
+        _z, _y, x = np.mgrid[0:nz, 0:ny, 0:nx]
         total = result.sum()
         if total > 0:
             x_com = float((x * result).sum() / total)
@@ -372,8 +360,6 @@ class TestAdvectionDirection:
         simple_advection: AdvectionConfig,
     ) -> None:
         """Positive v_wind (northward) should move concentration in +y direction."""
-        from oco_viz.plume.advection import advect_step
-
         nz, ny, nx = small_grid.shape
         conc = np.zeros(small_grid.shape, dtype=np.float32)
         conc[8, 12, 12] = 1.0
@@ -392,7 +378,7 @@ class TestAdvectionDirection:
             adv_cfg=simple_advection,
         )
 
-        z, y, x = np.mgrid[0:nz, 0:ny, 0:nx]
+        _z, y, _x = np.mgrid[0:nz, 0:ny, 0:nx]
         total = result.sum()
         if total > 0:
             y_com = float((y * result).sum() / total)
@@ -405,8 +391,6 @@ class TestAdvectionDirection:
         simple_advection: AdvectionConfig,
     ) -> None:
         """Zero wind should keep concentration approximately in place."""
-        from oco_viz.plume.advection import advect_step
-
         nz, ny, nx = small_grid.shape
         conc = np.zeros(small_grid.shape, dtype=np.float32)
         conc[8, 12, 12] = 1.0
@@ -425,7 +409,7 @@ class TestAdvectionDirection:
             adv_cfg=simple_advection,
         )
 
-        z, y, x = np.mgrid[0:nz, 0:ny, 0:nx]
+        _z, y, x = np.mgrid[0:nz, 0:ny, 0:nx]
         total = result.sum()
         if total > 0:
             x_com = float((x * result).sum() / total)
@@ -440,8 +424,6 @@ class TestAdvectionDirection:
         simple_advection: AdvectionConfig,
     ) -> None:
         """Semi-Lagrangian should approximately conserve mass (within interpolation loss)."""
-        from oco_viz.plume.advection import advect_step
-
         conc = np.zeros(small_grid.shape, dtype=np.float32)
         # Broad source (not single voxel) to reduce interpolation artifacts
         conc[6:10, 10:14, 10:14] = 1.0
@@ -478,8 +460,6 @@ class TestZarrValidation:
 
     def test_validate_dataset_requires_dims(self) -> None:
         """Missing dimension should raise ValueError."""
-        from oco_viz.data.zarr_store import _validate_dataset
-
         ds = xr.Dataset(
             {"concentration": (["z", "y", "x"], np.zeros((4, 4, 4), dtype=np.float32))}
         )
@@ -488,8 +468,6 @@ class TestZarrValidation:
 
     def test_validate_dataset_requires_concentration(self) -> None:
         """Missing 'concentration' variable should raise ValueError."""
-        from oco_viz.data.zarr_store import _validate_dataset
-
         ds = xr.Dataset(
             {"density": (["time", "z", "y", "x"], np.zeros((1, 4, 4, 4), dtype=np.float32))}
         )
@@ -498,8 +476,6 @@ class TestZarrValidation:
 
     def test_validate_dataset_requires_float(self) -> None:
         """Integer dtype should raise ValueError."""
-        from oco_viz.data.zarr_store import _validate_dataset
-
         ds = xr.Dataset(
             {"concentration": (["time", "z", "y", "x"], np.zeros((1, 4, 4, 4), dtype=np.int32))}
         )
@@ -508,8 +484,6 @@ class TestZarrValidation:
 
     def test_validate_dataset_accepts_float32(self) -> None:
         """float32 concentration should pass validation."""
-        from oco_viz.data.zarr_store import _validate_dataset
-
         ds = xr.Dataset(
             {"concentration": (["time", "z", "y", "x"], np.zeros((1, 4, 4, 4), dtype=np.float32))}
         )
@@ -517,8 +491,6 @@ class TestZarrValidation:
 
     def test_dim_order_tzyx(self) -> None:
         """Concentration should have dims in (time, z, y, x) order."""
-        from oco_viz.data.zarr_store import _REQUIRED_DIMS
-
         assert _REQUIRED_DIMS == ("time", "z", "y", "x")
 
 
@@ -532,9 +504,6 @@ class TestPipelineModeDispatch:
 
     def test_gaussian_mode_no_data_required(self) -> None:
         """Gaussian mode should work without ERA5 or CAMS data."""
-        from oco_viz.config.schema import AppConfig
-        from oco_viz.data.pipeline import run_data_pipeline
-
         config = AppConfig(
             grid=GridConfig(nx=8, ny=8, nz=4, dx=1000.0, dy=1000.0, dz=500.0),
         )
@@ -546,27 +515,18 @@ class TestPipelineModeDispatch:
 
     def test_composite_requires_cams_path(self) -> None:
         """Composite mode should raise if cams_path is None."""
-        from oco_viz.config.schema import AppConfig
-        from oco_viz.data.pipeline import run_data_pipeline
-
         config = AppConfig()
         with pytest.raises(ValueError, match="cams_path"):
             run_data_pipeline(config, mode="composite", num_timesteps=1)
 
     def test_advected_requires_era5_path(self) -> None:
         """Advected mode should raise if era5_path is None."""
-        from oco_viz.config.schema import AppConfig
-        from oco_viz.data.pipeline import run_data_pipeline
-
         config = AppConfig()
         with pytest.raises(ValueError, match="era5_path"):
             run_data_pipeline(config, mode="advected", num_timesteps=1)
 
     def test_wind_requires_era5_path(self) -> None:
         """Wind mode should raise if era5_path is None."""
-        from oco_viz.config.schema import AppConfig
-        from oco_viz.data.pipeline import run_data_pipeline
-
         config = AppConfig()
         with pytest.raises(ValueError, match="era5_path"):
             run_data_pipeline(config, mode="wind", num_timesteps=1)
@@ -582,8 +542,6 @@ class TestOCOQualityFiltering:
 
     def test_filter_quality_flag_zero(self) -> None:
         """filter_quality should keep only flag == 0 values."""
-        from oco_viz.data.oco import filter_quality
-
         xco2 = np.array([420.0, 425.0, 430.0, 435.0], dtype=np.float64)
         flags = np.array([0, 1, 0, 2], dtype=np.int32)
         result = filter_quality(xco2, flags)
@@ -593,8 +551,6 @@ class TestOCOQualityFiltering:
 
     def test_filter_quality_all_bad(self) -> None:
         """All non-zero flags should result in empty array."""
-        from oco_viz.data.oco import filter_quality
-
         xco2 = np.array([420.0, 425.0], dtype=np.float64)
         flags = np.array([1, 2], dtype=np.int32)
         result = filter_quality(xco2, flags)

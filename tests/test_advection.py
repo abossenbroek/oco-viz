@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
 
 import numpy as np
-import pytest
 import xarray as xr
+
+if TYPE_CHECKING:
+    import pytest
 
 from oco_viz.config.schema import AdvectionConfig, GridConfig, PlumeConfig, TurbulenceConfig
 from oco_viz.plume.advection import advect_sequence, advect_step
