@@ -87,10 +87,7 @@ def test_numpy_to_vdb_rejects_non_3d() -> None:
 
 def test_export_vdb_sequence_creates_files(tmp_path: Path) -> None:
     """Sequence export should create numbered VDB files."""
-    frames = [
-        np.random.default_rng(i).random((4, 6, 8)).astype(np.float32)
-        for i in range(3)
-    ]
+    frames = [np.random.default_rng(i).random((4, 6, 8)).astype(np.float32) for i in range(3)]
 
     paths = export_vdb_sequence(frames, tmp_path, prefix="test")
 

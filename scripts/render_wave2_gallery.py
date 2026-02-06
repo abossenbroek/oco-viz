@@ -155,10 +155,8 @@ def render_oco3_footprints(config: AppConfig) -> None:
         for j in range(n_across):
             x = x_start + j * (footprint_size_km + gap_km)
             y = y_start + i * (footprint_size_km + gap_km)
-            dist = math.sqrt(
-                (x - domain_x_km / 2) ** 2 + (y - domain_y_km / 2) ** 2
-            )
-            xco2 = 415.0 + 8.0 * np.exp(-dist**2 / (2 * 10.0**2))
+            dist = math.sqrt((x - domain_x_km / 2) ** 2 + (y - domain_y_km / 2) ** 2)
+            xco2 = 415.0 + 8.0 * np.exp(-(dist**2) / (2 * 10.0**2))
             xco2_values.append(xco2)
             rect = mpatches.FancyBboxPatch(
                 (x, y),

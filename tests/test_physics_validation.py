@@ -31,7 +31,6 @@ from oco_viz.data.transform import (
     pressure_to_altitude_m,
 )
 
-
 # ------------------------------------------------------------------
 # Pressure-to-altitude (ISA barometric formula)
 # ------------------------------------------------------------------
@@ -93,9 +92,7 @@ class TestCoordinateRoundTrip:
 
     def test_origin_maps_to_zero(self) -> None:
         """The origin point should map to (0, 0) km."""
-        x_km, y_km = latlon_to_local_km(
-            -26.52, 29.17, origin_lat=-26.52, origin_lon=29.17
-        )
+        x_km, y_km = latlon_to_local_km(-26.52, 29.17, origin_lat=-26.52, origin_lon=29.17)
         assert abs(float(x_km)) < 0.001
         assert abs(float(y_km)) < 0.001
 
@@ -120,16 +117,12 @@ class TestCoordinateRoundTrip:
 
     def test_x_positive_is_east(self) -> None:
         """Positive longitude offset should yield positive x_km (eastward)."""
-        x_km, _ = latlon_to_local_km(
-            -26.52, 29.67, origin_lat=-26.52, origin_lon=29.17
-        )
+        x_km, _ = latlon_to_local_km(-26.52, 29.67, origin_lat=-26.52, origin_lon=29.17)
         assert float(x_km) > 0, "East of origin should be positive x"
 
     def test_y_positive_is_north(self) -> None:
         """Positive latitude offset should yield positive y_km (northward)."""
-        _, y_km = latlon_to_local_km(
-            -26.02, 29.17, origin_lat=-26.52, origin_lon=29.17
-        )
+        _, y_km = latlon_to_local_km(-26.02, 29.17, origin_lat=-26.52, origin_lon=29.17)
         assert float(y_km) > 0, "North of origin should be positive y"
 
 
@@ -277,9 +270,7 @@ class TestWindConvention:
         for direction in [0, 45, 90, 135, 180, 225, 270, 315]:
             u, v = wind_components_from_direction(10.0, float(direction))
             speed = math.sqrt(u**2 + v**2)
-            assert abs(speed - 10.0) < 0.01, (
-                f"dir={direction}: speed {speed:.3f} != 10.0"
-            )
+            assert abs(speed - 10.0) < 0.01, f"dir={direction}: speed {speed:.3f} != 10.0"
 
 
 # ------------------------------------------------------------------
@@ -297,9 +288,7 @@ class TestCAMSConversion:
         # 400 ppm mole fraction × (M_CO2/M_air) = 400e-6 × 44.01/28.97 ≈ 6.075e-4
         mass_fraction = np.array([6.075e-4], dtype=np.float64)
         ppm = _kgkg_to_ppm(mass_fraction)
-        assert abs(float(ppm[0]) - 400.0) < 5.0, (
-            f"Expected ~400 ppm, got {float(ppm[0]):.1f}"
-        )
+        assert abs(float(ppm[0]) - 400.0) < 5.0, f"Expected ~400 ppm, got {float(ppm[0]):.1f}"
 
     def test_kgkg_to_ppm_zero(self) -> None:
         """Zero mass fraction should give zero ppm."""
@@ -359,8 +348,14 @@ class TestAdvectionDirection:
         v_wind = np.zeros(small_grid.shape, dtype=np.float32)
 
         result = advect_step(
-            conc, u_wind, v_wind, simple_advection.dt, small_grid,
-            no_turbulence, 0, adv_cfg=simple_advection,
+            conc,
+            u_wind,
+            v_wind,
+            simple_advection.dt,
+            small_grid,
+            no_turbulence,
+            0,
+            adv_cfg=simple_advection,
         )
 
         # Center of mass should move in +x direction
@@ -387,8 +382,14 @@ class TestAdvectionDirection:
         v_wind = np.full(small_grid.shape, 5.0, dtype=np.float32)
 
         result = advect_step(
-            conc, u_wind, v_wind, simple_advection.dt, small_grid,
-            no_turbulence, 0, adv_cfg=simple_advection,
+            conc,
+            u_wind,
+            v_wind,
+            simple_advection.dt,
+            small_grid,
+            no_turbulence,
+            0,
+            adv_cfg=simple_advection,
         )
 
         z, y, x = np.mgrid[0:nz, 0:ny, 0:nx]
@@ -414,8 +415,14 @@ class TestAdvectionDirection:
         v_wind = np.zeros(small_grid.shape, dtype=np.float32)
 
         result = advect_step(
-            conc, u_wind, v_wind, simple_advection.dt, small_grid,
-            no_turbulence, 0, adv_cfg=simple_advection,
+            conc,
+            u_wind,
+            v_wind,
+            simple_advection.dt,
+            small_grid,
+            no_turbulence,
+            0,
+            adv_cfg=simple_advection,
         )
 
         z, y, x = np.mgrid[0:nz, 0:ny, 0:nx]
@@ -444,15 +451,21 @@ class TestAdvectionDirection:
 
         mass_before = float(conc.sum())
         result = advect_step(
-            conc, u_wind, v_wind, simple_advection.dt, small_grid,
-            no_turbulence, 0, adv_cfg=simple_advection,
+            conc,
+            u_wind,
+            v_wind,
+            simple_advection.dt,
+            small_grid,
+            no_turbulence,
+            0,
+            adv_cfg=simple_advection,
         )
         mass_after = float(result.sum())
 
         # Allow 20% loss from boundary clipping and interpolation
         ratio = mass_after / mass_before
-        assert ratio > 0.5, f"Mass loss too large: {(1-ratio)*100:.0f}%"
-        assert ratio < 1.5, f"Mass gain: {(ratio-1)*100:.0f}%"
+        assert ratio > 0.5, f"Mass loss too large: {(1 - ratio) * 100:.0f}%"
+        assert ratio < 1.5, f"Mass gain: {(ratio - 1) * 100:.0f}%"
 
 
 # ------------------------------------------------------------------
