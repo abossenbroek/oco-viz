@@ -78,22 +78,20 @@ def create_observation_overlay(
         vtk_points = numpy_to_vtk(coords, deep=True)
         points.SetData(vtk_points)
 
-        # Build color array
-        vtk_colors = vtk.vtkUnsignedCharArray()
+        # Build color array via numpy_to_vtk (vectorized)
+        colors_contiguous = np.ascontiguousarray(colors_uint8)
+        vtk_colors = numpy_to_vtk(colors_contiguous, deep=True)
         vtk_colors.SetNumberOfComponents(3)
         vtk_colors.SetName("Colors")
-        for i in range(len(colors_uint8)):
-            vtk_colors.InsertNextTuple3(
-                int(colors_uint8[i, 0]),
-                int(colors_uint8[i, 1]),
-                int(colors_uint8[i, 2]),
-            )
 
-        # Create vertex cells for each point
+        # Build vertex cells from numpy connectivity array (vectorized)
+        n_pts = len(xco2)
+        connectivity = np.arange(n_pts, dtype=np.int64)
+        offsets = np.arange(n_pts + 1, dtype=np.int64)
         verts = vtk.vtkCellArray()
-        for i in range(len(xco2)):
-            verts.InsertNextCell(1)
-            verts.InsertCellPoint(i)
+        vtk_conn = numpy_to_vtk(connectivity, deep=True)
+        vtk_offs = numpy_to_vtk(offsets, deep=True)
+        verts.SetData(vtk_offs, vtk_conn)
 
         poly.SetPoints(points)
         poly.SetVerts(verts)
