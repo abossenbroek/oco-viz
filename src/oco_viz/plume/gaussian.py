@@ -84,7 +84,7 @@ def generate_timestep(
 
     # Gaussian plume with ground reflection
     q = config.emission_rate
-    u = max(config.wind_speed, 0.01)
+    u = max(config.wind_speed, 0.5)
 
     # Crosswind term
     lateral = np.exp(-0.5 * (cw / sy) ** 2)

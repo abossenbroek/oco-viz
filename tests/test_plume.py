@@ -4,6 +4,15 @@ from oco_viz.config.schema import GridConfig, PlumeConfig
 from oco_viz.plume.gaussian import generate_sequence, generate_timestep
 
 
+def test_low_wind_uses_floor() -> None:
+    """Very low wind speed should use floor of 0.5 m/s."""
+    grid = GridConfig(nx=50, ny=50, nz=30, dx=1000.0, dy=1000.0, dz=500.0)
+    plume = PlumeConfig(wind_speed=0.001)  # Very low but valid
+    result = generate_timestep(plume, grid, 0)
+    assert result.max() > 0, "Should produce non-zero plume even with very low wind"
+    assert np.all(np.isfinite(result)), "No NaN/Inf with very low wind"
+
+
 def test_generate_timestep_shape() -> None:
     grid = GridConfig()
     plume = PlumeConfig()
