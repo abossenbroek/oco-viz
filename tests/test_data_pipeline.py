@@ -107,6 +107,7 @@ def test_run_data_pipeline_writes_zarr(config: AppConfig, tmp_path: Path) -> Non
 def test_run_data_pipeline_with_era5(config: AppConfig, tmp_path: Path) -> None:
     ds = run_data_pipeline(
         config,
+        mode="wind",
         era5_path=_ERA5_PATH,
         num_timesteps=3,
         output_zarr=tmp_path / "out.zarr",
