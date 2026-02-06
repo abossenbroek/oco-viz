@@ -14,7 +14,7 @@ transfer_function:
 
 scattering:
   shade: false
-  sample_distance: 100.0
+  sample_distance: 10.0
   jittering: true
   global_illumination_reach: 0.8
   volumetric_scattering_blending: 1.5
