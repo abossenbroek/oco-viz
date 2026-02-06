@@ -187,7 +187,8 @@ def normalize_concentration(
 
         normalized = np.clip(enhancement / divisor, 0, 1).astype(np.float32)
 
-        # Apply gamma scaling (>1 boosts low/mid-range values for visibility)
+        # Order matters: gamma first (boosts values), then edge falloff (tapers to zero).
+        # Reversing this would gamma-boost the falloff artifacts.
         if rendering_cfg.opacity_gamma != 1.0:
             normalized = _apply_gamma_scaling(normalized, rendering_cfg.opacity_gamma)
 

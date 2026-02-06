@@ -276,7 +276,9 @@ def _maccormack_step(
         conc.astype(np.float64) - backward.astype(np.float64)
     )
 
-    # Local bounds clamping: clip to [local_min, local_max] of neighbours
+    # Local bounds clamping prevents MacCormack overcorrection near boundaries.
+    # mode="constant" with cval=0.0 treats out-of-bounds as zero concentration,
+    # which is physically correct (no plume outside domain).
     local_min = minimum_filter(conc.astype(np.float64), size=3, mode="constant", cval=0.0)
     local_max = maximum_filter(conc.astype(np.float64), size=3, mode="constant", cval=0.0)
 
