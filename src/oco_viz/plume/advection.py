@@ -399,6 +399,17 @@ def advect_step(
         u_mean = max(float(np.mean(np.abs(u_wind))), 0.1)
         w_wind = _briggs_plume_rise(plume_cfg, adv_cfg, grid, u_mean)
 
+    # CFL diagnostic
+    max_u = float(np.max(np.abs(u_wind)))
+    max_v = float(np.max(np.abs(v_wind)))
+    cfl = max(max_u * dt / grid.dx, max_v * dt / grid.dy)
+    if cfl > 1.0:
+        logger.warning(
+            "CFL number %.2f > 1.0 at step %d; consider reducing dt or increasing sub_steps",
+            cfl,
+            t_idx,
+        )
+
     # 2. Turbulent curl-noise
     if turb_cfg.enabled:
         u_wind, v_wind, w_wind = _apply_turbulent_curl(
