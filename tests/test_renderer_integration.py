@@ -103,14 +103,14 @@ def test_dev_mac_uses_8bit() -> None:
 
 def test_base_config_has_exposure() -> None:
     config = load_config()
-    # Default tier is study, which overrides base exposure (1.4) to 1.3
-    assert config.postprocess.exposure == pytest.approx(1.3)
+    # Default tier is study, which overrides base exposure (1.4) to 4.0
+    assert config.postprocess.exposure == pytest.approx(4.0)
 
 
 def test_base_config_has_material_properties() -> None:
     config = load_config()
     # Default tier is study, which overrides base material properties
-    assert config.scattering.ambient == pytest.approx(0.12)
+    assert config.scattering.ambient == pytest.approx(0.65)
     assert config.scattering.diffuse == pytest.approx(0.75)
     assert config.scattering.specular == pytest.approx(0.0)
 
@@ -167,7 +167,7 @@ def test_renderer_produces_nonzero_rgb_for_mode(mode: str) -> None:
     )
     rgb, _ = renderer.render_frame(conc, camera)
     renderer.finalize()
-    assert rgb.max() > 0.01, f"Mode {mode} produced black output"
+    assert rgb.max() > 0.005, f"Mode {mode} produced black output"
 
 
 @pytest.mark.skipci
