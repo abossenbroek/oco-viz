@@ -87,10 +87,15 @@ def _draw_scale_bar(
     grid_dx_m: float,
     panel_pad: int,
     margin: int,
+    *,
+    pixels_per_km: float | None = None,
 ) -> None:
     """Draw a scale bar in the bottom-left area of the frame."""
     bar_km = 10.0
-    bar_length_px = int(bar_km * 1000.0 / grid_dx_m * (w / 100.0))
+    if pixels_per_km is not None:
+        bar_length_px = int(bar_km * pixels_per_km)
+    else:
+        bar_length_px = int(bar_km * 1000.0 / grid_dx_m * (w / 100.0))
     bar_length_px = max(min(bar_length_px, w // 3), 40)
 
     bar_y = h - margin - 50
@@ -155,17 +160,24 @@ def apply_annotations(
     -------
     NDArray[np.float32]
         Annotated image with same shape and dtype as input.
+
+    Note
+    ----
+    The float32 → uint8 → float32 round-trip through PIL introduces 8-bit
+    quantization, which may cause visible banding in smooth gradients. This is
+    inherent to PIL text rendering; use higher bit-depth libraries if banding
+    is unacceptable.
     """
     h, w = rgb.shape[:2]
 
     # Early return if nothing is enabled
     if not any(
-        [
+        (
             annotation_cfg.show_timestamp,
             annotation_cfg.show_facility,
             annotation_cfg.show_credits,
             annotation_cfg.show_scale_bar,
-        ]
+        )
     ):
         return rgb.copy()
 
@@ -188,7 +200,8 @@ def apply_annotations(
     if annotation_cfg.show_scale_bar:
         grid_dx_m = float(frame_meta.get("grid_dx_m", 1000.0))
         _draw_scale_bar(
-            draw, w, h, font, text_rgba, annotation_cfg, grid_dx_m, panel_pad, margin
+            draw, w, h, font, text_rgba, annotation_cfg, grid_dx_m, panel_pad, margin,
+            pixels_per_km=frame_meta.get("pixels_per_km"),
         )
 
     # Timestamp (bottom-left)
