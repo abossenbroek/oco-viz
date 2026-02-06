@@ -33,11 +33,11 @@ class TransferFunction:
     def to_vtk(self) -> tuple[vtk.vtkColorTransferFunction, vtk.vtkPiecewiseFunction]:
         """Convert to VTK transfer function objects."""
         color_tf = vtk.vtkColorTransferFunction()
-        for cp in self.color_points:
+        for cp in sorted(self.color_points, key=lambda p: p.scalar):
             color_tf.AddRGBPoint(cp.scalar, cp.r, cp.g, cp.b)
 
         opacity_tf = vtk.vtkPiecewiseFunction()
-        for cp in self.opacity_points:
+        for cp in sorted(self.opacity_points, key=lambda p: p.scalar):
             opacity_tf.AddPoint(cp.scalar, cp.opacity)
 
         return color_tf, opacity_tf
