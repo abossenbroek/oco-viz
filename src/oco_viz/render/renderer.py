@@ -36,9 +36,23 @@ def _load_soot() -> TransferFunction:
     return TransferFunction.from_json_file(_soot_tf_path())
 
 
+def _soot_exhibition_tf_path() -> Path:
+    return (
+        Path(__file__).resolve().parents[3]
+        / "configs"
+        / "transfer_functions"
+        / "soot_exhibition.json"
+    )
+
+
+def _load_soot_exhibition() -> TransferFunction:
+    return TransferFunction.from_json_file(_soot_exhibition_tf_path())
+
+
 # Preset name → classmethod factory
 PRESETS: dict[str, Callable[[], TransferFunction]] = {
     "soot": _load_soot,
+    "soot_exhibition": _load_soot_exhibition,
     "default_plume": TransferFunction.default_plume,
     "cinematic_storm": TransferFunction.cinematic_storm,
     "cinematic_ember": TransferFunction.cinematic_ember,

@@ -108,6 +108,7 @@ def test_all_presets_known() -> None:
     """All expected presets are wired into PRESETS dict."""
     expected = {
         "soot",
+        "soot_exhibition",
         "default_plume",
         "cinematic_storm",
         "cinematic_ember",
