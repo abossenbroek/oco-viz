@@ -50,6 +50,7 @@ def apply_lighting_for_tier(
 
     elif resolved is LightingMode.smoldering:
         renderer.RemoveAllLights()
-        volume_property.SetAmbient(0.4)
+        volume_property.ShadeOff()
+        volume_property.SetAmbient(0.85)
         volume_property.SetDiffuse(0.0)
         volume_property.SetSpecular(0.0)

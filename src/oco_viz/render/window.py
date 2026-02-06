@@ -35,5 +35,6 @@ def create_render_window(
         win = vtk.vtkRenderWindow()
 
     win.SetOffScreenRendering(True)
+    win.SetMultiSamples(0)
     win.SetSize(width, height)
     return win

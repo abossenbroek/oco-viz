@@ -8,3 +8,16 @@ ground_plane:
 postprocess:
   fog_enabled: false
   bloom_enabled: false
+
+transfer_function:
+  preset: soot_exhibition
+
+scattering:
+  shade: false
+  sample_distance: 100.0
+  jittering: true
+  global_illumination_reach: 0.8
+  volumetric_scattering_blending: 1.5
+  ambient: 0.85
+  diffuse: 0.0
+  specular: 0.0
