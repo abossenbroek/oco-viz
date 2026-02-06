@@ -22,6 +22,7 @@ from oco_viz.config import load_config
 from oco_viz.config.schema import (
     AdvectionConfig,
     AnnotationConfig,
+    AppConfig,
     RenderingConfig,
     TransferFunctionConfig,
 )
@@ -30,7 +31,7 @@ from oco_viz.plume.advection import advect_sequence
 from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.plume.turbulent import apply_turbulence
 from oco_viz.render.annotations import apply_annotations
-from oco_viz.render.camera import FixedCamera
+from oco_viz.render.camera import CameraState, FixedCamera
 from oco_viz.render.renderer import VolumeRenderer
 
 log = structlog.get_logger()
@@ -74,7 +75,7 @@ def _build_synthetic_wind(nz: int, ny: int, nx: int) -> xr.Dataset:
     )
 
 
-def _load_wind(config: object, *, use_fixture: bool) -> xr.Dataset:
+def _load_wind(config: AppConfig, *, use_fixture: bool) -> xr.Dataset:
     """Load ERA5 wind data from fixture, or fall back to synthetic wind.
 
     Parameters
@@ -87,14 +88,14 @@ def _load_wind(config: object, *, use_fixture: bool) -> xr.Dataset:
     """
     if use_fixture and ERA5_FIXTURE.exists():
         log.info("loading ERA5 fixture", path=str(ERA5_FIXTURE))
-        return load_era5_winds(ERA5_FIXTURE, config.data_source.domain, config.grid)  # type: ignore[attr-defined]
+        return load_era5_winds(ERA5_FIXTURE, config.data_source.domain, config.grid)
 
     log.info("using synthetic wind field", u=3.0, v=1.0)
-    nz, ny, nx = config.grid.shape  # type: ignore[attr-defined]
+    nz, ny, nx = config.grid.shape
     return _build_synthetic_wind(nz, ny, nx)
 
 
-def _load_gallery_config() -> object:
+def _load_gallery_config() -> AppConfig:
     """Load config with small grid for gallery renders (study tier, soot preset).
 
     Key gallery overrides vs base config:
@@ -126,14 +127,14 @@ def _load_gallery_config() -> object:
     )
 
 
-def _build_camera(config: object) -> object:
+def _build_camera(config: AppConfig) -> CameraState:
     """Build a fixed camera positioned to frame the plume.
 
     Camera is placed close enough that the plume occupies ~30-50% of the frame.
     Focal point targets the plume source area offset slightly downwind.
     """
-    grid = config.grid  # type: ignore[attr-defined]
-    plume = config.plume  # type: ignore[attr-defined]
+    grid = config.grid
+    plume = config.plume
     # Focus slightly downwind of the plume source
     fx = plume.source_x * grid.dx + 8000.0
     fy = plume.source_y * grid.dy
@@ -146,89 +147,31 @@ def _build_camera(config: object) -> object:
     ).evaluate(0.0)
 
 
-def _render_and_save(
-    config: object,
+def _render_to_rgb(
+    renderer: VolumeRenderer,
     conc: np.ndarray,
-    camera_state: object,
-    out_path: Path,
-) -> None:
-    """Render a single concentration field and save as PNG."""
-    render_config = config.model_copy(  # type: ignore[attr-defined]
-        update={
-            "transfer_function": TransferFunctionConfig(preset="soot"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
-        },
-    )
-    renderer = VolumeRenderer(render_config)
-    renderer.configure()
-    rgb_pp = renderer.render_frame_postprocessed(
+    camera_state: CameraState,
+) -> np.ndarray:
+    """Render a concentration field to a float32 RGB array via the shared renderer."""
+    return renderer.render_frame_postprocessed(
         conc,
         camera_state,
         pre_normalized=False,
     )
-    renderer.finalize()
-
-    rgb_uint8 = np.clip(rgb_pp * 255.0, 0, 255).astype(np.uint8)
-    img = Image.fromarray(rgb_uint8)
-    img.save(str(out_path))
-    log.info("saved", path=str(out_path))
 
 
-def _render_annotated(
-    config: object,
-    conc: np.ndarray,
-    camera_state: object,
-    out_path: Path,
-    frame_index: int,
-    total_frames: int,
-) -> None:
-    """Render a concentration field with all annotations enabled."""
-    render_config = config.model_copy(  # type: ignore[attr-defined]
-        update={
-            "transfer_function": TransferFunctionConfig(preset="soot"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
-        },
-    )
-    renderer = VolumeRenderer(render_config)
-    renderer.configure()
-    rgb_pp = renderer.render_frame_postprocessed(
-        conc,
-        camera_state,
-        pre_normalized=False,
-    )
-    renderer.finalize()
-
-    annotation_cfg = AnnotationConfig(
-        show_timestamp=True,
-        show_facility=True,
-        show_credits=True,
-        show_scale_bar=True,
-        font_size=18,
-        facility_name="Sasol Secunda",
-    )
-
-    grid = config.grid  # type: ignore[attr-defined]
-    rgb_annotated = apply_annotations(
-        rgb_pp,
-        annotation_cfg,
-        frame_meta={
-            "timestamp": "2024-01-15 14:00 UTC",
-            "frame_index": frame_index,
-            "total_frames": total_frames,
-            "grid_dx_m": grid.dx,
-        },
-    )
-
-    rgb_uint8 = np.clip(rgb_annotated * 255.0, 0, 255).astype(np.uint8)
+def _save_rgb(rgb: np.ndarray, out_path: Path) -> None:
+    """Save a float32 [0,1] RGB array as a PNG file."""
+    rgb_uint8 = np.clip(rgb * 255.0, 0, 255).astype(np.uint8)
     img = Image.fromarray(rgb_uint8)
     img.save(str(out_path))
     log.info("saved", path=str(out_path))
 
 
 def _render_advected_time_series(
-    config: object,
+    renderer: VolumeRenderer,
     adv_ds: xr.Dataset,
-    camera_state: object,
+    camera_state: CameraState,
 ) -> int:
     """Render 4 advected plume frames at sub-frame indices 0, 8, 16, 24.
 
@@ -242,36 +185,61 @@ def _render_advected_time_series(
             log.warning("frame index out of range", idx=idx, total=total_frames)
             continue
         conc = adv_ds["concentration"].values[idx].astype(np.float32)
-        out_path = OUTPUT_DIR / f"advected_study_t{idx}.png"
-        _render_and_save(config, conc, camera_state, out_path)
+        rgb = _render_to_rgb(renderer, conc, camera_state)
+        _save_rgb(rgb, OUTPUT_DIR / f"advected_study_t{idx}.png")
         n_rendered += 1
 
     return n_rendered
 
 
 def _render_annotated_frame(
-    config: object,
+    renderer: VolumeRenderer,
+    config: AppConfig,
     adv_ds: xr.Dataset,
-    camera_state: object,
+    camera_state: CameraState,
 ) -> int:
     """Render annotated frame at t=16 (mid-sequence). Returns 1 on success."""
     total_frames = adv_ds.sizes["time"]
     target_idx = 16
     if target_idx >= total_frames:
-        log.warning("annotated frame index out of range", idx=target_idx, total=total_frames)
+        log.warning(
+            "annotated frame index out of range", idx=target_idx, total=total_frames,
+        )
         return 0
 
     conc = adv_ds["concentration"].values[target_idx].astype(np.float32)
-    out_path = OUTPUT_DIR / "advected_study_annotated.png"
-    _render_annotated(config, conc, camera_state, out_path, target_idx, total_frames)
+    rgb_pp = _render_to_rgb(renderer, conc, camera_state)
+
+    annotation_cfg = AnnotationConfig(
+        show_timestamp=True,
+        show_facility=True,
+        show_credits=True,
+        show_scale_bar=True,
+        font_size=18,
+        facility_name="Sasol Secunda",
+    )
+
+    rgb_annotated = apply_annotations(
+        rgb_pp,
+        annotation_cfg,
+        frame_meta={
+            "timestamp": "2024-01-15 14:00 UTC",
+            "frame_index": target_idx,
+            "total_frames": total_frames,
+            "grid_dx_m": config.grid.dx,
+        },
+    )
+
+    _save_rgb(rgb_annotated, OUTPUT_DIR / "advected_study_annotated.png")
     return 1
 
 
 def _render_comparison(
-    config: object,
+    renderer: VolumeRenderer,
+    config: AppConfig,
     wind_ds: xr.Dataset,
     adv_ds: xr.Dataset,
-    camera_state: object,
+    camera_state: CameraState,
 ) -> int:
     """Render gaussian, turbulent, and advected (t=8) for comparison.
 
@@ -285,32 +253,24 @@ def _render_comparison(
     speed = max(math.sqrt(u_mean**2 + v_mean**2), 0.1)
     direction = float(np.degrees(np.arctan2(-u_mean, -v_mean)) % 360)
 
-    plume_cfg = config.plume.model_copy(  # type: ignore[attr-defined]
+    plume_cfg = config.plume.model_copy(
         update={"wind_speed": speed, "wind_direction": direction},
     )
 
     # Gaussian plume
-    gaussian_conc = generate_timestep(plume_cfg, config.grid, time_index=0)  # type: ignore[attr-defined]
+    gaussian_conc = generate_timestep(plume_cfg, config.grid, time_index=0)
     log.info("gaussian plume generated", max_conc=round(float(gaussian_conc.max()), 6))
-    _render_and_save(
-        config,
-        gaussian_conc,
-        camera_state,
-        OUTPUT_DIR / "compare_gaussian.png",
-    )
+    rgb = _render_to_rgb(renderer, gaussian_conc, camera_state)
+    _save_rgb(rgb, OUTPUT_DIR / "compare_gaussian.png")
     n_rendered += 1
 
     # Turbulent plume
     turbulent_conc = apply_turbulence(
-        gaussian_conc, config.turbulence, config.grid, time_index=0,  # type: ignore[attr-defined]
+        gaussian_conc, config.turbulence, config.grid, time_index=0,
     )
     log.info("turbulent plume generated", max_conc=round(float(turbulent_conc.max()), 6))
-    _render_and_save(
-        config,
-        turbulent_conc,
-        camera_state,
-        OUTPUT_DIR / "compare_turbulent.png",
-    )
+    rgb = _render_to_rgb(renderer, turbulent_conc, camera_state)
+    _save_rgb(rgb, OUTPUT_DIR / "compare_turbulent.png")
     n_rendered += 1
 
     # Advected plume at sub-frame 8 (2 major timesteps of transport)
@@ -319,12 +279,8 @@ def _render_comparison(
     if target_idx < total_frames:
         adv_conc = adv_ds["concentration"].values[target_idx].astype(np.float32)
         log.info("advected plume (t=8)", max_conc=round(float(adv_conc.max()), 6))
-        _render_and_save(
-            config,
-            adv_conc,
-            camera_state,
-            OUTPUT_DIR / "compare_advected.png",
-        )
+        rgb = _render_to_rgb(renderer, adv_conc, camera_state)
+        _save_rgb(rgb, OUTPUT_DIR / "compare_advected.png")
         n_rendered += 1
 
     return n_rendered
@@ -333,8 +289,12 @@ def _render_comparison(
 def main() -> None:
     """Generate Wave 6 gallery images."""
     # 1. Setup logging
-    def yaml_renderer(_logger: object, _name: str, event_dict: dict[str, object]) -> str:
-        return yaml.dump(dict(event_dict), default_flow_style=False, sort_keys=False).rstrip()
+    def yaml_renderer(
+        _logger: object, _name: str, event_dict: dict[str, object],
+    ) -> str:
+        return yaml.dump(
+            dict(event_dict), default_flow_style=False, sort_keys=False,
+        ).rstrip()
 
     structlog.configure(
         processors=[structlog.stdlib.add_log_level, yaml_renderer],
@@ -357,10 +317,10 @@ def main() -> None:
         dt=3600.0, sub_steps=4, scheme="maccormack", mass_correction=True,
     )
     adv_ds = advect_sequence(
-        config.plume,  # type: ignore[attr-defined]
-        config.grid,  # type: ignore[attr-defined]
+        config.plume,
+        config.grid,
         wind_ds,
-        config.turbulence,  # type: ignore[attr-defined]
+        config.turbulence,
         n_steps=8,
         adv_cfg=adv_cfg,
     )
@@ -373,16 +333,35 @@ def main() -> None:
     # 6. Create output directory
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    # 7. Render advected time series (t=0, 4, 8, 12)
-    n_time_series = _render_advected_time_series(config, adv_ds, camera_state)
+    # 7. Create shared renderer (reused across all renders)
+    render_config = config.model_copy(
+        update={
+            "transfer_function": TransferFunctionConfig(preset="soot"),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
+        },
+    )
+    renderer = VolumeRenderer(render_config)
+    renderer.configure()
 
-    # 8. Render annotated frame (t=8)
-    n_annotated = _render_annotated_frame(config, adv_ds, camera_state)
+    try:
+        # 8. Render advected time series (t=0, 8, 16, 24)
+        n_time_series = _render_advected_time_series(
+            renderer, adv_ds, camera_state,
+        )
 
-    # 9. Render comparison: gaussian, turbulent, advected
-    n_comparison = _render_comparison(config, wind_ds, adv_ds, camera_state)
+        # 9. Render annotated frame (t=16)
+        n_annotated = _render_annotated_frame(
+            renderer, config, adv_ds, camera_state,
+        )
 
-    # 10. Log summary
+        # 10. Render comparison: gaussian, turbulent, advected
+        n_comparison = _render_comparison(
+            renderer, config, wind_ds, adv_ds, camera_state,
+        )
+    finally:
+        renderer.finalize()
+
+    # 11. Log summary
     total = n_time_series + n_annotated + n_comparison
     log.info(
         "wave-6 gallery complete",
