@@ -88,7 +88,7 @@ def apply_turbulence(
         ((zz - cz) / cz) ** 2 + ((yy - cy) / cy) ** 2 + ((xx - cx) / cx) ** 2,
     )
     # Smooth falloff: 1.0 at center, ~0 at corners
-    falloff = np.clip(1.0 - dist * 0.5, 0.0, 1.0)
+    falloff = np.clip(1.0 - dist * 0.45, 0.0, 1.0)
     warped *= falloff
 
     # Step 5: clamp negatives
