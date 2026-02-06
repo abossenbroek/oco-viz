@@ -5140,7 +5140,7 @@ packages:
 - pypi: .
   name: oco-viz
   version: 0.1.0
-  sha256: 9836f5334330b7b2815fbaafff3e41bc6787173efed0c0b9da6d13d99c1f663b
+  sha256: 43a1366aafe71b64afeac62465c98df8ba9cb4edb360454a39ad7df9dc5f9370
   requires_python: '>=3.11'
   editable: true
 - conda: https://conda.anaconda.org/conda-forge/linux-64/opencl-headers-2025.06.13-h5888daf_0.conda
