@@ -286,6 +286,81 @@ class DataSourceConfig(BaseModel):
     oco3: OCO3Config = Field(default_factory=OCO3Config)
 
 
+class AnnotationConfig(BaseModel):
+    """Text annotation overlay configuration."""
+
+    show_timestamp: bool = True
+    show_facility: bool = True
+    show_credits: bool = True
+    show_scale_bar: bool = True
+    font_size: int = Field(default=18, ge=8, le=72)
+    facility_name: str = "Sasol Secunda"
+    text_color: tuple[float, float, float] = (0.9, 0.9, 0.9)
+    panel_opacity: float = Field(default=0.4, ge=0, le=1)
+
+
+class OverlayConfig(BaseModel):
+    """OCO observation overlay configuration."""
+
+    enabled: bool = True
+    dot_scale: float = Field(default=0.5, gt=0)
+    max_enhancement_ppm: float = Field(default=10.0, gt=0)
+    background_ppm: float = Field(default=415.0, gt=0)
+    colormap: str = Field(default="turbo")
+    emissive_brightness: float = Field(default=1.5, ge=0)
+
+    @field_validator("colormap")
+    @classmethod
+    def _valid_colormap(cls, v: str) -> str:
+        valid = {"turbo", "inferno", "RdYlBu_r", "hot", "plasma"}
+        if v not in valid:
+            msg = f"Colormap must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
+
+
+class AdvectionConfig(BaseModel):
+    """Semi-Lagrangian advection configuration."""
+
+    dt: float = Field(default=3600.0, gt=0, description="Advection timestep in seconds")
+    sub_steps: int = Field(default=4, ge=1, le=16, description="Sub-steps per timestep")
+    source_injection_sigma: float = Field(
+        default=2.0, gt=0, description="Source injection spread in grid cells"
+    )
+    scheme: str = Field(
+        default="maccormack",
+        description="Advection scheme: semi_lagrangian or maccormack",
+    )
+    mass_correction: bool = Field(default=True, description="Apply per-step mass correction")
+    buoyancy_flux: float = Field(
+        default=50.0, ge=0, description="Briggs buoyancy flux parameter (m^4/s^3)"
+    )
+
+    @field_validator("scheme")
+    @classmethod
+    def _valid_scheme(cls, v: str) -> str:
+        valid = {"semi_lagrangian", "maccormack"}
+        if v not in valid:
+            msg = f"Advection scheme must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
+
+
+class ValidationConfig(BaseModel):
+    """Column XCO2 validation configuration."""
+
+    background_ppm: float = Field(default=415.0, gt=0, description="Background CO2 in ppm")
+    threshold_fraction: float = Field(
+        default=0.20, gt=0, le=1, description="Fraction threshold for pass/fail"
+    )
+    pass_criterion: float = Field(
+        default=0.50, gt=0, le=1, description="Min fraction within threshold to pass"
+    )
+    pressure_weighted: bool = Field(
+        default=True, description="Use pressure-weighted column average"
+    )
+
+
 class MotionConfig(BaseModel):
     """Camera motion and easing configuration."""
 
@@ -336,9 +411,13 @@ class AppConfig(BaseModel):
     output: OutputConfig = Field(default_factory=OutputConfig)
     plume: PlumeConfig = Field(default_factory=PlumeConfig)
     turbulence: TurbulenceConfig = Field(default_factory=TurbulenceConfig)
+    advection: AdvectionConfig = Field(default_factory=AdvectionConfig)
     cams: CamsConfig = Field(default_factory=CamsConfig)
     rendering: RenderingConfig = Field(default_factory=RenderingConfig)
     data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
+    annotations: AnnotationConfig = Field(default_factory=AnnotationConfig)
+    overlay: OverlayConfig = Field(default_factory=OverlayConfig)
+    validation: ValidationConfig = Field(default_factory=ValidationConfig)
     motion: MotionConfig = Field(default_factory=MotionConfig)
     composition: CompositionConfig = Field(default_factory=CompositionConfig)
 

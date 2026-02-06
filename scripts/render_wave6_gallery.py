@@ -203,7 +203,9 @@ def _render_annotated_frame(
     target_idx = 16
     if target_idx >= total_frames:
         log.warning(
-            "annotated frame index out of range", idx=target_idx, total=total_frames,
+            "annotated frame index out of range",
+            idx=target_idx,
+            total=total_frames,
         )
         return 0
 
@@ -266,7 +268,10 @@ def _render_comparison(
 
     # Turbulent plume
     turbulent_conc = apply_turbulence(
-        gaussian_conc, config.turbulence, config.grid, time_index=0,
+        gaussian_conc,
+        config.turbulence,
+        config.grid,
+        time_index=0,
     )
     log.info("turbulent plume generated", max_conc=round(float(turbulent_conc.max()), 6))
     rgb = _render_to_rgb(renderer, turbulent_conc, camera_state)
@@ -288,12 +293,17 @@ def _render_comparison(
 
 def main() -> None:
     """Generate Wave 6 gallery images."""
+
     # 1. Setup logging
     def yaml_renderer(
-        _logger: object, _name: str, event_dict: dict[str, object],
+        _logger: object,
+        _name: str,
+        event_dict: dict[str, object],
     ) -> str:
         return yaml.dump(
-            dict(event_dict), default_flow_style=False, sort_keys=False,
+            dict(event_dict),
+            default_flow_style=False,
+            sort_keys=False,
         ).rstrip()
 
     structlog.configure(
@@ -314,7 +324,10 @@ def main() -> None:
 
     # 4. Run advect_sequence for 8 major timesteps (= 8*4+1 = 33 sub-frames)
     adv_cfg = AdvectionConfig(
-        dt=3600.0, sub_steps=4, scheme="maccormack", mass_correction=True,
+        dt=3600.0,
+        sub_steps=4,
+        scheme="maccormack",
+        mass_correction=True,
     )
     adv_ds = advect_sequence(
         config.plume,
@@ -346,17 +359,26 @@ def main() -> None:
     try:
         # 8. Render advected time series (t=0, 8, 16, 24)
         n_time_series = _render_advected_time_series(
-            renderer, adv_ds, camera_state,
+            renderer,
+            adv_ds,
+            camera_state,
         )
 
         # 9. Render annotated frame (t=16)
         n_annotated = _render_annotated_frame(
-            renderer, config, adv_ds, camera_state,
+            renderer,
+            config,
+            adv_ds,
+            camera_state,
         )
 
         # 10. Render comparison: gaussian, turbulent, advected
         n_comparison = _render_comparison(
-            renderer, config, wind_ds, adv_ds, camera_state,
+            renderer,
+            config,
+            wind_ds,
+            adv_ds,
+            camera_state,
         )
     finally:
         renderer.finalize()

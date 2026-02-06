@@ -128,6 +128,7 @@ def _generate_exhibition_plume(
 
     # Smooth the result to remove voxel-level artifacts
     from scipy.ndimage import gaussian_filter
+
     conc = gaussian_filter(conc, sigma=2.0).astype(np.float32)
 
     # Soft thresholding: smoothly ramp to zero below 5% of max
@@ -199,7 +200,9 @@ def _render_to_rgb(
         conc[:] = dissolved * max_val
 
     rgb = renderer.render_frame_postprocessed(
-        conc, camera_state, pre_normalized=False,
+        conc,
+        camera_state,
+        pre_normalized=False,
     )
 
     return rgb
@@ -215,11 +218,16 @@ def _save_rgb(rgb: np.ndarray, out_path: Path) -> None:
 
 def main() -> None:
     """Generate exhibition gallery images."""
+
     def yaml_renderer(
-        _logger: object, _name: str, event_dict: dict[str, object],
+        _logger: object,
+        _name: str,
+        event_dict: dict[str, object],
     ) -> str:
         return yaml.dump(
-            dict(event_dict), default_flow_style=False, sort_keys=False,
+            dict(event_dict),
+            default_flow_style=False,
+            sort_keys=False,
         ).rstrip()
 
     structlog.configure(
@@ -277,7 +285,8 @@ def main() -> None:
 
         # Comparison: compact core vs mid spread vs full evolved
         conc_compact = _generate_exhibition_plume(
-            shape, seed=77,
+            shape,
+            seed=77,
             src_frac=(0.30, 0.5, 0.40),
             sigma_frac=(0.26, 0.20, 0.18),
         )
@@ -286,7 +295,8 @@ def main() -> None:
         n_rendered += 1
 
         conc_spread = _generate_exhibition_plume(
-            shape, seed=88,
+            shape,
+            seed=88,
             src_frac=(0.35, 0.5, 0.38),
             sigma_frac=(0.30, 0.22, 0.20),
         )
@@ -295,7 +305,8 @@ def main() -> None:
         n_rendered += 1
 
         conc_evolved = _generate_exhibition_plume(
-            shape, seed=342,
+            shape,
+            seed=342,
             src_frac=(0.40, 0.48, 0.38),
             sigma_frac=(0.35, 0.24, 0.20),
         )
