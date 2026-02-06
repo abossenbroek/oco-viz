@@ -75,7 +75,9 @@ def apply_turbulence(
         gain=turb_cfg.gain,
         seed=turb_cfg.seed + seed_offset + 100,
     )
-    # Modulate around 1.0: (noise * amplitude) + (1 - amplitude/2)
+    # Modulate density around 1.0 to preserve mean concentration.
+    # Range: [1 - amplitude/2, 1 + amplitude/2].  With default amplitude=0.5,
+    # modulation spans [0.75, 1.25] — a ±25% density variation.
     modulation = noise.astype(np.float64) * turb_cfg.amplitude + (1.0 - turb_cfg.amplitude / 2.0)
     warped *= modulation
 
