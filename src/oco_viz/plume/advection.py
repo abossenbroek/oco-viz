@@ -498,14 +498,16 @@ def advect_sequence(
     n_wind_times = wind_ds.sizes.get("time", 1)
 
     frame_idx = 0
+    wind_exhaustion_warned = False
     for step in range(n_steps):
         wind_t = min(step, n_wind_times - 1)
-        if step == n_wind_times:
+        if step >= n_wind_times and not wind_exhaustion_warned:
             logger.warning(
                 "Wind data exhausted at step %d/%d; reusing last time slice for remaining steps",
                 step,
                 n_wind_times,
             )
+            wind_exhaustion_warned = True
         u_wind = wind_ds["u_wind"].values[wind_t].astype(np.float32)
         v_wind = wind_ds["v_wind"].values[wind_t].astype(np.float32)
 

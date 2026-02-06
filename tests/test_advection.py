@@ -576,3 +576,20 @@ def test_cfl_warning_logged(caplog: pytest.LogCaptureFixture) -> None:
             adv_cfg=adv,
         )
     assert any("CFL" in r.message for r in caplog.records)
+
+
+# ------------------------------------------------------------------ #
+# 15. Wind exhaustion warning
+# ------------------------------------------------------------------ #
+def test_wind_exhaustion_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """Wind exhaustion should warn when steps exceed wind time slices."""
+    grid = _make_grid()
+    plume = _make_plume_cfg()
+    turb = _make_turb_cfg()
+    # Only 1 wind time slice but request 3 steps
+    wind = _uniform_wind(grid)  # 1 time slice
+    adv = _make_adv_cfg(sub_steps=1)
+    with caplog.at_level(logging.WARNING):
+        advect_sequence(plume, grid, wind, turb, n_steps=3, adv_cfg=adv)
+    warnings = [r for r in caplog.records if "exhausted" in r.message.lower()]
+    assert len(warnings) == 1, f"Expected exactly 1 wind exhaustion warning, got {len(warnings)}"
