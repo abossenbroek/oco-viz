@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+import numpy as np
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
 # Pasquill-Gifford dispersion parameters: sigma_y = a * x^b, sigma_z = c * x^d
 # x in meters, sigma in meters
 # Reference: Turner (1970), Workbook of Atmospheric Dispersion Estimates
@@ -29,3 +36,19 @@ def sigma_z(x: float, stability: str) -> float:
     params = _PG_PARAMS[stability.upper()]
     c, d = params[2], params[3]
     return float(c * float(x) ** d)
+
+
+def sigma_y_vectorized(x: NDArray[np.floating], stability: str) -> NDArray[np.floating]:
+    """Vectorized horizontal dispersion coefficient for arrays of downwind distances."""
+    params = _PG_PARAMS[stability.upper()]
+    a, b = params[0], params[1]
+    result: NDArray[np.floating] = a * np.power(x, b)
+    return result
+
+
+def sigma_z_vectorized(x: NDArray[np.floating], stability: str) -> NDArray[np.floating]:
+    """Vectorized vertical dispersion coefficient for arrays of downwind distances."""
+    params = _PG_PARAMS[stability.upper()]
+    c, d = params[2], params[3]
+    result: NDArray[np.floating] = c * np.power(x, d)
+    return result

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 import xarray as xr
 
-from oco_viz.plume.stability import sigma_y, sigma_z
+from oco_viz.plume.stability import sigma_y_vectorized, sigma_z_vectorized
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -74,9 +74,9 @@ def generate_timestep(
     cw = crosswind[mask]
     z_vals = zz[mask]
 
-    # Dispersion coefficients per downwind distance
-    sy = np.vectorize(lambda d: sigma_y(float(d), config.stability_class))(dw)
-    sz = np.vectorize(lambda d: sigma_z(float(d), config.stability_class))(dw)
+    # Vectorized dispersion coefficients (direct power-law, avoids np.vectorize overhead)
+    sy = sigma_y_vectorized(dw, config.stability_class)
+    sz = sigma_z_vectorized(dw, config.stability_class)
 
     # Clamp sigma to avoid division by zero
     sy = np.maximum(sy, 1.0)
@@ -84,7 +84,7 @@ def generate_timestep(
 
     # Gaussian plume with ground reflection
     q = config.emission_rate
-    u = config.wind_speed
+    u = max(config.wind_speed, 0.01)
 
     # Crosswind term
     lateral = np.exp(-0.5 * (cw / sy) ** 2)
