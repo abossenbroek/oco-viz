@@ -18,6 +18,12 @@
       "source": "./critical-eye",
       "description": "Two-agent visual quality review: VFX technical eye + independent art director with tier-specific personas",
       "version": "1.0.0"
+    },
+    {
+      "name": "pipeline-expert",
+      "source": "./pipeline-expert",
+      "description": "Seven-agent art-first pipeline expertise: from OCO-2/3 satellite data to museum-quality exhibition",
+      "version": "1.0.0"
     }
   ]
 }
