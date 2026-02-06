@@ -72,9 +72,7 @@ def create_observation_overlay(
         colors_uint8 = (rgba[:, :3] * 255).astype(np.uint8)
 
         # Build VTK points at ground level with slight z-offset
-        coords = np.column_stack(
-            [obs_x / grid.dx, obs_y / grid.dy, np.full(len(xco2), 0.1)]
-        )
+        coords = np.column_stack([obs_x / grid.dx, obs_y / grid.dy, np.full(len(xco2), 0.1)])
         vtk_points = numpy_to_vtk(coords, deep=True)
         points.SetData(vtk_points)
 

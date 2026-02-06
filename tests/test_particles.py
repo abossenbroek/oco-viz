@@ -32,7 +32,7 @@ def test_create_ash_particles_with_blob() -> None:
     """A Gaussian blob should produce a non-empty actor with particles."""
     conc = np.zeros(SMALL_SHAPE, dtype=np.float32)
     # Create a blob in the center
-    z, y, x = np.mgrid[0:SMALL_SHAPE[0], 0:SMALL_SHAPE[1], 0:SMALL_SHAPE[2]]
+    z, y, x = np.mgrid[0 : SMALL_SHAPE[0], 0 : SMALL_SHAPE[1], 0 : SMALL_SHAPE[2]]
     cz, cy, cx = SMALL_SHAPE[0] / 2, SMALL_SHAPE[1] / 2, SMALL_SHAPE[2] / 2
     dist2 = (z - cz) ** 2 + (y - cy) ** 2 + (x - cx) ** 2
     conc = np.exp(-dist2 / 8.0).astype(np.float32)

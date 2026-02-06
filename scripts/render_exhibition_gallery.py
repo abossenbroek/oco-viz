@@ -22,6 +22,7 @@ import numpy as np
 import structlog
 import yaml
 from PIL import Image
+from scipy.ndimage import gaussian_filter
 
 from oco_viz.config import load_config
 from oco_viz.config.schema import (
@@ -127,8 +128,6 @@ def _generate_exhibition_plume(
     np.clip(conc, 0.0, None, out=conc)
 
     # Smooth the result to remove voxel-level artifacts
-    from scipy.ndimage import gaussian_filter
-
     conc = gaussian_filter(conc, sigma=2.0).astype(np.float32)
 
     # Soft thresholding: smoothly ramp to zero below 5% of max
@@ -199,13 +198,11 @@ def _render_to_rgb(
         )
         conc[:] = dissolved * max_val
 
-    rgb = renderer.render_frame_postprocessed(
+    return renderer.render_frame_postprocessed(
         conc,
         camera_state,
         pre_normalized=False,
     )
-
-    return rgb
 
 
 def _save_rgb(rgb: np.ndarray, out_path: Path) -> None:

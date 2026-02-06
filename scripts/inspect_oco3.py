@@ -154,7 +154,7 @@ def _section_quality_flags(ds: xr.Dataset) -> None:
     qf = ds["xco2_quality_flag"].values
     unique, counts = np.unique(qf[~np.isnan(qf)], return_counts=True)
     total = counts.sum()
-    for val, cnt in zip(unique, counts):
+    for val, cnt in zip(unique, counts, strict=True):
         print(f"  flag={val:.0f}: {cnt:>6d} ({100 * cnt / total:.1f}%)")
     good = counts[unique == 0].sum() if 0 in unique else 0
     print(f"  Good (flag==0): {good}/{total} = {100 * good / total:.1f}%")
@@ -168,12 +168,16 @@ def _section_all_vars(ds: xr.Dataset) -> None:
     print("=" * 60)
     for name in sorted(str(v) for v in ds.data_vars):
         var = ds[name]
-        info = f"  {name:35s} shape={str(var.shape):25s} dtype={var.dtype}"
+        info = f"  {name:35s} shape={var.shape!s:25s} dtype={var.dtype}"
         if np.issubdtype(var.dtype, np.number):
             vals = var.values
             valid = vals[~np.isnan(vals)] if np.issubdtype(var.dtype, np.floating) else vals
             if len(valid) > 0:
-                info += f"  min={np.min(valid):.4g}  max={np.max(valid):.4g}  mean={np.mean(valid):.4g}"
+                info += (
+                    f"  min={np.min(valid):.4g}"
+                    f"  max={np.max(valid):.4g}"
+                    f"  mean={np.mean(valid):.4g}"
+                )
         else:
             flat = var.values.flat
             sample = flat[0] if len(flat) > 0 else "N/A"
@@ -189,7 +193,7 @@ def _section_coords(ds: xr.Dataset) -> None:
     print("=" * 60)
     for name in sorted(str(c) for c in ds.coords):
         co = ds.coords[name]
-        print(f"  {name:30s} shape={str(co.shape):15s} dtype={co.dtype}")
+        print(f"  {name:30s} shape={co.shape!s:15s} dtype={co.dtype}")
         if co.size <= 20:
             print(f"    values: {co.values}")
         else:

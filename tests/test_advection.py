@@ -346,9 +346,7 @@ def test_briggs_plume_rise() -> None:
     z_no, _, _ = _center_of_mass(result_no)
     z_buoy, _, _ = _center_of_mass(result_buoy)
     # Buoyancy should raise COM relative to the no-buoyancy case
-    assert z_buoy > z_no, (
-        f"Buoyancy COM {z_buoy:.2f} should exceed no-buoyancy COM {z_no:.2f}"
-    )
+    assert z_buoy > z_no, f"Buoyancy COM {z_buoy:.2f} should exceed no-buoyancy COM {z_no:.2f}"
 
 
 # ------------------------------------------------------------------ #
@@ -408,8 +406,7 @@ def test_mass_correction() -> None:
     err_corr = abs(mass_corr - initial_mass) / max(initial_mass, 1e-8)
     err_no = abs(mass_no - initial_mass) / max(initial_mass, 1e-8)
     assert err_corr <= err_no * 1.1 + 0.01, (
-        f"Mass correction error {err_corr:.4f} should be <= "
-        f"no-correction error {err_no:.4f}"
+        f"Mass correction error {err_corr:.4f} should be <= no-correction error {err_no:.4f}"
     )
 
 

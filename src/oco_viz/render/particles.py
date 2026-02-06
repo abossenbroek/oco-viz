@@ -67,9 +67,7 @@ def _sample_and_scatter(
     jitter_dist = rng.uniform(0.5, scatter_distance, size=(n_sample, 1))
     jitter_lateral = rng.standard_normal((n_sample, 3)) * scatter_distance * 0.3
     pts_scattered = (
-        pts_array
-        + normals_array * jitter_dist * mean_spacing
-        + jitter_lateral * mean_spacing
+        pts_array + normals_array * jitter_dist * mean_spacing + jitter_lateral * mean_spacing
     )
 
     return _build_polydata(pts_scattered, n_sample, rng)
@@ -122,9 +120,7 @@ def _build_polydata(
     polydata.SetVerts(verts)
 
     scalars = rng.uniform(0.3, 1.0, size=n_sample).astype(np.float32)
-    vtk_scalars = numpy_to_vtk(
-        np.ascontiguousarray(scalars), deep=True, array_type=vtk.VTK_FLOAT
-    )
+    vtk_scalars = numpy_to_vtk(np.ascontiguousarray(scalars), deep=True, array_type=vtk.VTK_FLOAT)
     vtk_scalars.SetName("opacity")
     polydata.GetPointData().SetScalars(vtk_scalars)
 
@@ -185,9 +181,7 @@ def create_ash_particles(
         return _empty_particle_actor()
 
     mean_spacing = float(np.mean(spacing))
-    polydata = _sample_and_scatter(
-        surface, num_points, scatter_distance, mean_spacing, seed
-    )
+    polydata = _sample_and_scatter(surface, num_points, scatter_distance, mean_spacing, seed)
 
     mapper = vtk.vtkPointGaussianMapper()
     mapper.SetInputData(polydata)

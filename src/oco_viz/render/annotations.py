@@ -118,12 +118,8 @@ def _draw_scale_bar(
     bar_thickness = 3
     tick_h = 8
     draw.rectangle((bar_x0, bar_y, bar_x1, bar_y + bar_thickness), fill=text_rgba)
-    draw.rectangle(
-        (bar_x0, bar_y - tick_h, bar_x0 + 2, bar_y + bar_thickness), fill=text_rgba
-    )
-    draw.rectangle(
-        (bar_x1 - 2, bar_y - tick_h, bar_x1, bar_y + bar_thickness), fill=text_rgba
-    )
+    draw.rectangle((bar_x0, bar_y - tick_h, bar_x0 + 2, bar_y + bar_thickness), fill=text_rgba)
+    draw.rectangle((bar_x1 - 2, bar_y - tick_h, bar_x1, bar_y + bar_thickness), fill=text_rgba)
 
     # Label
     label = f"{bar_km:.0f} km"
@@ -200,7 +196,15 @@ def apply_annotations(
     if annotation_cfg.show_scale_bar:
         grid_dx_m = float(frame_meta.get("grid_dx_m", 1000.0))
         _draw_scale_bar(
-            draw, w, h, font, text_rgba, annotation_cfg, grid_dx_m, panel_pad, margin,
+            draw,
+            w,
+            h,
+            font,
+            text_rgba,
+            annotation_cfg,
+            grid_dx_m,
+            panel_pad,
+            margin,
             pixels_per_km=frame_meta.get("pixels_per_km"),
         )
 
@@ -212,15 +216,25 @@ def apply_annotations(
         ts_text = f"{ts}  [{frame_idx}/{total}]"
         ts_y = h - margin - annotation_cfg.font_size - 4
         _draw_text_with_panel(
-            draw, (margin, ts_y), ts_text, font, text_rgba, panel_pad,
+            draw,
+            (margin, ts_y),
+            ts_text,
+            font,
+            text_rgba,
+            panel_pad,
             annotation_cfg.panel_opacity,
         )
 
     # Facility name (top-left)
     if annotation_cfg.show_facility:
         _draw_text_with_panel(
-            draw, (margin, margin), annotation_cfg.facility_name, font, text_rgba,
-            panel_pad, annotation_cfg.panel_opacity,
+            draw,
+            (margin, margin),
+            annotation_cfg.facility_name,
+            font,
+            text_rgba,
+            panel_pad,
+            annotation_cfg.panel_opacity,
         )
 
     # Credits (bottom-right)
@@ -231,7 +245,12 @@ def apply_annotations(
         cred_w = cred_bbox[2] - cred_bbox[0]
         cred_x = w - margin - cred_w
         _draw_text_with_panel(
-            draw, (cred_x, cred_y), credit_text, font, text_rgba, panel_pad,
+            draw,
+            (cred_x, cred_y),
+            credit_text,
+            font,
+            text_rgba,
+            panel_pad,
             annotation_cfg.panel_opacity,
         )
 

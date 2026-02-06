@@ -492,7 +492,8 @@ def advect_sequence(
         if step == n_wind_times:
             logger.warning(
                 "Wind data exhausted at step %d/%d; reusing last time slice for remaining steps",
-                step, n_wind_times,
+                step,
+                n_wind_times,
             )
         u_wind = wind_ds["u_wind"].values[wind_t].astype(np.float32)
         v_wind = wind_ds["v_wind"].values[wind_t].astype(np.float32)

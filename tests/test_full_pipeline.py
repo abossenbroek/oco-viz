@@ -388,12 +388,18 @@ def test_maccormack_sharpness() -> None:
     wind = _uniform_wind(grid, u=3.0)
 
     adv_sl = AdvectionConfig(
-        dt=3600.0, sub_steps=1, scheme="semi_lagrangian",
-        mass_correction=False, buoyancy_flux=0.0,
+        dt=3600.0,
+        sub_steps=1,
+        scheme="semi_lagrangian",
+        mass_correction=False,
+        buoyancy_flux=0.0,
     )
     adv_mc = AdvectionConfig(
-        dt=3600.0, sub_steps=1, scheme="maccormack",
-        mass_correction=False, buoyancy_flux=0.0,
+        dt=3600.0,
+        sub_steps=1,
+        scheme="maccormack",
+        mass_correction=False,
+        buoyancy_flux=0.0,
     )
 
     ds_sl = advect_sequence(plume, grid, wind, turb, n_steps=4, adv_cfg=adv_sl)

@@ -209,7 +209,9 @@ def load_era5_winds(
             if nan_count > 0:
                 logger.warning(
                     "Replaced %d NaN values with 0.0 after ERA5 regridding (t=%d, var=%s)",
-                    nan_count, t, var_name,
+                    nan_count,
+                    t,
+                    var_name,
                 )
             out_arr[t] = np.nan_to_num(raw, nan=0.0).astype(np.float32)
 

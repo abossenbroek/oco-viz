@@ -13,7 +13,6 @@ Usage:
 from __future__ import annotations
 
 import math
-import sys
 from pathlib import Path
 
 import numpy as np
@@ -24,7 +23,7 @@ from PIL import Image
 from oco_viz.config import load_config
 from oco_viz.config.schema import GridConfig
 from oco_viz.plume.turbulent import generate_turbulent_timestep
-from oco_viz.render.camera import CameraState, FixedCamera
+from oco_viz.render.camera import CameraState
 from oco_viz.render.camera_path import (
     glacial_drift_path,
     orbit_rise_path,

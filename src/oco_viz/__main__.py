@@ -181,9 +181,7 @@ def main() -> None:
     p_validate.add_argument("--profile", default="dev_mac")
     p_validate.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
     p_validate.add_argument("--zarr", required=True, help="Path to Zarr store")
-    p_validate.add_argument(
-        "--output-dir", default="output/validation", help="Report output dir"
-    )
+    p_validate.add_argument("--output-dir", default="output/validation", help="Report output dir")
     p_validate.set_defaults(func=cmd_validate)
 
     args = parser.parse_args()
