@@ -1,7 +1,7 @@
 id: "6-2"
 title: "XCO2 Column Validation (PRD Goal G4)"
 wave: 6
-status: todo
+status: done
 depends: ["6-1"]
 produces:
   - src/oco_viz/data/validation.py

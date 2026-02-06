@@ -19,6 +19,7 @@ from oco_viz.config.schema import (
     ScatteringConfig,
     TransferFunctionConfig,
     TurbulenceConfig,
+    ValidationConfig,
     load_config,
 )
 from oco_viz.config.tier import Tier
@@ -41,5 +42,6 @@ __all__ = [
     "Tier",
     "TransferFunctionConfig",
     "TurbulenceConfig",
+    "ValidationConfig",
     "load_config",
 ]

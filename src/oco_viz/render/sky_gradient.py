@@ -17,6 +17,8 @@ def apply_sky_gradient(renderer: vtk.vtkRenderer, config: SkyConfig) -> None:
     color (horizon), ``SetBackground2`` is the top color (zenith).
     """
     if not config.enabled:
+        renderer.GradientBackgroundOff()
+        renderer.SetBackground(0.0, 0.0, 0.0)
         return
 
     renderer.SetBackground(*config.bottom_color)

@@ -1,7 +1,7 @@
 id: "5-3"
 title: "Camera Choreography + Motion Vocabulary"
 wave: 5
-status: todo
+status: done
 depends: ["4.5-1"]
 produces:
   - src/oco_viz/render/camera_path.py

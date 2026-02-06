@@ -92,6 +92,9 @@ def create_volume(
     volume_property.SetScalarOpacity(opacity_tf)
     volume_property.SetInterpolationTypeToLinear()
 
+    # Default to ShadeOn when no scattering config is provided.
+    # ShadeOn enables Phong-based gradient shading, which gives volume surfaces
+    # a more defined look. ShadeOff is used for purely emissive (MIP) modes.
     if scattering is None or scattering.shade:
         volume_property.ShadeOn()
     else:

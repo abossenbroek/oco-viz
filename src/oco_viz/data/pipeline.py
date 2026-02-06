@@ -12,6 +12,7 @@ from oco_viz.data.cams import load_cams_co2
 from oco_viz.data.era5 import load_era5_winds
 from oco_viz.data.oco3 import load_and_grid_granules
 from oco_viz.data.zarr_store import write_zarr
+from oco_viz.plume.advection import advect_sequence
 from oco_viz.plume.gaussian import generate_sequence, generate_timestep
 from oco_viz.plume.turbulent import apply_turbulence, generate_turbulent_sequence
 
@@ -159,6 +160,7 @@ def run_data_pipeline(
     - ``turbulent``: Gaussian plume with turbulent noise.
     - ``composite``: CAMS background + plume + turbulence (requires *cams_path*).
     - ``wind``: ERA5 wind-driven plume (requires *era5_path*).
+    - ``advected``: Semi-Lagrangian advection with ERA5 winds (requires *era5_path*).
 
     If *oco3_paths* is provided, attaches XCO2 observation overlay.
     If *output_zarr* is provided, writes the result to a Zarr store.
@@ -175,7 +177,23 @@ def run_data_pipeline(
             config.turbulence,
             num_timesteps,
         )
-    elif (mode == "wind" and era5_path is not None) or era5_path is not None:
+    elif mode == "advected":
+        if era5_path is None:
+            msg = "mode='advected' requires era5_path"
+            raise ValueError(msg)
+        wind_ds = load_era5_winds(era5_path, config.data_source.domain, config.grid)
+        ds = advect_sequence(
+            config.plume,
+            config.grid,
+            wind_ds,
+            config.turbulence,
+            num_timesteps,
+            adv_cfg=config.advection,
+        )
+    elif mode == "wind":
+        if era5_path is None:
+            msg = "mode='wind' requires era5_path"
+            raise ValueError(msg)
         ds = build_wind_driven_plume(config, era5_path, num_timesteps)
     else:
         ds = generate_sequence(config.plume, config.grid, num_timesteps)
@@ -190,7 +208,15 @@ def run_data_pipeline(
 
 
 def _write_pipeline_zarr(ds: xr.Dataset, path: Path) -> None:
-    """Write pipeline output to Zarr, handling auxiliary variables."""
+    """Write pipeline output to Zarr with two-phase validation.
+
+    Phase 1: write ``concentration`` via :func:`write_zarr`, which validates
+    the required variable name, dimensions ``(time, z, y, x)``, and dtype.
+
+    Phase 2: append any auxiliary variables (e.g. ``u_wind``, ``v_wind``,
+    ``xco2_observed``) directly via xarray's ``to_zarr`` in append mode,
+    bypassing the strict validation since these are supplementary data.
+    """
     # write_zarr validates 'concentration' exists — strip auxiliary vars for validation,
     # then write the full dataset
     conc_ds = ds[["concentration"]].copy()

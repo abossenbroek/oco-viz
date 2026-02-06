@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib
+import logging
 import math
 from typing import TYPE_CHECKING, Any
 
@@ -11,6 +12,8 @@ import xarray as xr
 from scipy.interpolate import RegularGridInterpolator
 
 from oco_viz.data.transform import latlon_to_local_km, local_km_to_latlon, pressure_to_altitude_m
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -201,7 +204,16 @@ def load_era5_winds(
                 bounds_error=False,
                 fill_value=np.nan,
             )
-            out_arr[t] = interp(tgt_pts).reshape(grid.nz, grid.ny, grid.nx).astype(np.float32)
+            raw = interp(tgt_pts).reshape(grid.nz, grid.ny, grid.nx)
+            nan_count = int(np.isnan(raw).sum())
+            if nan_count > 0:
+                logger.warning(
+                    "Replaced %d NaN values with 0.0 after ERA5 regridding (t=%d, var=%s)",
+                    nan_count,
+                    t,
+                    var_name,
+                )
+            out_arr[t] = np.nan_to_num(raw, nan=0.0).astype(np.float32)
 
     return xr.Dataset(
         {

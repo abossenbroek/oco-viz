@@ -30,6 +30,10 @@ def _compute_edge_falloff(
     Notes:
         Ellipsoidal mode matches the turbulent plume's natural falloff geometry,
         preventing visible rectangular shell artifacts at volume boundaries.
+
+        For ellipsoidal mode, the fade range maps distance [0.5, 1.0] from the
+        normalized center to opacity [1.0, 0.0], so the central 50% of the volume
+        is untouched and the outer 50% tapers smoothly to zero.
     """
     nz, ny, nx = shape
 

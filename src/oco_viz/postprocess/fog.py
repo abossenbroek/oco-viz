@@ -19,7 +19,26 @@ def apply_depth_fog(
 ) -> NDArray[np.float32]:
     """Apply exponential depth fog to an RGB image.
 
-    Pixels at greater depth are blended toward fog_color.
+    Pixels at greater depth are blended toward *fog_color* using the formula:
+    ``blended = rgb * (1 - fog_factor) + fog_color * fog_factor``
+    where ``fog_factor = 1 - exp(-density * depth)``.
+
+    Parameters
+    ----------
+    rgb
+        Float32 RGB image array with shape (H, W, 3) and values in [0, 1].
+    depth
+        Float32 depth buffer with shape (H, W). Values should be linearized
+        (not z-buffer [0,1]) — larger values produce more fog.
+    density
+        Fog density coefficient. Higher values produce thicker fog.
+    fog_color
+        RGB color to blend toward at distance, default is a soft blue-grey.
+
+    Returns
+    -------
+    NDArray[np.float32]
+        Fogged image with same shape as *rgb*.
     """
     fog = np.array(fog_color, dtype=np.float32).reshape(1, 1, 3)
     # Fog factor: 0 = no fog (near), 1 = full fog (far)

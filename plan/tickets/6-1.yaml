@@ -1,7 +1,7 @@
 id: "6-1"
 title: "ERA5 Wind-Driven Semi-Lagrangian Advection"
 wave: 6
-status: todo
+status: done
 depends: ["4-3"]
 produces:
   - src/oco_viz/plume/advection.py

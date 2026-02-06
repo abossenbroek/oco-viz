@@ -63,6 +63,38 @@ def cmd_encode(args: argparse.Namespace) -> None:
     print(f"Encoded video: {output_path}")
 
 
+def cmd_validate(args: argparse.Namespace) -> None:
+    """Validate modeled plume against observations."""
+    from oco_viz.data.validation import (  # noqa: PLC0415
+        compare_modeled_observed,
+        compute_column_xco2,
+        generate_validation_report,
+    )
+    from oco_viz.data.zarr_store import read_zarr  # noqa: PLC0415
+
+    config = load_config(args.profile, tier=_get_tier(args))
+    zarr_path = Path(args.zarr)
+    ds = read_zarr(zarr_path)
+
+    # Compute column XCO2 from last timestep
+    conc_3d = ds["concentration"].isel(time=-1).values
+    modeled_column = compute_column_xco2(conc_3d, config.grid, config.validation)
+
+    # Check for observed data
+    if "xco2_observed" not in ds:
+        print("No xco2_observed in dataset — skipping comparison")
+        return
+
+    observed = ds["xco2_observed"].values
+    result = compare_modeled_observed(modeled_column, observed, config.validation)
+
+    output_dir = Path(args.output_dir)
+    report_path = generate_validation_report(result, output_dir)
+    print(f"Validation report: {report_path}")
+    status = "PASSED" if result.passed else "FAILED"
+    print(f"Status: {status} (RMSE={result.rmse_ppm:.2f} ppm, r={result.correlation:.3f})")
+
+
 def cmd_pipeline(args: argparse.Namespace) -> None:
     """Run full pipeline: generate -> render -> encode."""
     config = load_config(args.profile, tier=_get_tier(args))
@@ -71,6 +103,7 @@ def cmd_pipeline(args: argparse.Namespace) -> None:
     # Determine mode from flags
     mode = getattr(args, "mode", "gaussian")
     cams_path = Path(args.cams) if getattr(args, "cams", None) else None
+    era5_path = Path(args.era5) if getattr(args, "era5", None) else None
 
     # For backward compat: --turbulent flag maps to mode=turbulent
     if getattr(args, "turbulent", False) and mode == "gaussian":
@@ -79,6 +112,7 @@ def cmd_pipeline(args: argparse.Namespace) -> None:
     ds = run_data_pipeline(
         config,
         mode=mode,
+        era5_path=era5_path,
         cams_path=cams_path,
         num_timesteps=args.num_frames,
     )
@@ -133,11 +167,22 @@ def main() -> None:
     p_pipe.add_argument(
         "--mode",
         default="gaussian",
-        choices=["gaussian", "turbulent", "composite", "wind"],
+        choices=["gaussian", "turbulent", "composite", "wind", "advected"],
         help="Pipeline mode (default: gaussian)",
     )
     p_pipe.add_argument("--cams", default=None, help="Path to CAMS NetCDF (for composite mode)")
+    p_pipe.add_argument(
+        "--era5", default=None, help="Path to ERA5 NetCDF (for wind/advected mode)"
+    )
     p_pipe.set_defaults(func=cmd_pipeline)
+
+    # validate
+    p_validate = sub.add_parser("validate", help="Validate modeled plume against observations")
+    p_validate.add_argument("--profile", default="dev_mac")
+    p_validate.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
+    p_validate.add_argument("--zarr", required=True, help="Path to Zarr store")
+    p_validate.add_argument("--output-dir", default="output/validation", help="Report output dir")
+    p_validate.set_defaults(func=cmd_validate)
 
     args = parser.parse_args()
     args.func(args)

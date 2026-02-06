@@ -1,7 +1,7 @@
 id: "5-4"
 title: "Composition System"
 wave: 5
-status: todo
+status: done
 depends: ["4.5-1", "5-3"]
 produces:
   - src/oco_viz/render/composition.py

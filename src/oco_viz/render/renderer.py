@@ -36,9 +36,23 @@ def _load_soot() -> TransferFunction:
     return TransferFunction.from_json_file(_soot_tf_path())
 
 
+def _soot_exhibition_tf_path() -> Path:
+    return (
+        Path(__file__).resolve().parents[3]
+        / "configs"
+        / "transfer_functions"
+        / "soot_exhibition.json"
+    )
+
+
+def _load_soot_exhibition() -> TransferFunction:
+    return TransferFunction.from_json_file(_soot_exhibition_tf_path())
+
+
 # Preset name → classmethod factory
 PRESETS: dict[str, Callable[[], TransferFunction]] = {
     "soot": _load_soot,
+    "soot_exhibition": _load_soot_exhibition,
     "default_plume": TransferFunction.default_plume,
     "cinematic_storm": TransferFunction.cinematic_storm,
     "cinematic_ember": TransferFunction.cinematic_ember,
@@ -104,6 +118,18 @@ class VolumeRenderer:
         self._win.AddRenderer(self._renderer)
 
         self._pipeline = create_pipeline(self._config.postprocess, self._config.tier)
+
+    def add_actor(self, actor: vtk.vtkActor) -> None:
+        """Add a VTK actor to the renderer (e.g. overlay markers)."""
+        if self._renderer is None:
+            msg = "Call configure() before add_actor()"
+            raise RuntimeError(msg)
+        self._renderer.AddActor(actor)
+
+    def remove_actor(self, actor: vtk.vtkActor) -> None:
+        """Remove a VTK actor from the renderer."""
+        if self._renderer is not None:
+            self._renderer.RemoveActor(actor)
 
     def render_frame(
         self,
