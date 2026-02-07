@@ -276,7 +276,9 @@ def _maccormack_step(
         conc.astype(np.float64) - backward.astype(np.float64)
     )
 
-    # Local bounds clamping: clip to [local_min, local_max] of neighbours
+    # Local bounds clamping prevents MacCormack overcorrection near boundaries.
+    # mode="constant" with cval=0.0 treats out-of-bounds as zero concentration,
+    # which is physically correct (no plume outside domain).
     local_min = minimum_filter(conc.astype(np.float64), size=3, mode="constant", cval=0.0)
     local_max = maximum_filter(conc.astype(np.float64), size=3, mode="constant", cval=0.0)
 
@@ -399,6 +401,17 @@ def advect_step(
         u_mean = max(float(np.mean(np.abs(u_wind))), 0.1)
         w_wind = _briggs_plume_rise(plume_cfg, adv_cfg, grid, u_mean)
 
+    # CFL diagnostic
+    max_u = float(np.max(np.abs(u_wind)))
+    max_v = float(np.max(np.abs(v_wind)))
+    cfl = max(max_u * dt / grid.dx, max_v * dt / grid.dy)
+    if cfl > 1.0:
+        logger.warning(
+            "CFL number %.2f > 1.0 at step %d; consider reducing dt or increasing sub_steps",
+            cfl,
+            t_idx,
+        )
+
     # 2. Turbulent curl-noise
     if turb_cfg.enabled:
         u_wind, v_wind, w_wind = _apply_turbulent_curl(
@@ -487,14 +500,16 @@ def advect_sequence(
     n_wind_times = wind_ds.sizes.get("time", 1)
 
     frame_idx = 0
+    wind_exhaustion_warned = False
     for step in range(n_steps):
         wind_t = min(step, n_wind_times - 1)
-        if step == n_wind_times:
+        if step >= n_wind_times and not wind_exhaustion_warned:
             logger.warning(
                 "Wind data exhausted at step %d/%d; reusing last time slice for remaining steps",
                 step,
                 n_wind_times,
             )
+            wind_exhaustion_warned = True
         u_wind = wind_ds["u_wind"].values[wind_t].astype(np.float32)
         v_wind = wind_ds["v_wind"].values[wind_t].astype(np.float32)
 

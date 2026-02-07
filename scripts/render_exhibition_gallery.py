@@ -137,9 +137,10 @@ def _generate_exhibition_plume(
         mask = conc < cutoff
         conc[mask] *= (conc[mask] / cutoff) ** 2
 
-    # Domain boundary falloff: raised-cosine window over outer 15% of each axis.
-    # Eliminates visible VTK bounding box edges in rendered output.
-    margin = 0.15
+    # Domain boundary falloff: raised-cosine window over outer 25% of each axis.
+    # Must be wider than Gaussian smoothing sigma to prevent smearing data back
+    # into the falloff zone, which creates a visible bounding-box silhouette.
+    margin = 0.25
     for axis, n in enumerate(shape):
         m = int(n * margin)
         if m < 1:

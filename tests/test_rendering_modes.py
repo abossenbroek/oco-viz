@@ -77,12 +77,11 @@ def test_rendering_config_mode_validation() -> None:
         RenderingConfig(mode="invalid")
 
 
-def test_config_has_rendering_and_cams() -> None:
-    """AppConfig includes cams and rendering sections."""
+def test_config_has_rendering_section() -> None:
+    """AppConfig includes rendering section."""
     config = load_config()
     assert config.rendering.mode == "max"
     assert config.rendering.anomaly_max_ppm > 0
-    assert config.cams.dataset == "cams-global-ghg-forecasts"
 
 
 # =============================================================================

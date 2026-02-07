@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import math
 from pathlib import Path
 from typing import Any
@@ -58,6 +59,16 @@ class ScatteringConfig(BaseModel):
     diffuse: float = Field(default=0.5, ge=0, le=1)
     specular: float = Field(default=0.0, ge=0, le=1)
     sample_distance: float = Field(default=0.5, gt=0)
+
+    @field_validator("anisotropy")
+    @classmethod
+    def _validate_anisotropy(cls, v: float) -> float:
+        if abs(v) > 0.9:
+            logging.getLogger(__name__).warning(
+                "Extreme anisotropy %.2f may cause rendering artifacts",
+                v,
+            )
+        return v
 
 
 class TurbulenceConfig(BaseModel):
@@ -190,13 +201,6 @@ class DomainConfig(BaseModel):
         )
 
 
-class CamsConfig(BaseModel):
-    """CAMS high-resolution GHG forecast configuration."""
-
-    dataset: str = "cams-global-ghg-forecasts"
-    cache_dir: str = "data/cams"
-
-
 class RenderingConfig(BaseModel):
     """Concentration normalization and rendering mode configuration.
 
@@ -205,7 +209,7 @@ class RenderingConfig(BaseModel):
             pure plume data (gaussian/turbulent) without background.
         anomaly: Subtract horizontal-mean background profile, clip to [0, anomaly_max_ppm],
             then divide by anomaly_max_ppm. Background regions become ~0 (transparent).
-            Appropriate for composite data (CAMS background + plume enhancement).
+            Appropriate for composite data (background + plume enhancement).
         absolute: Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
             Shows full atmospheric column including background.
 
@@ -412,7 +416,6 @@ class AppConfig(BaseModel):
     plume: PlumeConfig = Field(default_factory=PlumeConfig)
     turbulence: TurbulenceConfig = Field(default_factory=TurbulenceConfig)
     advection: AdvectionConfig = Field(default_factory=AdvectionConfig)
-    cams: CamsConfig = Field(default_factory=CamsConfig)
     rendering: RenderingConfig = Field(default_factory=RenderingConfig)
     data_source: DataSourceConfig = Field(default_factory=DataSourceConfig)
     annotations: AnnotationConfig = Field(default_factory=AnnotationConfig)

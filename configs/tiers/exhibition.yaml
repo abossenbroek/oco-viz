@@ -16,7 +16,7 @@ scattering:
 postprocess:
   fog_enabled: false
   bloom_enabled: false
-  exposure: 1.5
+  exposure: 4.0
 
 lighting:
   mode: smoldering

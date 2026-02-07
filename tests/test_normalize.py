@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 import numpy as np
 import pytest
-import xarray as xr
 from pydantic import ValidationError
 from scipy.ndimage import sobel
 from scipy.stats import entropy
 
-from oco_viz.config.schema import DomainConfig, GridConfig, RenderingConfig
-from oco_viz.data.cams import load_cams_co2
+from oco_viz.config.schema import GridConfig, RenderingConfig
 from oco_viz.render.normalize import (
     _apply_gamma_scaling,
     _compute_adaptive_divisor,
@@ -22,49 +18,21 @@ from oco_viz.render.normalize import (
 )
 from oco_viz.render.transfer import TransferFunction
 
-if TYPE_CHECKING:
-    from pathlib import Path
 
+def _make_background_with_gradient(grid: GridConfig) -> np.ndarray:
+    """Create a synthetic ~420 ppm background with spatial gradient.
 
-def _make_cams_fixture_with_gradient(tmp_path: Path) -> Path:
-    """Create CAMS fixture with spatial gradient to test interpolation coverage."""
-    n_lev, n_lat, n_lon = 10, 8, 8
-    lats = np.linspace(-27.0, -26.0, n_lat)
-    lons = np.linspace(28.7, 29.7, n_lon)
-
-    co2 = np.full((n_lev, n_lat, n_lon), 420.0, dtype=np.float64)
-    # Add spatial gradient (lat/lon dependent) to detect fill artifacts
-    for j in range(n_lat):
-        for i in range(n_lon):
-            co2[:, j, i] += 0.5 * j + 0.3 * i
-
-    temp = np.full((n_lev, n_lat, n_lon), 280.0, dtype=np.float64)
-
-    ds = xr.Dataset(
-        {
-            "co2": (["level", "latitude", "longitude"], co2),
-            "t": (["level", "latitude", "longitude"], temp),
-        },
-        coords={
-            "level": np.arange(n_lev),
-            "latitude": lats,
-            "longitude": lons,
-        },
-    )
-    path = tmp_path / "cams_gradient_test.nc"
-    ds.to_netcdf(str(path))
-    return path
-
-
-@pytest.fixture
-def domain() -> DomainConfig:
-    return DomainConfig(
-        origin_lat=-26.52,
-        origin_lon=29.17,
-        extent_x_km=100.0,
-        extent_y_km=100.0,
-        extent_z_km=15.0,
-    )
+    Replaces the former CAMS fixture load — the tests validate normalization
+    behaviour, not any specific data loader.  The gradient spans ~5 ppm across
+    the domain so anomaly-mode tests see realistic spatial variation.
+    """
+    nz, ny, nx = grid.shape
+    background = np.full((nz, ny, nx), 418.0, dtype=np.float32)
+    # Spatial gradient: ~5 ppm across y, ~3 ppm across x
+    for j in range(ny):
+        for i in range(nx):
+            background[:, j, i] += 5.0 * (j / ny) + 3.0 * (i / nx)
+    return background
 
 
 @pytest.fixture
@@ -75,14 +43,12 @@ def gallery_grid() -> GridConfig:
 class TestAnomalyNormalizationRegression:
     """Regression tests for full-block bug in composite plume images.
 
-    Root cause: Edge feathering applied to raw CAMS data corrupted the
+    Root cause: Edge feathering applied to raw background data corrupted the
     background profile estimation, causing mass saturation to 1.0.
     """
 
     def test_anomaly_normalized_has_sufficient_entropy(
         self,
-        tmp_path: Path,
-        domain: DomainConfig,
         gallery_grid: GridConfig,
     ) -> None:
         """Normalized composite must have sufficient information entropy for visual rendering.
@@ -93,13 +59,12 @@ class TestAnomalyNormalizationRegression:
 
         Threshold: H > 2.0 bits ensures at least 4 distinguishable intensity levels.
         """
-        fixture = _make_cams_fixture_with_gradient(tmp_path)
-        cams = load_cams_co2(fixture, domain, gallery_grid)
+        background = _make_background_with_gradient(gallery_grid)
 
         # Create composite with synthetic plume
-        plume = np.zeros_like(cams)
+        plume = np.zeros_like(background)
         plume[16, 24, 24] = 10.0  # Point source
-        composite = cams + plume
+        composite = background + plume
 
         # Normalize with anomaly mode
         rendering_cfg = RenderingConfig(mode="anomaly", anomaly_max_ppm=10.0)
@@ -122,8 +87,6 @@ class TestAnomalyNormalizationRegression:
 
     def test_anomaly_normalized_saturation_fraction(
         self,
-        tmp_path: Path,
-        domain: DomainConfig,
         gallery_grid: GridConfig,
     ) -> None:
         """Less than 10% of normalized values should saturate to 1.0.
@@ -134,12 +97,11 @@ class TestAnomalyNormalizationRegression:
 
         Threshold: <10% saturation is conservative; typical plumes saturate <1%.
         """
-        fixture = _make_cams_fixture_with_gradient(tmp_path)
-        cams = load_cams_co2(fixture, domain, gallery_grid)
+        background = _make_background_with_gradient(gallery_grid)
 
-        plume = np.zeros_like(cams)
+        plume = np.zeros_like(background)
         plume[16, 24, 24] = 10.0
-        composite = cams + plume
+        composite = background + plume
 
         rendering_cfg = RenderingConfig(mode="anomaly", anomaly_max_ppm=10.0)
         normalized = normalize_concentration(composite, rendering_cfg)
@@ -159,8 +121,6 @@ class TestAnomalyNormalizationRegression:
 
     def test_background_profile_within_physical_bounds(
         self,
-        tmp_path: Path,
-        domain: DomainConfig,
         gallery_grid: GridConfig,
     ) -> None:
         """Background profile must remain within physically plausible CO2 range.
@@ -170,12 +130,11 @@ class TestAnomalyNormalizationRegression:
 
         Threshold: Profile mean > 400 ppm (conservative lower bound for current atmosphere).
         """
-        fixture = _make_cams_fixture_with_gradient(tmp_path)
-        cams = load_cams_co2(fixture, domain, gallery_grid)
+        background = _make_background_with_gradient(gallery_grid)
 
-        plume = np.zeros_like(cams)
+        plume = np.zeros_like(background)
         plume[16, 24, 24] = 10.0
-        composite = cams + plume
+        composite = background + plume
 
         background_profile = compute_background_profile(composite)
         profile_mean = float(np.mean(background_profile))
@@ -189,8 +148,6 @@ class TestAnomalyNormalizationRegression:
 
     def test_normalized_coefficient_of_variation(
         self,
-        tmp_path: Path,
-        domain: DomainConfig,
         gallery_grid: GridConfig,
     ) -> None:
         """Normalized field must have measurable variation (CV > 0.1).
@@ -200,12 +157,11 @@ class TestAnomalyNormalizationRegression:
 
         Threshold: CV > 0.1 ensures visible gradients in the volume.
         """
-        fixture = _make_cams_fixture_with_gradient(tmp_path)
-        cams = load_cams_co2(fixture, domain, gallery_grid)
+        background = _make_background_with_gradient(gallery_grid)
 
-        plume = np.zeros_like(cams)
+        plume = np.zeros_like(background)
         plume[16, 24, 24] = 10.0
-        composite = cams + plume
+        composite = background + plume
 
         rendering_cfg = RenderingConfig(mode="anomaly", anomaly_max_ppm=10.0)
         normalized = normalize_concentration(composite, rendering_cfg)
@@ -225,6 +181,18 @@ class TestAnomalyNormalizationRegression:
             f"Coefficient of variation {cv:.3f} < {min_cv}: "
             f"normalized values too uniform for visual rendering"
         )
+
+
+class TestAllNanGuard:
+    """Guard against all-NaN concentration input."""
+
+    def test_max_mode_all_nan_returns_zeros(self) -> None:
+        """All-NaN input must return zeros, not propagate NaN."""
+        data = np.full((2, 3, 4), np.nan, dtype=np.float32)
+        cfg = RenderingConfig(mode="max")
+        result = normalize_concentration(data, cfg)
+        assert np.all(result == 0)
+        assert not np.any(np.isnan(result))
 
 
 class TestNormalizationModes:
@@ -398,8 +366,6 @@ class TestEdgeFalloffGeometry:
 
     def test_no_hard_shell_at_opacity_thresholds(
         self,
-        tmp_path: Path,
-        domain: DomainConfig,
         gallery_grid: GridConfig,
     ) -> None:
         """Normalized values must not cluster at transfer function thresholds.
@@ -409,12 +375,11 @@ class TestEdgeFalloffGeometry:
 
         Method: Check that histogram near common thresholds (0.05, 0.10) doesn't spike.
         """
-        fixture = _make_cams_fixture_with_gradient(tmp_path)
-        cams = load_cams_co2(fixture, domain, gallery_grid)
+        background = _make_background_with_gradient(gallery_grid)
 
-        plume = np.zeros_like(cams)
+        plume = np.zeros_like(background)
         plume[16, 24, 24] = 10.0
-        composite = cams + plume
+        composite = background + plume
 
         cfg = RenderingConfig(mode="anomaly", anomaly_max_ppm=10.0)
         normalized = normalize_concentration(composite, cfg)
@@ -473,8 +438,6 @@ class TestVisibilityGuards:
 
     def test_default_plume_composite_visibility(
         self,
-        tmp_path: Path,
-        domain: DomainConfig,
         gallery_grid: GridConfig,
     ) -> None:
         """Mean effective opacity must be >= 0.01 for visible render.
@@ -483,11 +446,10 @@ class TestVisibilityGuards:
         (normalized_value * transfer_function_opacity) is near zero for all
         voxels. This test ensures composite mode produces sufficient opacity.
         """
-        fixture = _make_cams_fixture_with_gradient(tmp_path)
-        cams = load_cams_co2(fixture, domain, gallery_grid)
+        background = _make_background_with_gradient(gallery_grid)
 
         # Create realistic plume enhancement (not just a point source)
-        plume = np.zeros_like(cams)
+        plume = np.zeros_like(background)
         # Gaussian-like plume in center
         nz, ny, nx = plume.shape
         cz, cy, cx = nz // 2, ny // 2, nx // 2
@@ -502,7 +464,7 @@ class TestVisibilityGuards:
                     if dist < 2.0:
                         plume[z, y, x] = 5.0 * np.exp(-(dist**2))
 
-        composite = cams + plume
+        composite = background + plume
 
         # Normalize with anomaly mode
         rendering_cfg = RenderingConfig(mode="anomaly", anomaly_max_ppm=10.0)
@@ -552,8 +514,6 @@ class TestVisibilityGuards:
 
     def test_normalized_value_distribution_matches_tf_threshold(
         self,
-        tmp_path: Path,
-        domain: DomainConfig,
         gallery_grid: GridConfig,
     ) -> None:
         """Some normalized values must be above 0.05 visibility threshold.
@@ -561,15 +521,14 @@ class TestVisibilityGuards:
         Rationale: If all normalized values fall below the transfer function's
         first significant opacity threshold, the render will be black.
         """
-        fixture = _make_cams_fixture_with_gradient(tmp_path)
-        cams = load_cams_co2(fixture, domain, gallery_grid)
+        background = _make_background_with_gradient(gallery_grid)
 
         # Create plume with enhancement
-        plume = np.zeros_like(cams)
+        plume = np.zeros_like(background)
         plume[16, 24, 24] = 10.0
         # Add some spread
         plume[15:18, 22:27, 22:27] = 3.0
-        composite = cams + plume
+        composite = background + plume
 
         cfg = RenderingConfig(mode="anomaly", anomaly_max_ppm=10.0)
         normalized = normalize_concentration(composite, cfg)

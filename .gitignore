@@ -209,6 +209,10 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Local data artifacts (pipeline expert knowledge base)
+pipelin_roles.json
+pipeline_expertise.json
+
 # Project output (ignore contents but track examples for visual regression)
 output/*
 !output/examples/

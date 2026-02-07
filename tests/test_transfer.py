@@ -154,6 +154,23 @@ def test_preset_has_low_value_opacity_ramp() -> None:
         )
 
 
+def test_to_vtk_sorts_by_scalar() -> None:
+    """to_vtk should handle unsorted control points."""
+    tf = TransferFunction(
+        color_points=[
+            ControlPoint(scalar=0.5, r=1, g=0, b=0),
+            ControlPoint(scalar=0.0, r=0, g=0, b=0),
+        ],
+        opacity_points=[
+            ControlPoint(scalar=0.5, opacity=0.5),
+            ControlPoint(scalar=0.0, opacity=0.0),
+        ],
+    )
+    color_tf, opacity_tf = tf.to_vtk()
+    assert color_tf.GetSize() == 2
+    assert opacity_tf.GetSize() == 2
+
+
 def test_default_plume_matches_cinematic_storm_at_low_values() -> None:
     """default_plume opacity at low scalars should be comparable to cinematic_storm.
 

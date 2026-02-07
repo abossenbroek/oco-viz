@@ -2,8 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+from typing import TYPE_CHECKING
+
 import numpy as np
 import xarray as xr
+
+if TYPE_CHECKING:
+    import pytest
 
 from oco_viz.config.schema import AdvectionConfig, GridConfig, PlumeConfig, TurbulenceConfig
 from oco_viz.plume.advection import advect_sequence, advect_step
@@ -548,3 +554,45 @@ def test_mass_correction_preserves_injection() -> None:
     assert final_mass > initial_mass, (
         f"Mass after injection ({final_mass:.4f}) should exceed initial ({initial_mass:.4f})"
     )
+
+
+# ------------------------------------------------------------------ #
+# 14. CFL warning
+# ------------------------------------------------------------------ #
+def test_cfl_warning_logged(caplog: pytest.LogCaptureFixture) -> None:
+    """CFL > 1.0 should produce a warning."""
+    grid = _make_grid()
+    conc = _initial_conc(grid)
+    # Wind speed 100 m/s with dt=3600, dx=1000 -> CFL = 360 >> 1
+    wind = _uniform_wind(grid, u=100.0)
+    adv = _make_adv_cfg(dt=3600.0)
+    turb = _make_turb_cfg()
+    with caplog.at_level(logging.WARNING):
+        advect_step(
+            conc,
+            wind["u_wind"].values[0],
+            wind["v_wind"].values[0],
+            adv.dt,
+            grid,
+            turb,
+            0,
+            adv_cfg=adv,
+        )
+    assert any("CFL" in r.message for r in caplog.records)
+
+
+# ------------------------------------------------------------------ #
+# 15. Wind exhaustion warning
+# ------------------------------------------------------------------ #
+def test_wind_exhaustion_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """Wind exhaustion should warn when steps exceed wind time slices."""
+    grid = _make_grid()
+    plume = _make_plume_cfg()
+    turb = _make_turb_cfg()
+    # Only 1 wind time slice but request 3 steps
+    wind = _uniform_wind(grid)  # 1 time slice
+    adv = _make_adv_cfg(sub_steps=1)
+    with caplog.at_level(logging.WARNING):
+        advect_sequence(plume, grid, wind, turb, n_steps=3, adv_cfg=adv)
+    warnings = [r for r in caplog.records if "exhausted" in r.message.lower()]
+    assert len(warnings) == 1, f"Expected exactly 1 wind exhaustion warning, got {len(warnings)}"

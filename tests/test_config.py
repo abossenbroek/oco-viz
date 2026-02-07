@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+import logging
+
 import pytest
 
 from oco_viz.config import AppConfig, GridConfig, load_config
+from oco_viz.config.schema import ScatteringConfig
 
 
 def test_grid_shape() -> None:
@@ -43,3 +48,11 @@ def test_validation_rejects_invalid_stability() -> None:
 def test_overrides() -> None:
     cfg = load_config(overrides={"output": {"width": 256}})
     assert cfg.output.width == 256
+
+
+def test_extreme_anisotropy_warns(caplog: pytest.LogCaptureFixture) -> None:
+    """Extreme anisotropy values should produce a warning."""
+    with caplog.at_level(logging.WARNING):
+        cfg = ScatteringConfig(anisotropy=0.95)
+    assert cfg.anisotropy == 0.95
+    assert any("anisotropy" in r.message.lower() for r in caplog.records)

@@ -239,7 +239,7 @@ def apply_annotations(
 
     # Credits (bottom-right)
     if annotation_cfg.show_credits:
-        credit_text = "oco-viz | OCO-3 / CAMS"
+        credit_text = "oco-viz | OCO-2/3 / ERA5"
         cred_y = h - margin - annotation_cfg.font_size - 4
         cred_bbox = draw.textbbox((0, 0), credit_text, font=font)
         cred_w = cred_bbox[2] - cred_bbox[0]

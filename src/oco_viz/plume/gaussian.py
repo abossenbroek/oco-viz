@@ -78,13 +78,14 @@ def generate_timestep(
     sy = sigma_y_vectorized(dw, config.stability_class)
     sz = sigma_z_vectorized(dw, config.stability_class)
 
-    # Clamp sigma to avoid division by zero
+    # Floor sigma at 1.0 m to prevent division by zero in the Gaussian equation.
+    # Physical minimum: even in strongly stable conditions (F), sigma_y > 1 m at dx distance.
     sy = np.maximum(sy, 1.0)
     sz = np.maximum(sz, 1.0)
 
     # Gaussian plume with ground reflection
     q = config.emission_rate
-    u = max(config.wind_speed, 0.01)
+    u = max(config.wind_speed, 0.5)
 
     # Crosswind term
     lateral = np.exp(-0.5 * (cw / sy) ** 2)

@@ -21,6 +21,10 @@ PN = "PN"
 
 [default.extend-identifiers]
 GES_DISC = "GES_DISC"
+HDA = "HDA"
+iz = "iz"
+iy = "iy"
+ix = "ix"
 
 [files]
-extend-exclude = ["pixi.lock", ".pixi/"]
+extend-exclude = ["pixi.lock", ".pixi/", "pipelin_roles.json", "pipeline_expertise.json"]
