@@ -55,3 +55,65 @@ def test_write_sidecar_creates_parent_dirs(tmp_path: Path) -> None:
         concentration_stats=stats,
     )
     assert path.exists()
+
+
+def _make_camera() -> CameraState:
+    return CameraState(
+        position=(100.0, 200.0, 300.0),
+        focal_point=(150.0, 150.0, 30.0),
+        view_up=(0.0, 0.0, 1.0),
+    )
+
+
+def _make_stats() -> dict[str, float]:
+    return {"min": 0.0, "max": 1.0, "mean": 0.5}
+
+
+def test_write_sidecar_pipeline_defaults(tmp_path: Path) -> None:
+    """Default pipeline metadata is vtk/study/pre_viz."""
+    out = write_sidecar(
+        tmp_path / "frame_0000.yaml",
+        frame_index=0,
+        timestamp=0.0,
+        camera_state=_make_camera(),
+        concentration_stats=_make_stats(),
+    )
+    data = yaml.safe_load(out.read_text())
+    assert data["pipeline"]["renderer"] == "vtk"
+    assert data["pipeline"]["tier"] == "study"
+    assert data["pipeline"]["stage"] == "pre_viz"
+
+
+def test_write_sidecar_custom_pipeline(tmp_path: Path) -> None:
+    """Custom pipeline metadata roundtrips correctly."""
+    out = write_sidecar(
+        tmp_path / "frame_0001.yaml",
+        frame_index=1,
+        timestamp=3600.0,
+        camera_state=_make_camera(),
+        concentration_stats=_make_stats(),
+        renderer="karma_xpu",
+        tier="exhibition",
+        pipeline_stage="production",
+    )
+    data = yaml.safe_load(out.read_text())
+    assert data["pipeline"]["renderer"] == "karma_xpu"
+    assert data["pipeline"]["tier"] == "exhibition"
+    assert data["pipeline"]["stage"] == "production"
+
+
+def test_write_sidecar_preserves_existing_fields(tmp_path: Path) -> None:
+    """Existing camera and concentration fields still present."""
+    out = write_sidecar(
+        tmp_path / "frame_0002.yaml",
+        frame_index=2,
+        timestamp=7200.0,
+        camera_state=_make_camera(),
+        concentration_stats=_make_stats(),
+    )
+    data = yaml.safe_load(out.read_text())
+    assert data["frame_index"] == 2
+    assert data["timestamp"] == 7200.0
+    assert "camera" in data
+    assert "concentration" in data
+    assert data["camera"]["position"] == [100.0, 200.0, 300.0]

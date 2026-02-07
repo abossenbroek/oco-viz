@@ -150,10 +150,20 @@ from __future__ import annotations
 
 This project generates VTK volumetric data for downstream cinematic rendering. See `plan/coding_guide_2026.md` for the full 2026 production pipeline.
 
+### Pipeline Stages
+
+| Stage | Renderer | Quality Level | Status |
+|-------|----------|---------------|--------|
+| **Stage 0: VTK Pre-Viz** | VTK (Python) | Study/pre-visualization | **Active** (Waves 1-9) |
+| **Stage 1+: Production** | Karma XPU (Houdini) | Exhibition/gallery-quality | Planned (Waves 12-13) |
+
+The current oco-viz pipeline produces **pre-visualization quality** imagery via VTK. This is suitable for creative direction approval, timing validation, and composition exploration. Exhibition-grade output requires the downstream Karma XPU pipeline, which is not yet implemented.
+
 ### Pipeline Overview
 
 ```
-VTK Generation (oco-viz) → OpenVDB Conversion → Houdini Processing → GPU Rendering
+Stage 0: VTK Generation (oco-viz) → OpenVDB Export → Pre-viz review
+Stage 1+: OpenVDB → Houdini Processing → Karma XPU → Nuke Compositing → Exhibition
 ```
 
 ### Critical VTK Design Decisions

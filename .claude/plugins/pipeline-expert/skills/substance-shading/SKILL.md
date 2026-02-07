@@ -3,6 +3,8 @@ name: substance-shading
 user-invocable: false
 ---
 
+> **Phase status:** VTK emission mode parameters are **active** and tested. MaterialX `standard_volume` and PxrVolume mappings are **aspirational** -- they document target shader configurations for the Karma XPU pipeline (Wave 13).
+
 # Substance Shading -- Material Conviction Presets
 
 Material presets that map artistic intent to shader configuration. The bridge
@@ -121,6 +123,43 @@ boundary falloff), not through shader scattering parameters.
 | `anisotropy` | Henyey-Greenstein phase (g) |
 | `multiScatter` | True for internal bleed |
 | `maxDiffuseDepth` | 4 minimum |
+
+### MaterialX `standard_volume` (Karma XPU — primary production renderer)
+
+The production renderer per RFC Decision 10. MaterialX provides renderer-agnostic
+material definitions consumed by Karma XPU.
+
+| MaterialX Parameter | Mapping | Notes |
+|---------------------|---------|-------|
+| `absorption_color` | [1-albedo, 1-albedo, 1-albedo] | Achromatic; high absorption for soot |
+| `scattering_color` | [albedo, albedo, albedo] | Low scatter albedo (0.03-0.12) |
+| `scattering_anisotropy` | phase parameter (g) | Exhibition: 0.8 forward scatter for ghost light |
+| `emission_color` | TF-mapped density→grey | Self-illumination from transfer function |
+| `emission_weight` | density-dependent | Dense core emits more; sparse periphery dim |
+
+**Karma XPU settings:**
+- Volume step size: `grid_spacing / 10` for exhibition quality
+- SPP tiers: Scout 64, Preview 256, Final 1024+
+- OIDN denoiser enabled; NoisyBeauty AOV preserved for grain restoration
+
+#### Soot Crust — Dual-State Shader Concept
+
+Exhibition tier uses a gradient-driven split between absorption and scattering
+behavior. The density gradient magnitude (`|∇density|`) determines material state:
+
+| Gradient | Region | Material State | Visual Effect |
+|----------|--------|----------------|---------------|
+| Steep (`|∇density|` high) | Edges, boundary | **Crust**: matte black, high absorption | Hard silhouette, charcoal-like edge |
+| Shallow (`|∇density|` low) | Interior, core | **Smoke**: translucent grey, mild scatter | Depth-readable interior, internal glow |
+
+Implementation in MaterialX:
+- `crust_weight = clamp(|∇density| / grad_max, 0, 1)`
+- `absorption_color = lerp(interior_absorption, crust_absorption, crust_weight)`
+- `scattering_color = lerp(interior_scatter, near_zero, crust_weight)`
+
+This creates volumes that have a matte, charcoal-like crust with translucent,
+glowing interiors — solving the "Floating Cotton Ball" problem where volumes
+read as featureless blobs.
 
 ### Arnold Standard Volume (alternative target)
 

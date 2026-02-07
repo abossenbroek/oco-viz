@@ -1,0 +1,54 @@
+id: "10-2"
+title: "6-Shot Camera Path Definitions"
+wave: 10
+status: todo
+depends: ["10-1"]
+produces:
+  - src/oco_viz/render/shot_presets.py
+  - tests/test_shot_presets.py
+  - configs/shots/
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_shot_presets.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Define the six camera shots for "Descent of Carbon" as reusable presets
+    built on the existing CameraPath/EasingFunction infrastructure.
+
+    New preset motions added to camera_path.py:
+    - boom_up: vertical rise from ground-level into overhead view
+    - parallel_dolly: lateral tracking shot parallel to plume drift axis
+    - nadir_zoom: top-down view with slow push-in toward stack origin
+
+    These join existing presets (reveal, orbit_rise, push_in, glacial_drift).
+
+    Six shots defined in configs/shots/ YAML:
+    1. Emergence — boom_up, plume materializes from black
+    2. Scale — parallel_dolly, reveal full plume extent
+    3. Intimacy — push_in, close on internal folding structure
+    4. Drift — glacial_drift, observe wind-driven advection
+    5. Nadir — nadir_zoom, god's-eye compression of scale
+    6. Dissolution — orbit_rise, plume edges break into particles
+
+    Each shot specifies: preset, duration_frames, easing, safe_zone_format,
+    start/end keyframes, focal_target.
+
+    Acceptance criteria:
+    - All six shots produce smooth spline paths within safe zone
+    - Easing matches Soot motion language (heavy_ease_in default)
+    - Shot configs loadable from YAML
+  patterns:
+    - "CameraPath preset extension"
+    - "YAML-driven shot configuration"
+    - "Catmull-Rom spline via scipy.interpolate.CubicSpline"
+  related_files:
+    - src/oco_viz/render/camera_path.py
+    - src/oco_viz/render/easing.py
+    - src/oco_viz/config/schema.py
+    - plan/visual_language.yaml

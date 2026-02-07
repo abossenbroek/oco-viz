@@ -70,12 +70,25 @@ def test_renderer_disabled_ground_plane() -> None:
 
 @pytest.mark.skipci
 def test_volume_has_material_properties() -> None:
-    config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
+    config = load_config(
+        "dev_mac",
+        overrides={
+            "output": {"width": 64, "height": 64},
+            "grid": {"nx": 100, "ny": 100, "nz": 60},
+            "plume": {"source_x": 50.0, "source_y": 10.0},
+        },
+    )
     renderer = VolumeRenderer(config)
     renderer.configure()
 
     concentration = generate_timestep(config.plume, config.grid, time_index=0)
-    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    grid = config.grid
+    focal = (grid.nx * grid.dx / 2, grid.ny * grid.dy / 2, grid.nz * grid.dz / 2)
+    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
+    camera = CameraState(
+        position=(focal[0] + extent * 0.5, focal[1] + extent * 0.5, focal[2] + 50_000),
+        focal_point=focal,
+    )
     renderer.render_frame(concentration, camera)
 
     assert renderer._volume is not None
@@ -127,6 +140,9 @@ def test_renderer_produces_nonzero_rgb_for_mode(mode: str) -> None:
     overrides: dict[str, object] = {
         "output": {"width": 64, "height": 64},
         "rendering": {"mode": mode},
+        # Use a compact grid so the plume fills the volume at 64x64 render res.
+        "grid": {"nx": 100, "ny": 100, "nz": 60},
+        "plume": {"source_x": 50.0, "source_y": 10.0},
         # Pin scattering to base.yaml values so rendering-mode tests are
         # isolated from tier-level scattering changes.
         "scattering": {
@@ -156,13 +172,14 @@ def test_renderer_produces_nonzero_rgb_for_mode(mode: str) -> None:
                 for dx in range(-2, 3):
                     conc[cz + dz, cy + dy, cx + dx] = 430.0
     # Camera position in world units (meters) - must match grid extent
-    # Grid: nx*dx=100km, ny*dy=100km, nz*dz=30km
-    # Plume source at (50km, 10km, 2.5km), so position camera to view it
+    # Grid: nx*dx x ny*dy x nz*dz (300km x 300km x 30km at default)
+    # Plume source at domain center, so position camera to view it
     grid = config.grid
     focal = (grid.nx * grid.dx / 2, grid.ny * grid.dy / 2, grid.nz * grid.dz / 2)
-    # Position camera at distance from focal point
+    # Position camera at distance proportional to grid extent
+    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
     camera = CameraState(
-        position=(focal[0] + 150_000, focal[1] + 150_000, focal[2] + 50_000),
+        position=(focal[0] + extent * 0.5, focal[1] + extent * 0.5, focal[2] + 50_000),
         focal_point=focal,
     )
     rgb, _ = renderer.render_frame(conc, camera)
@@ -179,6 +196,9 @@ def test_sparse_plume_with_max_mode_produces_visible_output() -> None:
         overrides={
             "output": {"width": 64, "height": 64},
             "rendering": {"mode": "max"},
+            # Use compact grid so plume fills volume at low render res.
+            "grid": {"nx": 100, "ny": 100, "nz": 60},
+            "plume": {"source_x": 50.0, "source_y": 10.0},
         },
     )
     renderer = VolumeRenderer(config)
@@ -187,8 +207,9 @@ def test_sparse_plume_with_max_mode_produces_visible_output() -> None:
     # Camera position in world units (meters) - must match grid extent
     grid = config.grid
     focal = (grid.nx * grid.dx / 2, grid.ny * grid.dy / 2, grid.nz * grid.dz / 2)
+    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
     camera = CameraState(
-        position=(focal[0] + 150_000, focal[1] + 150_000, focal[2] + 50_000),
+        position=(focal[0] + extent * 0.5, focal[1] + extent * 0.5, focal[2] + 50_000),
         focal_point=focal,
     )
     rgb, _ = renderer.render_frame(conc, camera)

@@ -15,6 +15,8 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+requires: []
+phase_status: active
 ---
 
 # Tonalist Agent -- Color & Transfer Function Architect

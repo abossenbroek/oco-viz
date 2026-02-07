@@ -1,0 +1,59 @@
+id: "13-5"
+title: "Houdini Procedural Upres"
+wave: 13
+status: todo
+depends: ["11-4", "10-3"]
+produces:
+  - scripts/houdini_upres.py
+  - configs/upres/
+gates:
+  - cmd: "pixi run ruff check src/ tests/ scripts/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+context:
+  key_behavior: |
+    Houdini-side procedural upres using VDB Activate + Volume Noise SOPs
+    to add sub-voxel detail beyond the simulation resolution. This is
+    applied in Houdini after VDB import, before Karma rendering.
+
+    Upres pipeline (Houdini SOPs):
+    1. VDB Activate: expand the active region by 2-4 voxels to allow
+       noise to extend slightly beyond the original domain
+    2. Volume Noise SOP: add multi-octave turbulent detail
+       - Noise type: Simplex (anti-aliased)
+       - Octaves: 4-6 (matching visual_language.yaml turbulence spec)
+       - Amplitude: 0.1-0.3 of local density (density-modulated)
+       - Frequency: 2x-4x base voxel frequency (sub-voxel detail)
+       - Turbulence: 2.5-4.0 (from coding_guide_2026.md)
+    3. VDB Resample: optionally resample to higher resolution grid
+       (2x upres: 512^3 -> 1024^3)
+
+    The script generates a Houdini HDA (Houdini Digital Asset) or
+    provides a hython script that builds the SOP network.
+
+    Resolution matrix from 10-3 determines the target upres resolution
+    per shot and tier combination.
+
+    configs/upres/ contains YAML files with noise parameters per tier:
+    - scout_upres.yaml: no upres (pass-through)
+    - preview_upres.yaml: 1 octave detail noise, no resample
+    - final_upres.yaml: full multi-octave noise + 2x resample
+
+    Acceptance criteria:
+    - Upres adds visible sub-voxel detail without changing plume shape
+    - Noise is density-modulated (no detail in empty regions)
+    - Turbulence range 2.5-4.0 matches production spec
+    - Output VDB maintains sparsity (noise in empty regions = 0)
+    - Script runs in hython batch mode
+  patterns:
+    - "Houdini SOP network generation"
+    - "VDB Activate + Volume Noise upres"
+    - "Density-modulated procedural detail"
+  related_files:
+    - src/oco_viz/sequencer/vdb_export.py
+    - src/oco_viz/render/resolution_matrix.py
+    - plan/visual_language.yaml
+    - plan/coding_guide_2026.md

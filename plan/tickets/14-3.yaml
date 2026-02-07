@@ -1,0 +1,63 @@
+id: "14-3"
+title: "Master Deliverable Encoding"
+wave: 14
+status: todo
+depends: ["14-1"]
+produces:
+  - src/oco_viz/export/deliverables.py
+  - configs/deliverables.yaml
+  - tests/test_deliverables.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_deliverables.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Encode final composited frames into five master deliverable formats.
+    Each format serves a specific distribution channel with appropriate
+    codec, color space, and quality settings.
+
+    Deliverable formats:
+    1. Gold EXR: 16-bit half-float, ACEScg, ZIP compression
+       - Archival master, lossless, scene-referred
+       - Frame sequence: soot_gold.{frame:06d}.exr
+    2. Mezzanine ProRes: ProRes 4444 XQ, 12-bit, Rec.709
+       - High-quality intermediate for further grading
+       - soot_mezz.mov
+    3. Exhibition H.265: H.265 Main 10, CRF 18, BT.2020 PQ
+       - HDR playback on exhibition displays
+       - soot_exhibition.mp4
+    4. Web H.264: H.264 High, CRF 23, sRGB
+       - Web/social distribution, broad compatibility
+       - soot_web.mp4
+    5. Print TIFF: 16-bit, AdobeRGB, 300 DPI, LZW compression
+       - Archival print master (hero frames only)
+       - soot_print_{frame:06d}.tiff
+
+    Functions:
+    - encode_deliverable(frames_dir, format, output_path, config) -> Path
+    - encode_all_deliverables(frames_dir, output_dir, config) -> dict[str, Path]
+    - validate_deliverable(path, format) -> bool
+
+    Encoding uses ffmpeg for video formats, oiiotool for EXR/TIFF.
+    configs/deliverables.yaml specifies all format parameters.
+
+    Acceptance criteria:
+    - All five formats encoded from same source frames
+    - Color space correct per format (verified with mediainfo/oiiotool)
+    - Video formats play without errors in reference players
+    - Print TIFF at correct DPI and color profile
+    - Gold EXR is lossless roundtrip from comp output
+  patterns:
+    - "ffmpeg-based video encoding pipeline"
+    - "Multi-format deliverable generation"
+    - "Color space management per deliverable"
+  related_files:
+    - scripts/nuke_comp_template.py
+    - src/oco_viz/render/ocio_config.py
+    - src/oco_viz/config/schema.py

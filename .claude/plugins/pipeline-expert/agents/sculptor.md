@@ -17,6 +17,8 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+requires: []
+phase_status: active
 ---
 
 # Sculptor Agent -- Volume & Materiality Architect

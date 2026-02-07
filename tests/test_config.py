@@ -10,12 +10,12 @@ from oco_viz.config.schema import ScatteringConfig
 
 def test_grid_shape() -> None:
     g = GridConfig()
-    assert g.shape == (60, 100, 100)
+    assert g.shape == (60, 300, 300)
 
 
 def test_load_config_defaults() -> None:
     cfg = load_config()
-    assert cfg.grid.shape == (60, 100, 100)
+    assert cfg.grid.shape == (60, 300, 300)
     assert cfg.output.width == 1920
 
 
@@ -24,7 +24,7 @@ def test_load_config_dev_mac() -> None:
     assert cfg.output.width == 512
     assert cfg.output.height == 512
     # base values still present
-    assert cfg.grid.nx == 100
+    assert cfg.grid.nx == 300
     # overlay applied
     assert cfg.scattering.jittering is False
 

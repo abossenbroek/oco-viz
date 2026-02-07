@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     import pytest
 
 from oco_viz.config.schema import AdvectionConfig, GridConfig, PlumeConfig, TurbulenceConfig
-from oco_viz.plume.advection import advect_sequence, advect_step
+from oco_viz.plume.advection import AdvectionResult, advect_sequence, advect_step
 
 
 def _make_grid() -> GridConfig:
@@ -41,7 +41,7 @@ def _make_adv_cfg(**overrides: object) -> AdvectionConfig:
         "buoyancy_flux": 0.0,
     }
     defaults.update(overrides)
-    return AdvectionConfig(**defaults)
+    return AdvectionConfig(**defaults)  # type: ignore[arg-type]
 
 
 def _make_turb_cfg() -> TurbulenceConfig:
@@ -144,7 +144,7 @@ def test_advect_step_downwind_drift() -> None:
 
     _, _, x0 = _center_of_mass(conc)
 
-    stepped = conc.copy()
+    stepped: np.ndarray = conc.copy()
     for t in range(5):
         stepped = advect_step(
             stepped,
@@ -211,7 +211,7 @@ def test_advect_step_source_reinjection() -> None:
     turb = _make_turb_cfg()
     plume = _make_plume_cfg()
 
-    result = conc.copy()
+    result: np.ndarray = conc.copy()
     for t in range(20):
         result = advect_step(
             result,
@@ -249,8 +249,8 @@ def test_maccormack_less_diffusive() -> None:
     adv_sl = _make_adv_cfg(scheme="semi_lagrangian")
     adv_mc = _make_adv_cfg(scheme="maccormack")
 
-    result_sl = conc.copy()
-    result_mc = conc.copy()
+    result_sl: np.ndarray = conc.copy()
+    result_mc: np.ndarray = conc.copy()
     n_steps = 8
     for t in range(n_steps):
         result_sl = advect_step(
@@ -323,8 +323,8 @@ def test_briggs_plume_rise() -> None:
     adv_no_buoy = _make_adv_cfg(buoyancy_flux=0.0, source_injection_sigma=0.5)
     adv_buoy = _make_adv_cfg(buoyancy_flux=200.0, source_injection_sigma=0.5)
 
-    result_no = conc.copy()
-    result_buoy = conc.copy()
+    result_no: np.ndarray = conc.copy()
+    result_buoy: np.ndarray = conc.copy()
     for t in range(5):
         result_no = advect_step(
             result_no,
@@ -379,8 +379,8 @@ def test_mass_correction() -> None:
     # Place blob in centre of domain so it won't drift out
     conc = _initial_conc(grid)
 
-    result_corr = conc.copy()
-    result_no = conc.copy()
+    result_corr: np.ndarray = conc.copy()
+    result_no: np.ndarray = conc.copy()
     initial_mass = float(conc.sum())
     for t in range(24):
         result_corr = advect_step(
@@ -489,7 +489,7 @@ def test_sub_stepping_smoother() -> None:
     )
 
     # Four sub-steps covering the same total time
-    result_4 = conc.copy()
+    result_4: np.ndarray = conc.copy()
     sub_dt = adv_4.dt / adv_4.sub_steps
     for s in range(adv_4.sub_steps):
         result_4 = advect_step(
@@ -596,3 +596,88 @@ def test_wind_exhaustion_warning(caplog: pytest.LogCaptureFixture) -> None:
         advect_sequence(plume, grid, wind, turb, n_steps=3, adv_cfg=adv)
     warnings = [r for r in caplog.records if "exhausted" in r.message.lower()]
     assert len(warnings) == 1, f"Expected exactly 1 wind exhaustion warning, got {len(warnings)}"
+
+
+# ------------------------------------------------------------------ #
+# 16. advect_step with return_velocity returns AdvectionResult
+# ------------------------------------------------------------------ #
+def test_advect_step_return_velocity() -> None:
+    """advect_step with return_velocity=True returns AdvectionResult."""
+    grid = _make_grid()
+    conc = _initial_conc(grid)
+    wind = _uniform_wind(grid)
+    adv = _make_adv_cfg()
+    turb = _make_turb_cfg()
+
+    result = advect_step(
+        conc,
+        wind["u_wind"].values[0],
+        wind["v_wind"].values[0],
+        adv.dt,
+        grid,
+        turb,
+        0,
+        plume_cfg=_make_plume_cfg(),
+        adv_cfg=adv,
+        return_velocity=True,
+    )
+    assert isinstance(result, AdvectionResult)
+    assert result.concentration.shape == grid.shape
+    assert result.velocity is not None
+    assert len(result.velocity) == 3
+    for v_component in result.velocity:
+        assert v_component.shape == grid.shape
+
+
+# ------------------------------------------------------------------ #
+# 17. advect_step default returns plain NDArray (backward compat)
+# ------------------------------------------------------------------ #
+def test_advect_step_default_returns_array() -> None:
+    """advect_step default returns plain NDArray (backward compat)."""
+    grid = _make_grid()
+    conc = _initial_conc(grid)
+    wind = _uniform_wind(grid)
+    adv = _make_adv_cfg()
+    turb = _make_turb_cfg()
+
+    result = advect_step(
+        conc,
+        wind["u_wind"].values[0],
+        wind["v_wind"].values[0],
+        adv.dt,
+        grid,
+        turb,
+        0,
+        plume_cfg=_make_plume_cfg(),
+        adv_cfg=adv,
+    )
+    assert isinstance(result, np.ndarray)
+
+
+# ------------------------------------------------------------------ #
+# 18. advect_sequence with return_velocity adds vel DataArrays
+# ------------------------------------------------------------------ #
+def test_advect_sequence_velocity_dataarrays() -> None:
+    """advect_sequence with return_velocity adds vel DataArrays."""
+    grid = _make_grid()
+    plume = _make_plume_cfg()
+    turb = _make_turb_cfg()
+    wind = _uniform_wind(grid)
+    adv = _make_adv_cfg(sub_steps=1)
+
+    ds = advect_sequence(
+        plume,
+        grid,
+        wind,
+        turb,
+        n_steps=2,
+        adv_cfg=adv,
+        return_velocity=True,
+    )
+    assert "u_vel" in ds
+    assert "v_vel" in ds
+    assert "w_vel" in ds
+    # Velocity arrays should have the same shape as concentration
+    assert ds["u_vel"].shape == ds["concentration"].shape
+    assert ds["v_vel"].shape == ds["concentration"].shape
+    assert ds["w_vel"].shape == ds["concentration"].shape

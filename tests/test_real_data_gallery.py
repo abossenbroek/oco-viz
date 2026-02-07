@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from oco_viz.config.schema import AppConfig, GridConfig
+from oco_viz.config.schema import AppConfig, GridConfig, PlumeConfig
 from oco_viz.data.era5 import load_era5_winds
 from oco_viz.data.pipeline import attach_satellite_overlay, run_data_pipeline
 from oco_viz.plume.advection import advect_sequence
@@ -28,6 +28,7 @@ def _small_config() -> AppConfig:
     """Build a minimal config for fast integration tests."""
     return AppConfig(
         grid=GridConfig(nx=16, ny=16, nz=8, dx=1000.0, dy=1000.0, dz=500.0),
+        plume=PlumeConfig(source_x=8.0, source_y=8.0),
     )
 
 

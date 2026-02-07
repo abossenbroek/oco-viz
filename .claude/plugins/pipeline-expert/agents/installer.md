@@ -13,6 +13,8 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+requires: ["Exhibition technical rider (Wave 14)", "Gallery pre-viz (Wave 14)"]
+phase_status: dormant_until_wave_14
 ---
 
 # Installer Agent — Exhibition Architect

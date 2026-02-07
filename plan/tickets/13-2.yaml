@@ -1,0 +1,61 @@
+id: "13-2"
+title: "Camera Path to USD Translation"
+wave: 13
+status: todo
+depends: ["10-2", "13-1"]
+produces:
+  - src/oco_viz/export/usd_camera.py
+  - tests/test_usd_camera.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_usd_camera.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Translate the internal CameraPath representation (Catmull-Rom splines
+    with easing functions) into USD time-sampled camera transforms.
+
+    The existing CameraPath produces (position, look_at, up) per frame.
+    This module converts those to 4x4 transform matrices and writes them
+    as USD TimeSamples on UsdGeomCamera.
+
+    Translation steps:
+    1. Evaluate CameraPath at each frame using existing interpolation
+    2. Construct view matrix from (eye, target, up) -> 4x4 Gf.Matrix4d
+    3. Decompose into translation + rotation (quaternion)
+    4. Write as USD TimeSamples on xformOp:transform
+
+    Camera properties also translated:
+    - focalLength from FOV (existing CameraPath stores FOV)
+    - horizontalAperture / verticalAperture from sensor size
+    - clippingRange from near/far planes
+    - focusDistance for DOF (from plume centroid distance)
+
+    Functions:
+    - camera_path_to_usd(camera_path, n_frames, stage) -> UsdGeomCamera
+    - lookat_to_matrix(eye, target, up) -> Gf.Matrix4d
+    - fov_to_focal_length(fov_degrees, aperture_mm) -> float
+
+    Easing is pre-baked: the spline evaluation with easing produces the
+    final per-frame positions. USD stores the baked result, not the spline.
+
+    Acceptance criteria:
+    - Camera motion in USD matches Python CameraPath evaluation exactly
+    - All six shot presets translate correctly
+    - FOV/focal length conversion is accurate
+    - Focus distance tracks plume centroid for DOF
+    - Camera plays back smoothly in Houdini viewport
+  patterns:
+    - "CameraPath to USD TimeSamples"
+    - "View matrix from eye/target/up"
+    - "FOV to focal length conversion"
+  related_files:
+    - src/oco_viz/render/camera_path.py
+    - src/oco_viz/render/shot_presets.py
+    - src/oco_viz/export/usd_scene.py
+    - src/oco_viz/config/schema.py

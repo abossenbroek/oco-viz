@@ -1,0 +1,62 @@
+id: "13-1"
+title: "USD Scene Exporter"
+wave: 13
+status: todo
+depends: ["11-4", "12-1"]
+produces:
+  - src/oco_viz/export/usd_scene.py
+  - tests/test_usd_scene.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_usd_scene.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Export a complete USD scene (.usda/.usdc) containing the VDB volume
+    reference, MaterialX shader assignment, camera, and render settings.
+    This is the handoff file that Houdini opens to render.
+
+    USD scene hierarchy:
+    /World
+      /Volume
+        - UsdVolOpenVDBAsset referencing soot.{frame:06d}.vdb
+        - MaterialX binding to Soot Crust shader
+      /Camera
+        - UsdGeomCamera with animated transform (from camera path)
+      /RenderSettings
+        - UsdRenderSettings for Karma XPU (resolution, samples, AOVs)
+
+    The exporter writes a .usda (ASCII for debugging) and optionally
+    a .usdc (binary for production). Frame range is encoded as USD
+    time samples on the volume asset path and camera transform.
+
+    Functions:
+    - export_usd_scene(config, vdb_dir, mtlx_path, camera_path,
+        output_path) -> Path
+    - create_volume_prim(stage, vdb_pattern) -> UsdPrim
+    - create_camera_prim(stage, camera_keyframes) -> UsdPrim
+    - create_render_settings(stage, tier) -> UsdPrim
+
+    Uses pxr (OpenUSD) Python bindings. Stage units: meters.
+    Up axis: Y (Houdini convention).
+
+    Acceptance criteria:
+    - USD scene opens in Houdini without errors
+    - Volume prim correctly references VDB sequence
+    - MaterialX shader assigned and renders in Karma
+    - Camera animation plays back correctly
+    - Render settings match tier specification
+  patterns:
+    - "OpenUSD Python bindings (pxr)"
+    - "VDB volume asset reference in USD"
+    - "MaterialX shader binding via USD"
+  related_files:
+    - src/oco_viz/sequencer/vdb_export.py
+    - src/oco_viz/export/materialx_shader.py
+    - src/oco_viz/render/camera_path.py
+    - src/oco_viz/config/schema.py

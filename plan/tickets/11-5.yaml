@@ -1,0 +1,52 @@
+id: "11-5"
+title: "VDB Domain Boundary Falloff"
+wave: 11
+status: todo
+depends: ["11-4"]
+produces:
+  - src/oco_viz/plume/domain_falloff.py
+  - tests/test_domain_falloff.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_domain_falloff.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Apply cosine taper falloff to the outer 10% of the simulation domain
+    on all six faces (x_min, x_max, y_min, y_max, z_min, z_max). This
+    prevents hard-edge artifacts where the plume clips at domain boundaries.
+
+    The falloff is applied after advection and before VDB export. It
+    multiplies all grid fields (density, velocity magnitude, temperature
+    anomaly, dissolution_mask) by the taper weight.
+
+    Taper function: w(d) = 0.5 * (1 + cos(pi * (1 - d/d_taper)))
+    where d is distance from domain edge and d_taper is 10% of domain
+    extent along that axis. w=1.0 in the interior, w=0.0 at the boundary.
+
+    For corner and edge voxels where multiple faces overlap, the taper
+    weights are multiplied (product of all applicable face tapers).
+
+    Functions:
+    - compute_taper_weights(shape, taper_fraction) -> NDArray[float32]
+    - apply_domain_falloff(field, taper_weights) -> NDArray
+    - apply_domain_falloff_multi(fields, taper_fraction) -> dict[str, NDArray]
+
+    Acceptance criteria:
+    - Boundary voxels have exactly 0.0 value after falloff
+    - Interior (beyond 10% margin) is unmodified
+    - Taper is smooth (C1 continuous) with no visible banding
+    - Works for non-cubic domains (different extent per axis)
+    - Multi-field version applies consistent taper to all grids
+  patterns:
+    - "Cosine taper window function"
+    - "Domain boundary treatment for VDB export"
+  related_files:
+    - src/oco_viz/sequencer/vdb_export.py
+    - src/oco_viz/plume/advection.py
+    - src/oco_viz/config/schema.py

@@ -1,0 +1,67 @@
+id: "14-5"
+title: "Installation Technical Rider"
+wave: 14
+status: todo
+depends: ["14-3"]
+produces:
+  - plan/technical_rider.md
+  - src/oco_viz/export/rider_generator.py
+  - tests/test_rider_generator.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_rider_generator.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Generate the installation technical rider — a document specifying
+    all hardware, software, spatial, and environmental requirements for
+    exhibiting the work in a gallery/museum setting.
+
+    Technical rider sections:
+    1. Display: specifications for projection or LED wall
+       - Minimum resolution, contrast ratio (>5000:1 for near-black),
+         color gamut (P3 minimum), peak brightness
+       - Portrait orientation (4:5 Monolith format)
+    2. Playback: media player hardware and software
+       - Solid-state player with H.265 Main 10 decode
+       - Seamless loop capability
+       - HDR metadata: ST-2084 PQ, MaxCLL, MaxFALL
+    3. Spatial: room dimensions, viewing distance, ambient light
+       - Minimum 4m viewing distance for A0 scale
+       - Ambient light < 5 lux (near-dark gallery)
+       - No reflective surfaces in viewing cone
+    4. Acoustic: sound requirements (if any)
+       - Optional: low-frequency drone (20-60 Hz) synced to plume density
+       - SPL specification if acoustic component included
+    5. Power & connectivity: electrical, network, signal
+       - UPS requirement for clean power
+       - Signal path: player -> display (HDMI 2.1 or SDI)
+
+    Functions:
+    - generate_rider(config, deliverables_info) -> str (markdown)
+    - validate_display_spec(spec) -> bool
+    - estimate_installation_cost(rider) -> dict
+
+    The rider generator reads deliverable metadata (resolution, codec,
+    HDR settings) from 14-3 output and produces the specification
+    document automatically.
+
+    Acceptance criteria:
+    - Rider covers all five sections completely
+    - Display requirements achievable with current commercial hardware
+    - Contrast ratio spec ensures near-black visibility
+    - Rider is gallery-ready (professional formatting)
+    - Programmatic generation from deliverable metadata
+  patterns:
+    - "Technical rider generation from deliverable metadata"
+    - "Display specification validation"
+    - "Exhibition installation planning"
+  related_files:
+    - src/oco_viz/export/deliverables.py
+    - plan/visual_language.yaml
+    - src/oco_viz/config/schema.py

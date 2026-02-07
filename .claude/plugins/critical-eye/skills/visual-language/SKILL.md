@@ -5,7 +5,7 @@ user-invocable: false
 
 # Soot — Canonical Visual Language Reference
 
-Shared by both agents (VFX TD and Art Director). This is the definitive aesthetic reference for oco-viz rendering.
+Shared by both agents (VFX TD and Art Director). This is the definitive aesthetic reference for VTK-generated pre-visualization imagery and the target specification for Karma XPU production renders.
 
 Full specification: `plan/visual_language.yaml`
 
@@ -69,6 +69,10 @@ Opacity never reaches 1.0. Maximum 0.85 for exhibition, 0.90 for study. This gua
 
 ## Tier Hierarchy
 
+> **Renderer context:** Sketch and study tiers are rendered by VTK (Stage 0 pre-viz).
+> Exhibition tier targets Karma XPU (Stage 1+ production). Quality criteria
+> should be evaluated against the appropriate renderer's capabilities.
+
 ```
 sketch < study < exhibition
 ```
@@ -82,6 +86,25 @@ sketch < study < exhibition
 | Composition | Default camera | Adjustable | Deliberate asymmetric framing |
 | Post-processing | None | Fog + bloom + ACES | ACES tonemap only |
 | Color | Single grey | Achromatic + slight fog tint | Strictly achromatic |
+
+---
+
+## Lookdev — Soot Crust (Exhibition Tier)
+
+Seven techniques transform VTK-generated plume data into exhibition-grade imagery.
+Full specification: `plan/lookdev_bible.md`
+
+| # | Technique | Perceptual Quality |
+|---|-----------|-------------------|
+| 1 | **Paper Grain Manifold** | Static 3D noise subtracted from density — like charcoal tooth. Visible at low density, suppressed at high. |
+| 2 | **Sedimentary Motion** | Anisotropic advection creating geological layering — heavy, compressed, stratified. |
+| 3 | **Curvature Emission** | Density gradient drives emission — steep gradients (edges) glow brighter, creating rim-light from within. |
+| 4 | **Soot Crust** | Dual-state material: matte-black crust at steep gradients, translucent grey interior at shallow gradients. |
+| 5 | **Stochastic Ash Culling** | Particle dissolution at volume boundary — continuous interior breaks into clumps then scattered ash. |
+| 6 | **Near-Black Bit-Depth** | 16-bit half-float EXR with dither to preserve sub-1% density differences in near-black regions. |
+| 7 | **Ghost Light (Anisotropic Scatter)** | `scattering_anisotropy = 0.8` creates directional bias from internal emission — solves Floating Cotton Ball problem. |
+
+**Key material concept:** The Soot Crust technique uses `|∇density|` (gradient magnitude) to split the volume into hard charcoal-like edges and glowing translucent interiors. This is the primary departure from the study tier's uniform material.
 
 ---
 

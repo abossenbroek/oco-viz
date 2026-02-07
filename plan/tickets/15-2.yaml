@@ -1,0 +1,45 @@
+id: "15-2"
+title: "Restructure Pipeline-Expert Agents as Phased Roadmap"
+wave: 15
+status: todo
+depends: ["15-1"]
+produces:
+  - .claude/plugins/pipeline-expert/agents/alchemist.md
+  - .claude/plugins/pipeline-expert/agents/auteur.md
+  - .claude/plugins/pipeline-expert/agents/choreographer.md
+  - .claude/plugins/pipeline-expert/agents/installer.md
+  - .claude/plugins/pipeline-expert/agents/sculptor.md
+  - .claude/plugins/pipeline-expert/agents/spectralist.md
+  - .claude/plugins/pipeline-expert/agents/tonalist.md
+  - .claude/plugins/pipeline-expert/skills/pipeline-bridge/SKILL.md
+  - .claude/plugins/pipeline-expert/skills/substance-shading/SKILL.md
+gates:
+  - cmd: "pixi run spell"
+    expect: exit_0
+context:
+  key_behavior: |
+    Add YAML frontmatter fields (requires, phase_status) to all 7 agent
+    definitions. This makes explicit which agents are usable now vs which
+    require downstream pipeline components.
+
+    Classification:
+    - active: auteur, sculptor, tonalist, choreographer
+    - dormant_until_wave_12: alchemist (needs USD/Houdini pipeline)
+    - dormant_until_wave_13: spectralist (needs Karma XPU renderer)
+    - dormant_until_wave_14: installer (needs exhibition infrastructure)
+
+    Also update pipeline-bridge/SKILL.md and substance-shading/SKILL.md
+    with phase_status tags marking which sections are active vs aspirational.
+  patterns:
+    - "YAML frontmatter phase gating"
+    - "Honest capability labeling"
+  related_files:
+    - .claude/plugins/pipeline-expert/agents/alchemist.md
+    - .claude/plugins/pipeline-expert/agents/auteur.md
+    - .claude/plugins/pipeline-expert/agents/choreographer.md
+    - .claude/plugins/pipeline-expert/agents/installer.md
+    - .claude/plugins/pipeline-expert/agents/sculptor.md
+    - .claude/plugins/pipeline-expert/agents/spectralist.md
+    - .claude/plugins/pipeline-expert/agents/tonalist.md
+    - .claude/plugins/pipeline-expert/skills/pipeline-bridge/SKILL.md
+    - .claude/plugins/pipeline-expert/skills/substance-shading/SKILL.md

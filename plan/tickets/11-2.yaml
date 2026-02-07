@@ -1,0 +1,56 @@
+id: "11-2"
+title: "Multi-Layer EXR Writer"
+wave: 11
+status: todo
+depends: ["11-1"]
+produces:
+  - src/oco_viz/render/exr_writer.py
+  - tests/test_exr_writer.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_exr_writer.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Write multi-layer OpenEXR files containing all render AOVs (arbitrary
+    output variables) needed for compositing. Scene-referred linear data
+    in ACEScg color space.
+
+    Required AOV layers:
+    - RGBA: beauty pass (half-float, ACEScg)
+    - depth: camera-space Z (float32)
+    - normal: world-space normals (half-float)
+    - velocity: 2D motion vectors for temporal denoising (half-float)
+    - NoisyBeauty: pre-denoise beauty for grain restoration (half-float)
+    - crypto_object: Cryptomatte object ID (float32)
+
+    Functions:
+    - write_exr(layers, output_path, metadata) -> Path
+    - read_exr_layer(path, layer_name) -> NDArray
+    - validate_exr(path) -> ExrValidation
+
+    Metadata embedded in EXR header: OCIO config path, frame number,
+    camera position, render tier, timestamp, voxel resolution.
+
+    Uses OpenEXR Python bindings (Imath + OpenEXR). All layers stored
+    as scanline (not tiled) for Nuke compatibility. Compression: ZIP
+    (lossless, good for low-entropy achromatic data).
+
+    Acceptance criteria:
+    - Multi-layer EXR readable by Nuke and oiiotool
+    - All six AOV layers present and correctly typed
+    - Metadata survives roundtrip write/read
+    - File size reasonable (ZIP compression < 2x raw)
+  patterns:
+    - "Multi-layer OpenEXR with AOVs"
+    - "Scene-referred ACEScg linear data"
+    - "ZIP scanline compression"
+  related_files:
+    - src/oco_viz/render/renderer.py
+    - src/oco_viz/render/ocio_config.py
+    - src/oco_viz/config/schema.py

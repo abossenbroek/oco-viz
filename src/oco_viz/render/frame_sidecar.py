@@ -19,6 +19,9 @@ def write_sidecar(
     timestamp: float,
     camera_state: CameraState,
     concentration_stats: dict[str, float],
+    renderer: str = "vtk",
+    tier: str = "study",
+    pipeline_stage: str = "pre_viz",
 ) -> Path:
     """Write a YAML sidecar file with per-frame metadata.
 
@@ -34,6 +37,12 @@ def write_sidecar(
         Camera position and orientation for this frame.
     concentration_stats:
         Dictionary with ``min``, ``max``, ``mean`` concentration values.
+    renderer:
+        Renderer that produced this frame (e.g. ``vtk``, ``karma_xpu``).
+    tier:
+        Quality tier (``sketch``, ``study``, ``exhibition``).
+    pipeline_stage:
+        Pipeline stage (``pre_viz``, ``production``, ``final``).
 
     Returns
     -------
@@ -53,6 +62,11 @@ def write_sidecar(
             "min": concentration_stats["min"],
             "max": concentration_stats["max"],
             "mean": concentration_stats["mean"],
+        },
+        "pipeline": {
+            "renderer": renderer,
+            "tier": tier,
+            "stage": pipeline_stage,
         },
     }
 

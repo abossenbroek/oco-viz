@@ -43,13 +43,24 @@ def test_preset_dispatch_json_path(tmp_path: Path) -> None:
 def test_configure_and_render() -> None:
     config = load_config(
         "dev_mac",
-        overrides={"output": {"width": 128, "height": 128}, "sky": {"enabled": True}},
+        overrides={
+            "output": {"width": 128, "height": 128},
+            "sky": {"enabled": True},
+            "grid": {"nx": 100, "ny": 100, "nz": 60},
+            "plume": {"source_x": 50.0, "source_y": 10.0},
+        },
     )
     renderer = VolumeRenderer(config)
     renderer.configure()
 
     concentration = generate_timestep(config.plume, config.grid, time_index=0)
-    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    grid = config.grid
+    focal = (grid.nx * grid.dx / 2, grid.ny * grid.dy / 2, grid.nz * grid.dz / 2)
+    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
+    camera = CameraState(
+        position=(focal[0] + extent * 0.5, focal[1] + extent * 0.5, focal[2] + 50_000),
+        focal_point=focal,
+    )
     rgb, depth = renderer.render_frame(concentration, camera)
 
     assert rgb.shape == (128, 128, 3)
@@ -66,13 +77,26 @@ def test_configure_and_render() -> None:
 
 @pytest.mark.skipci
 def test_second_render_reuses_volume() -> None:
-    config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
+    config = load_config(
+        "dev_mac",
+        overrides={
+            "output": {"width": 64, "height": 64},
+            "grid": {"nx": 100, "ny": 100, "nz": 60},
+            "plume": {"source_x": 50.0, "source_y": 10.0},
+        },
+    )
     renderer = VolumeRenderer(config)
     renderer.configure()
 
     conc1 = generate_timestep(config.plume, config.grid, time_index=0)
     conc2 = generate_timestep(config.plume, config.grid, time_index=5)
-    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    grid = config.grid
+    focal = (grid.nx * grid.dx / 2, grid.ny * grid.dy / 2, grid.nz * grid.dz / 2)
+    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
+    camera = CameraState(
+        position=(focal[0] + extent * 0.5, focal[1] + extent * 0.5, focal[2] + 50_000),
+        focal_point=focal,
+    )
 
     rgb1, _ = renderer.render_frame(conc1, camera)
     # After first frame, volume should exist
@@ -91,12 +115,25 @@ def test_second_render_reuses_volume() -> None:
 
 @pytest.mark.skipci
 def test_render_with_postprocessing() -> None:
-    config = load_config("dev_mac", overrides={"output": {"width": 64, "height": 64}})
+    config = load_config(
+        "dev_mac",
+        overrides={
+            "output": {"width": 64, "height": 64},
+            "grid": {"nx": 100, "ny": 100, "nz": 60},
+            "plume": {"source_x": 50.0, "source_y": 10.0},
+        },
+    )
     renderer = VolumeRenderer(config)
     renderer.configure()
 
     concentration = generate_timestep(config.plume, config.grid, time_index=0)
-    camera = CameraState(position=(200, 200, 100), focal_point=(50, 50, 30))
+    grid = config.grid
+    focal = (grid.nx * grid.dx / 2, grid.ny * grid.dy / 2, grid.nz * grid.dz / 2)
+    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
+    camera = CameraState(
+        position=(focal[0] + extent * 0.5, focal[1] + extent * 0.5, focal[2] + 50_000),
+        focal_point=focal,
+    )
 
     # Without post-processing
     rgb_raw, _ = renderer.render_frame(concentration, camera)

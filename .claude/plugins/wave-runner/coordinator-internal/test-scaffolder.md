@@ -70,7 +70,7 @@ For tests that need sample datasets:
 def sample_dataset():
     return xr.Dataset(
         {
-            "concentration": (["x", "y"], np.random.default_rng(42).random((10, 10), dtype=np.float32)),
+            "density": (["x", "y"], np.random.default_rng(42).random((10, 10), dtype=np.float32)),
         },
         coords={
             "x": np.arange(10, dtype=np.float32),
@@ -101,19 +101,19 @@ def config():
 
 ```python
 result = generate_plume(config)
-assert result["concentration"].shape == (100, 100)
+assert result["density"].shape == (100, 100)
 ```
 
 ### dtype checks
 
 ```python
-assert result["concentration"].dtype == np.float32
+assert result["density"].dtype == np.float32
 ```
 
 ### Non-negative value checks
 
 ```python
-assert (result["concentration"].values >= 0).all()
+assert (result["density"].values >= 0).all()
 ```
 
 ### Floating-point comparison (allclose)
@@ -185,7 +185,7 @@ See `plan/coding_guide_2026.md` for full pipeline context.
 def sample_vtk_dataset():
     return xr.Dataset(
         {
-            "concentration": (["time", "z", "y", "x"], np.zeros((2, 16, 16, 16), dtype=np.float32)),
+            "density": (["time", "z", "y", "x"], np.zeros((2, 16, 16, 16), dtype=np.float32)),
         },
         coords={
             "time": np.arange(2),
@@ -207,42 +207,54 @@ np.testing.assert_allclose(spacing[0], expected, rtol=1e-5)
 
 ### Grid name conventions
 
-`"concentration"` is the primary variable for CO2 plume data. `"temperature"` and
-`"vel"` are optional atmospheric context fields.
+`"density"` is the primary grid name for CO2 plume data (Houdini/VDB convention).
+`"temperature"`, `"vel"`, and `"dissolution_mask"` are optional context fields.
 
 ```python
-assert "concentration" in ds.data_vars, "Dataset must contain 'concentration'"
-OPTIONAL_GRID_NAMES = {"temperature", "vel"}
+assert "density" in ds.data_vars, "Dataset must contain 'density'"
+OPTIONAL_GRID_NAMES = {"temperature", "vel", "dissolution_mask"}
 ```
 
 ### Sparsity check (exact zero where empty)
 
 ```python
-data = ds["concentration"].values
+data = ds["density"].values
 empty_mask = data == 0.0
 assert empty_mask.sum() / data.size > 0.5, (
     "Volume should be mostly empty (>50% exact zeros for sparsity)"
 )
 ```
 
-### Temperature range (Kelvin, atmospheric CO2 plume context)
+### Temperature range (Kelvin)
 
-CO2 plumes exist at atmospheric temperatures (~150K upper stratosphere to ~330K
-hot surface). Values outside this range indicate a unit error (e.g. Celsius) or
-data corruption.
+Temperature validation depends on context:
+
+- **Data pipeline tickets (Waves 6-9):** Atmospheric temperatures (~150K upper
+  stratosphere to ~330K hot surface). Values outside 150-350K indicate unit error
+  or data corruption.
+- **Exhibition/lookdev tickets (Waves 11+):** Emission-shading temperature maps
+  density→temperature as `T = 293 + density * 2707` (room temp to 3000K at peak).
+  This is for emission-driven Karma shading, not physical atmospheric temperature.
 
 ```python
+# Atmospheric context (data pipeline, Waves 6-9):
 if "temperature" in ds:
     temp = ds["temperature"].values
     assert temp[temp > 0].min() >= 150, "Temperature below 150K — check units or data source"
     assert temp.max() <= 350, "Temperature exceeds atmospheric range (>350K)"
+
+# Emission-shading context (exhibition lookdev, Waves 11+):
+if "temperature" in ds:
+    temp = ds["temperature"].values
+    assert temp[temp > 0].min() >= 150, "Temperature below 150K — check units or data source"
+    assert temp.max() <= 3000, "Temperature exceeds emission-shading range (>3000K)"
 ```
 
 ### Value range bounds
 
 ```python
-assert (ds["concentration"].values >= 0).all(), "Concentration must be non-negative"
-assert ds["concentration"].values.max() <= 10.0, "Concentration exceeds expected range"
+assert (ds["density"].values >= 0).all(), "Density must be non-negative"
+assert ds["density"].values.max() <= 10.0, "Density exceeds expected range"
 ```
 
 ---

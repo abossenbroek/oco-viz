@@ -1,0 +1,44 @@
+id: "15-3"
+title: "Make Critical-Eye Renderer-Aware"
+wave: 15
+status: todo
+depends: ["15-1"]
+produces:
+  - src/oco_viz/render/frame_sidecar.py
+  - tests/test_frame_sidecar.py
+  - .claude/plugins/critical-eye/skills/standards/exhibition.md
+  - .claude/plugins/critical-eye/skills/standards/vtk-preview.md
+  - .claude/plugins/critical-eye/skills/visual-language/SKILL.md
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_frame_sidecar.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Extend write_sidecar() to include renderer, tier, and pipeline_stage
+    metadata. This allows critical-eye to know whether an image was rendered
+    by VTK (pre-viz) or Karma XPU (production) and apply appropriate quality
+    criteria.
+
+    Code changes:
+    - write_sidecar() gains renderer, tier, pipeline_stage keyword args
+    - Output YAML gains pipeline: section
+    - Tests verify metadata roundtrip and defaults
+
+    Plugin changes:
+    - exhibition.md: add renderer guard (Karma XPU only for exhibition)
+    - NEW vtk-preview.md: VTK-achievable quality criteria
+    - visual-language/SKILL.md: clarify "VTK-generated pre-visualization imagery"
+  patterns:
+    - "Renderer-aware quality gating"
+    - "Metadata-driven review criteria"
+  related_files:
+    - src/oco_viz/render/frame_sidecar.py
+    - tests/test_frame_sidecar.py
+    - .claude/plugins/critical-eye/skills/standards/exhibition.md
+    - .claude/plugins/critical-eye/skills/visual-language/SKILL.md

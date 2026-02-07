@@ -1,0 +1,36 @@
+id: "15-8"
+title: "VFX Production Tracking Protocol"
+wave: 15
+status: todo
+depends: ["15-1"]
+produces:
+  - plan/production_tracking.md
+  - plan/burndown.md
+gates:
+  - cmd: "pixi run spell"
+    expect: exit_0
+context:
+  key_behavior: |
+    Create production tracking documents inspired by VFX studio practices.
+
+    plan/production_tracking.md:
+    - Daily protocol (10 min): quality gates, wave progress, self-review,
+      visual review, commit
+    - Weekly protocol (30 min): burndown update, velocity calc (target
+      ~3.6 tickets/wk), gallery audit, debt count
+    - Monthly protocol (2 hr): Pixar Braintrust-style phase gate review
+    - Re-scoping triggers: velocity collapse, phase overrun, visual
+      regression loop, CI red streak
+    - Technical debt classification: gate debt, visual debt, pipeline
+      debt, deferred scope
+
+    plan/burndown.md:
+    - Wave tracking template with columns: wave, total tickets, done,
+      in_progress, blocked, velocity
+    - Historical entries for Waves 1-15
+    - Projection formula for remaining waves
+  patterns:
+    - "VFX production tracking"
+    - "Pixar Braintrust review process"
+  related_files:
+    - plan/prd_exhibition.md

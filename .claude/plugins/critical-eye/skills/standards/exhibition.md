@@ -3,6 +3,11 @@ name: exhibition-standard
 user-invocable: false
 ---
 
+> **Renderer guard:** This standard applies to **Karma XPU production renders** only.
+> VTK pre-visualization output should be evaluated against the
+> [VTK Preview Standard](vtk-preview.md) instead. Check the frame sidecar
+> `pipeline.renderer` field to determine which standard applies.
+
 # Exhibition Tier — VFX Technical Standard
 
 Gallery-quality output. Every pixel must withstand 4K projection in a dark room. No compromises.
@@ -64,18 +69,38 @@ lighting:
   mode: smoldering
 ```
 
+### Ghost Light (Anisotropic Forward Scatter)
+
+Exhibition tier uses `scattering_anisotropy = 0.8` (strong forward scattering) to
+create a "ghost rim-light" effect. Internal emission scatters preferentially toward
+the camera from volume edges, producing subtle directional bias that solves the
+"Floating Cotton Ball" problem (volumes reading as flat, featureless blobs).
+
+This directional bias is **intentional** and must NOT be flagged as a failure.
+
+**How to distinguish ghost light from external lighting:**
+- **Ghost light (PASS)**: Directional bias varies with camera angle (it follows the
+  emission-to-camera vector). Brightest at volume silhouette edges. No shadow cast.
+  Source is internal emission scattered by anisotropic phase function.
+- **External lighting (FAIL)**: Directional bias is fixed regardless of camera angle.
+  One side consistently brighter. Shadow cast on opposite side. Source is a light
+  prim or environment light.
+
 ### Diagnosis
 
-- **Directional shading visible**: One side brighter than another → diffuse > 0 or external light present
+- **Directional shading from external light**: One side consistently brighter across all camera angles → diffuse > 0 or external light present (FAIL)
+- **Ghost rim-light at silhouette edges**: Subtle brightness at volume edges that shifts with camera → scattering_anisotropy working correctly (PASS)
 - **Specular highlights**: Any bright spot that isn't density-correlated → specular > 0
 - **Flat illumination**: No luminance variation between dense/sparse → ambient too low or TF not mapping density to brightness
 - **Dark core with bright shell**: Interior darker than surface → lighting model inverted (external, not self-illumination)
+- **No edge definition (cotton ball)**: Volume reads as featureless blob → scattering_anisotropy too low (< 0.6)
 
 ### Adjustment Levers
 
 - `scattering.ambient` — self-illumination intensity (exhibition: 0.85)
 - `scattering.diffuse` — must be 0.0 for exhibition
 - `scattering.specular` — must be 0.0 for exhibition
+- `scattering.anisotropy` — Henyey-Greenstein phase function (exhibition: 0.8, forward scatter)
 - `lighting.mode` — must be `smoldering`
 
 ---
@@ -214,6 +239,11 @@ Soot is achromatic. R = G = B at every pixel. The palette is strictly greyscale 
 ### Physics
 
 Exhibition tier uses ACES tonemapping only. No fog. No bloom. The volume stands alone.
+
+ACES can be applied via Narkowicz approximation (current VTK pipeline) or OCIO-driven
+transforms (exhibition Karma/Nuke pipeline). Both produce equivalent visual results
+(< 2% dE2000 difference in achromatic range). The critical-eye review evaluates the
+visual result, not the implementation mechanism.
 
 ### Correct Appearance
 

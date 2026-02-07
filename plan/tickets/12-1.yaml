@@ -1,0 +1,61 @@
+id: "12-1"
+title: "MaterialX Soot Crust Shader"
+wave: 12
+status: todo
+depends: ["11-4"]
+produces:
+  - src/oco_viz/export/materialx_shader.py
+  - configs/materialx/soot_crust.mtlx
+  - tests/test_materialx_shader.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_materialx_shader.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Generate the MaterialX "Soot Crust" volume shader for Karma XPU
+    rendering. This is a standard_volume node graph with dual-state
+    behavior: dense interior vs. crusty dissolved exterior.
+
+    Dual-state logic driven by dissolution_mask VDB grid:
+    - mask < 0.3 (solid core): high extinction, low scatter albedo,
+      temperature-driven emission. Dense, light-absorbing interior.
+    - mask > 0.7 (dissolved edge): low extinction, high scatter albedo,
+      no emission. Wispy, translucent particulate.
+    - 0.3-0.7 (transition): smooth interpolation between states.
+
+    MaterialX node graph:
+    - standard_volume base
+    - density input: VDB density grid
+    - extinction_coeff: lerp(8.0, 0.5, dissolution_mask)
+    - scatter_albedo: lerp(0.15, 0.85, dissolution_mask)
+    - emission_color: temperature-mapped grey (Kelvin -> sRGB grey)
+    - anisotropy: 0.35 (matches Soot lighting spec)
+
+    Functions:
+    - generate_soot_crust_mtlx(output_path, params) -> Path
+    - validate_mtlx(path) -> bool
+
+    The .mtlx file must be loadable by Houdini's MaterialX LOP and
+    render correctly in Karma XPU. Achromatic constraint: emission
+    and scatter colors are always R=G=B.
+
+    Acceptance criteria:
+    - Valid MaterialX 1.38+ document
+    - standard_volume with correct input connections
+    - Dual-state transition is smooth (no popping)
+    - Achromatic: all color values have R=G=B
+    - Loads in Houdini MaterialX LOP without errors
+  patterns:
+    - "MaterialX standard_volume shader generation"
+    - "Dual-state dissolution-driven volume shader"
+    - "Achromatic constraint enforcement"
+  related_files:
+    - src/oco_viz/sequencer/vdb_export.py
+    - plan/visual_language.yaml
+    - src/oco_viz/config/schema.py

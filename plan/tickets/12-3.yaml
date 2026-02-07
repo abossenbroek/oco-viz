@@ -1,0 +1,56 @@
+id: "12-3"
+title: "Paper Grain Noise Manifold"
+wave: 12
+status: todo
+depends: ["12-1"]
+produces:
+  - src/oco_viz/export/paper_grain.py
+  - tests/test_paper_grain.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_paper_grain.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Generate a static high-frequency 3D noise field that adds paper-like
+    grain texture to the volume. This noise is world-space locked (does
+    not move with the plume) creating the impression that the soot is
+    being observed through a textured medium — like charcoal on paper.
+
+    Noise characteristics:
+    - Static: same noise field every frame (seeded, deterministic)
+    - High frequency: feature size 2-4 voxels (sub-voxel grain)
+    - Low amplitude: multiplicative factor 0.85-1.15 on density
+    - 3D Perlin or Simplex noise at high octaves (4-6)
+    - World-space coordinates: noise does not advect with plume
+
+    The grain modulates density multiplicatively:
+    density_grained = density * (1.0 + grain_amplitude * noise(x, y, z))
+
+    Functions:
+    - generate_paper_grain(shape, seed, frequency, amplitude) -> NDArray
+    - apply_paper_grain(density, grain) -> NDArray
+
+    The grain field is computed once and cached for the entire sequence.
+    It is NOT exported as a VDB grid — it is applied to density before
+    VDB export to keep the file count minimal.
+
+    Acceptance criteria:
+    - Noise is deterministic given same seed
+    - Grain is visible at study tier (subtle texture variation)
+    - Grain does not move between frames (world-space locked)
+    - Amplitude stays within 0.85-1.15 range (no density inversion)
+    - Grain frequency appropriate for target voxel resolution
+  patterns:
+    - "Seeded 3D Perlin/Simplex noise"
+    - "Static world-space noise manifold"
+    - "Multiplicative density modulation"
+  related_files:
+    - src/oco_viz/plume/noise.py
+    - src/oco_viz/sequencer/vdb_export.py
+    - plan/visual_language.yaml

@@ -1,0 +1,62 @@
+id: "14-1"
+title: "Nuke Comp Template"
+wave: 14
+status: todo
+depends: ["13-3", "13-4"]
+produces:
+  - scripts/nuke_comp_template.py
+  - configs/nuke/soot_comp.nk
+gates:
+  - cmd: "pixi run ruff check src/ tests/ scripts/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_nuke_comp_template.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Generate a Nuke compositing template that processes multi-layer EXR
+    renders into final deliverable frames. The template encodes the
+    exhibition compositing pipeline as a reusable .nk script.
+
+    Nuke node graph (linear pipeline):
+    1. Read: multi-layer EXR from Karma (beauty, depth, N, velocity,
+       NoisyBeauty, crypto)
+    2. Grade: exposure trim in ACEScg (fine-tune per-shot)
+    3. Grain: restore NoisyBeauty micro-detail (10-15% mix)
+    4. OCIO: ACEScg -> display transform (sRGB or PQ per deliverable)
+    5. Write: output to deliverable format
+
+    Additional nodes for specific deliverables:
+    - Reformat for aspect ratio conversion (4:5 -> 16:9 letterbox)
+    - TimeWarp for frame rate conversion (if needed)
+    - Achromatic check (expression: abs(r-g) + abs(g-b) < 0.001)
+
+    The template is generated programmatically via Nuke Python API
+    (nuke module). It can also be saved as a .nk text file for
+    manual import.
+
+    Functions:
+    - generate_nuke_template(config, output_path) -> Path
+    - create_grade_node(exposure, offset) -> dict
+    - create_grain_restore_node(mix_ratio) -> dict
+
+    configs/nuke/soot_comp.nk is the serialized template.
+
+    Acceptance criteria:
+    - Template loads in Nuke without errors
+    - All AOV layers correctly connected
+    - OCIO color management matches project config (11-1)
+    - Achromatic check node catches any R!=G!=B drift
+    - Template is parameterized for per-shot exposure adjustment
+  patterns:
+    - "Nuke Python API template generation"
+    - "Multi-layer EXR compositing pipeline"
+    - "OCIO-driven display transform in Nuke"
+  related_files:
+    - src/oco_viz/render/exr_writer.py
+    - src/oco_viz/render/ocio_config.py
+    - src/oco_viz/postprocess/denoise.py
+    - src/oco_viz/config/schema.py

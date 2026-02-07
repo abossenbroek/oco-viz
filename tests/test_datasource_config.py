@@ -18,8 +18,8 @@ def test_domain_config_defaults() -> None:
     d = DomainConfig()
     assert d.origin_lat == pytest.approx(-26.52)
     assert d.origin_lon == pytest.approx(29.17)
-    assert d.extent_x_km == pytest.approx(100.0)
-    assert d.extent_y_km == pytest.approx(100.0)
+    assert d.extent_x_km == pytest.approx(300.0)
+    assert d.extent_y_km == pytest.approx(300.0)
     assert d.extent_z_km == pytest.approx(15.0)
 
 
@@ -53,7 +53,7 @@ def test_app_config_has_datasource() -> None:
 def test_load_config_preserves_existing_fields() -> None:
     """Adding data_source must not break existing config loading."""
     cfg = load_config()
-    assert cfg.grid.nx == 100
+    assert cfg.grid.nx == 300
     assert cfg.output.width == 1920
     assert cfg.plume.wind_speed == pytest.approx(5.0)
 
