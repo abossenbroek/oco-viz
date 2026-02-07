@@ -102,7 +102,6 @@ def cmd_pipeline(args: argparse.Namespace) -> None:
 
     # Determine mode from flags
     mode = getattr(args, "mode", "gaussian")
-    cams_path = Path(args.cams) if getattr(args, "cams", None) else None
     era5_path = Path(args.era5) if getattr(args, "era5", None) else None
 
     # For backward compat: --turbulent flag maps to mode=turbulent
@@ -113,7 +112,6 @@ def cmd_pipeline(args: argparse.Namespace) -> None:
         config,
         mode=mode,
         era5_path=era5_path,
-        cams_path=cams_path,
         num_timesteps=args.num_frames,
     )
     write_zarr(ds, zarr_path)
@@ -167,10 +165,9 @@ def main() -> None:
     p_pipe.add_argument(
         "--mode",
         default="gaussian",
-        choices=["gaussian", "turbulent", "composite", "wind", "advected"],
+        choices=["gaussian", "turbulent", "wind", "advected"],
         help="Pipeline mode (default: gaussian)",
     )
-    p_pipe.add_argument("--cams", default=None, help="Path to CAMS NetCDF (for composite mode)")
     p_pipe.add_argument(
         "--era5", default=None, help="Path to ERA5 NetCDF (for wind/advected mode)"
     )

@@ -1,8 +1,7 @@
-"""Render fixture gallery: 5 TF presets x 3 plume types = 15+ example images.
+"""Render fixture gallery: 5 TF presets x 2 plume types = 10+ example images.
 
-Demonstrates data fusion across four sources:
+Demonstrates data fusion across three sources:
 - ERA5 reanalysis winds (drive plume advection)
-- CAMS CO2 background (volumetric background field)
 - OCO-2/OCO-3 satellite footprints (ground-plane XCO2 overlay)
 - Gaussian/turbulent plume model (synthetic emission)
 """
@@ -22,7 +21,6 @@ from PIL import Image
 
 from oco_viz.config import load_config
 from oco_viz.config.schema import RenderingConfig, TransferFunctionConfig
-from oco_viz.data.cams import load_cams_co2
 from oco_viz.data.era5 import load_era5_winds
 from oco_viz.data.oco import load_granule
 from oco_viz.data.transform import latlon_to_local_km
@@ -37,7 +35,6 @@ FIXTURES_DIR = Path("tests/fixtures")
 ERA5_FIXTURE = FIXTURES_DIR / "era5_secunda_2025-10-13.nc"
 OCO3_FIXTURE = FIXTURES_DIR / "oco3_secunda_2025-10-26.nc4"
 OCO2_FIXTURE = FIXTURES_DIR / "oco2_secunda_2025-10-13.nc4"
-CAMS_FIXTURE = FIXTURES_DIR / "cams_secunda_2025-10-13.nc"
 
 OUTPUT_DIR = Path("output/examples")
 
@@ -57,7 +54,6 @@ def validate_fixtures() -> dict[str, bool]:
     """
     fixtures = {
         "era5": ERA5_FIXTURE,
-        "cams": CAMS_FIXTURE,
         "oco2": OCO2_FIXTURE,
         "oco3": OCO3_FIXTURE,
     }
@@ -185,7 +181,7 @@ def _load_gallery_config() -> object:
 
 
 def _build_plume_variants(config, wind_ds):
-    """Build gaussian, turbulent, and optional composite plume fields."""
+    """Build gaussian and turbulent plume fields using ERA5 wind direction."""
     u_mean = float(np.nanmean(wind_ds["u_wind"].isel(time=0).values))
     v_mean = float(np.nanmean(wind_ds["v_wind"].isel(time=0).values))
     speed = max(math.sqrt(u_mean**2 + v_mean**2), 0.1)
@@ -200,13 +196,7 @@ def _build_plume_variants(config, wind_ds):
     turbulent_conc = apply_turbulence(gaussian_conc, config.turbulence, config.grid, time_index=0)
     log.info("turbulent plume generated", max_conc=round(float(turbulent_conc.max()), 6))
 
-    variants = {"gaussian": gaussian_conc, "turbulent": turbulent_conc}
-
-    background = load_cams_co2(CAMS_FIXTURE, config.data_source.domain, config.grid)
-    variants["composite"] = background + turbulent_conc
-    log.info("composite field built", max_conc=round(float(variants["composite"].max()), 3))
-
-    return variants
+    return {"gaussian": gaussian_conc, "turbulent": turbulent_conc}
 
 
 def _render_all_presets(config, plume_variants, camera_state) -> int:
@@ -218,22 +208,8 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
         for plume_type, conc in plume_variants.items():
             log.info("rendering", preset=preset_name, plume_type=plume_type)
 
-            # Determine rendering config based on preset and plume type
-            if plume_type == "composite":
-                if preset_name == "absolute_atmospheric":
-                    rendering_cfg = RenderingConfig(mode="absolute")
-                else:
-                    # Enable adaptive normalization + gamma for composite visibility
-                    rendering_cfg = RenderingConfig(
-                        mode="anomaly",
-                        adaptive_normalization=True,
-                        adaptive_percentile=95.0,
-                        min_enhancement_ppm=1.0,
-                        opacity_gamma=2.2,
-                    )
-            else:
-                # gaussian/turbulent: use max normalization (original behavior)
-                rendering_cfg = RenderingConfig(mode="max")
+            # gaussian/turbulent: use max normalization
+            rendering_cfg = RenderingConfig(mode="max")
 
             render_config = config.model_copy(
                 update={
@@ -282,7 +258,7 @@ def main() -> None:
     oco3_ds = load_granule(OCO3_FIXTURE)
     oco2_ds = load_granule(OCO2_FIXTURE)
 
-    # --- Build plume variants including CAMS fusion ---
+    # --- Build plume variants ---
     plume_variants = _build_plume_variants(config, wind_ds)
 
     domain = config.data_source.domain

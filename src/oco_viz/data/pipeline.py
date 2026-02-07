@@ -1,4 +1,4 @@
-"""Data pipeline orchestrator wiring ERA5 winds, OCO-3 overlay, and plume generation."""
+"""Data pipeline orchestrator wiring ERA5 winds, satellite overlay, and plume generation."""
 
 from __future__ import annotations
 
@@ -8,13 +8,12 @@ from typing import TYPE_CHECKING
 import numpy as np
 import xarray as xr
 
-from oco_viz.data.cams import load_cams_co2
 from oco_viz.data.era5 import load_era5_winds
-from oco_viz.data.oco3 import load_and_grid_granules
+from oco_viz.data.oco import load_and_grid_granules
 from oco_viz.data.zarr_store import write_zarr
 from oco_viz.plume.advection import advect_sequence
 from oco_viz.plume.gaussian import generate_sequence, generate_timestep
-from oco_viz.plume.turbulent import apply_turbulence, generate_turbulent_sequence
+from oco_viz.plume.turbulent import generate_turbulent_sequence
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -88,59 +87,20 @@ def build_wind_driven_plume(
     )
 
 
-def attach_oco3_overlay(
+def attach_satellite_overlay(
     ds: xr.Dataset,
-    oco3_paths: list[Path],
+    granule_paths: list[Path],
     domain: DomainConfig,
     grid: GridConfig,
 ) -> xr.Dataset:
-    """Add xco2_observed variable from OCO-3 data to an existing dataset."""
-    oco3_ds = load_and_grid_granules(oco3_paths, domain, grid)
-    ds["xco2_observed"] = oco3_ds["xco2_observed"]
+    """Add xco2_observed variable from OCO-2/3 data to an existing dataset."""
+    sat_ds = load_and_grid_granules(granule_paths, domain, grid)
+    ds["xco2_observed"] = sat_ds["xco2_observed"]
     return ds
 
 
-def build_composite_field(
-    config: AppConfig,
-    cams_path: Path,
-    num_timesteps: int,
-) -> xr.Dataset:
-    """Build composite CO2 field: CAMS background + plume + turbulence.
-
-    1. Load CAMS background (3D, ~420 ppm with gradients)
-    2. Generate point-source plume enhancement (Gaussian)
-    3. Apply turbulent noise
-    4. Composite: background + plume_turb
-    """
-    grid = config.grid
-    background = load_cams_co2(cams_path, config.data_source.domain, grid)
-
-    nz, ny, nx = grid.shape
-    frames = []
-
-    for t in range(num_timesteps):
-        # Generate plume enhancement
-        plume = generate_timestep(config.plume, grid, t)
-
-        # Apply turbulence if enabled
-        if config.turbulence.enabled:
-            plume = apply_turbulence(plume, config.turbulence, grid, t)
-
-        # Composite: add plume enhancement to background
-        composite = background + plume
-        frames.append(composite)
-
-    data = np.stack(frames, axis=0)
-
-    return xr.Dataset(
-        {"concentration": (["time", "z", "y", "x"], data)},
-        coords={
-            "time": np.arange(num_timesteps),
-            "z": np.arange(nz) * grid.dz,
-            "y": np.arange(ny) * grid.dy,
-            "x": np.arange(nx) * grid.dx,
-        },
-    )
+# Keep old name as alias for backward compatibility
+attach_oco3_overlay = attach_satellite_overlay
 
 
 def run_data_pipeline(
@@ -148,7 +108,6 @@ def run_data_pipeline(
     *,
     mode: str = "gaussian",
     era5_path: Path | None = None,
-    cams_path: Path | None = None,
     oco3_paths: list[Path] | None = None,
     num_timesteps: int = 24,
     output_zarr: Path | None = None,
@@ -158,19 +117,13 @@ def run_data_pipeline(
     Modes:
     - ``gaussian``: Gaussian plume only (default).
     - ``turbulent``: Gaussian plume with turbulent noise.
-    - ``composite``: CAMS background + plume + turbulence (requires *cams_path*).
     - ``wind``: ERA5 wind-driven plume (requires *era5_path*).
     - ``advected``: Semi-Lagrangian advection with ERA5 winds (requires *era5_path*).
 
     If *oco3_paths* is provided, attaches XCO2 observation overlay.
     If *output_zarr* is provided, writes the result to a Zarr store.
     """
-    if mode == "composite":
-        if cams_path is None:
-            msg = "mode='composite' requires cams_path"
-            raise ValueError(msg)
-        ds = build_composite_field(config, cams_path, num_timesteps)
-    elif mode == "turbulent":
+    if mode == "turbulent":
         ds = generate_turbulent_sequence(
             config.plume,
             config.grid,
@@ -199,7 +152,7 @@ def run_data_pipeline(
         ds = generate_sequence(config.plume, config.grid, num_timesteps)
 
     if oco3_paths:
-        ds = attach_oco3_overlay(ds, oco3_paths, config.data_source.domain, config.grid)
+        ds = attach_satellite_overlay(ds, oco3_paths, config.data_source.domain, config.grid)
 
     if output_zarr is not None:
         _write_pipeline_zarr(ds, output_zarr)

@@ -78,10 +78,6 @@ plume:
   mixing_height: 1500.0
   stack_height: 200.0
 
-cams:
-  dataset: cams-global-ghg-forecasts
-  cache_dir: data/cams
-
 rendering:
   mode: max
   anomaly_max_ppm: 10.0

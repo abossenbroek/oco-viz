@@ -6,7 +6,6 @@ Covers:
 - DomainConfig.bbox() cos(lat) correction
 - XCO2 physical plausibility range
 - ERA5 wind sign convention
-- CAMS unit conversion (kg/kg → ppm)
 - Semi-Lagrangian advection direction consistency
 - Zarr store dimension ordering and dtype validation
 """
@@ -27,7 +26,6 @@ from oco_viz.config.schema import (
     RenderingConfig,
     TurbulenceConfig,
 )
-from oco_viz.data.cams import _M_AIR, _M_CO2, _kgkg_to_ppm
 from oco_viz.data.era5 import wind_components_from_direction
 from oco_viz.data.oco import filter_quality
 from oco_viz.data.pipeline import run_data_pipeline
@@ -270,32 +268,6 @@ class TestWindConvention:
 
 
 # ------------------------------------------------------------------
-# CAMS unit conversion
-# ------------------------------------------------------------------
-
-
-class TestCAMSConversion:
-    """Validate CAMS CO2 mass mixing ratio → ppm conversion."""
-
-    def test_kgkg_to_ppm_typical_value(self) -> None:
-        """~6.06e-4 kg/kg CO2 should yield ~400 ppm."""
-        # 400 ppm mole fraction x (M_CO2/M_air) = 400e-6 x 44.01/28.97 ~ 6.075e-4
-        mass_fraction = np.array([6.075e-4], dtype=np.float64)
-        ppm = _kgkg_to_ppm(mass_fraction)
-        assert abs(float(ppm[0]) - 400.0) < 5.0, f"Expected ~400 ppm, got {float(ppm[0]):.1f}"
-
-    def test_kgkg_to_ppm_zero(self) -> None:
-        """Zero mass fraction should give zero ppm."""
-        ppm = _kgkg_to_ppm(np.array([0.0]))
-        assert float(ppm[0]) == 0.0
-
-    def test_molar_mass_ratio(self) -> None:
-        """M_air / M_CO2 should be ~0.658."""
-        ratio = _M_AIR / _M_CO2
-        assert abs(ratio - 0.6583) < 0.001, f"M_air/M_CO2 = {ratio:.4f}, expected ~0.6583"
-
-
-# ------------------------------------------------------------------
 # Advection direction consistency
 # ------------------------------------------------------------------
 
@@ -503,7 +475,7 @@ class TestPipelineModeDispatch:
     """Validate that run_data_pipeline correctly dispatches modes."""
 
     def test_gaussian_mode_no_data_required(self) -> None:
-        """Gaussian mode should work without ERA5 or CAMS data."""
+        """Gaussian mode should work without ERA5 data."""
         config = AppConfig(
             grid=GridConfig(nx=8, ny=8, nz=4, dx=1000.0, dy=1000.0, dz=500.0),
         )
@@ -512,12 +484,6 @@ class TestPipelineModeDispatch:
         assert "concentration" in ds
         assert ds["concentration"].dims == ("time", "z", "y", "x")
         assert ds["concentration"].dtype == np.float32
-
-    def test_composite_requires_cams_path(self) -> None:
-        """Composite mode should raise if cams_path is None."""
-        config = AppConfig()
-        with pytest.raises(ValueError, match="cams_path"):
-            run_data_pipeline(config, mode="composite", num_timesteps=1)
 
     def test_advected_requires_era5_path(self) -> None:
         """Advected mode should raise if era5_path is None."""

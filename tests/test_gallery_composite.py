@@ -63,10 +63,9 @@ def test_build_oco_overlay_actor_returns_none_for_empty() -> None:
     assert result is None
 
 
-def test_config_loads_with_new_sections() -> None:
-    """Config loads with cams and rendering sections."""
+def test_config_loads_with_rendering_section() -> None:
+    """Config loads with rendering section."""
     config = load_config()
-    assert hasattr(config, "cams")
     assert hasattr(config, "rendering")
     assert config.rendering.mode in ("max", "anomaly", "absolute")
 
@@ -93,7 +92,7 @@ def test_gallery_plume_type_mode_produces_nonzero(plume_type: str, mode: str) ->
         conc[5, 10, 10] = 0.001
         conc[4:7, 9:12, 9:12] = 0.0005
     else:
-        # Composite: CAMS background + plume enhancement
+        # Composite: background + plume enhancement
         conc = np.full((10, 20, 20), 420.0, dtype=np.float32)
         conc[5, 10, 10] = 430.0
     result = normalize_concentration(conc, cfg)
