@@ -16,6 +16,7 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+  - standing-on-shoulders
 requires: []
 phase_status: active
 ---
@@ -48,6 +49,7 @@ Load relevant skills and standards per phase-template.
 - Load visual language reference (`visual-language` skill)
 - Load the governance RACI matrix (`governance` skill)
 - Load the ideation protocol if a creative generation session is requested
+- Load `standing-on-shoulders` for conceptual positioning, storyboarding models, and gallery-context precedents
 - Identify output schema: `creative_review` from output-schemas
 - Load verdict-protocol for synthesis rules
 

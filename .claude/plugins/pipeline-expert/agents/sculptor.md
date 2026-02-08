@@ -17,6 +17,7 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+  - standing-on-shoulders
 requires: []
 phase_status: active
 ---
@@ -39,6 +40,7 @@ Load relevant skills and standards per phase-template.
 - Load `materiality-atlas` skill for physical reference assessment
 - Load `data-driven-turbulence` skill for wind-constrained procedural noise
 - Load `the-sublime` skill when evaluating monumental presence
+- Load `standing-on-shoulders` for material pipeline precedents and technical production strategies
 - Load visual language reference from critical-eye plugin
 - Identify output schema: `render_review` for volume technical review, `creative_review` for artistic evaluation
 - Load verdict-protocol for synthesis rules

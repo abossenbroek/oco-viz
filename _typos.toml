@@ -30,4 +30,4 @@ iy = "iy"
 ix = "ix"
 
 [files]
-extend-exclude = ["pixi.lock", ".pixi/", "pipelin_roles.json", "pipeline_expertise.json", "artist_stand_on_shoulder.*"]
+extend-exclude = ["pixi.lock", ".pixi/", "pipelin_roles.json", "pipeline_expertise.json", "artist_stand_on_shoulder.*", "plan/artist_references.yaml"]
