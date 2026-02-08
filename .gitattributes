@@ -4,3 +4,5 @@ output/examples/**/*.png filter=lfs diff=lfs merge=lfs -text
 output/examples/*.png filter=lfs diff=lfs merge=lfs -text
 plan/idea_board/*.png filter=lfs diff=lfs merge=lfs -text
 plan/artist_references.yaml filter=lfs diff=lfs merge=lfs -text
+plan/artist_stand_on_shoulder.yaml filter=lfs diff=lfs merge=lfs -text
+plan/artist_stand_on_shoulder.json filter=lfs diff=lfs merge=lfs -text
