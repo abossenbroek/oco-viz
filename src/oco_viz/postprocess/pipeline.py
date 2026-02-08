@@ -8,6 +8,7 @@ import numpy as np
 
 from oco_viz.config.schema import PostProcessConfig
 from oco_viz.postprocess.bloom import apply_bloom
+from oco_viz.postprocess.dof import apply_dof
 from oco_viz.postprocess.fog import apply_depth_fog
 from oco_viz.postprocess.tonemap import aces_tonemap
 
@@ -26,10 +27,10 @@ class PostProcessPipeline:
         rgb: NDArray[np.float32],
         depth: NDArray[np.float32],
     ) -> NDArray[np.float32]:
-        """Apply enabled stages: [fog] -> [bloom] -> tonemap.
+        """Apply enabled stages: [fog] -> [bloom] -> [dof] -> tonemap.
 
-        Fog and bloom are skipped when their respective config flags are False.
-        Bloom operates in HDR/linear space before tonemapping compresses the range.
+        Fog, bloom, and DOF are skipped when their respective config flags are False.
+        All three operate in HDR/linear space before tonemapping compresses the range.
         """
         result = rgb
         if self._config.fog_enabled:
@@ -46,6 +47,8 @@ class PostProcessPipeline:
                 intensity=self._config.bloom_intensity,
                 passes=self._config.bloom_passes,
             )
+        if self._config.dof.enabled:
+            result = apply_dof(result, depth, self._config.dof)
         return aces_tonemap(result, exposure=self._config.exposure)
 
     def quantize(self, rgb: NDArray[np.float32]) -> NDArray[np.uint8]:
