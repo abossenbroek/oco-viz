@@ -1,0 +1,53 @@
+id: "11-3"
+title: "OCIO Tonemap Replace Narkowicz"
+wave: 11
+status: todo
+depends: ["11-1"]
+produces:
+  - src/oco_viz/postprocess/tonemap.py
+  - tests/test_tonemap.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_tonemap.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Replace the current Narkowicz ACES approximation in tonemap.py with
+    proper OCIO-driven tone mapping using the project OCIO config.
+
+    Current implementation uses a hand-coded polynomial approximation of
+    ACES filmic. This introduces subtle errors in the near-black range
+    (#1a1a1a to #3d3d3d) critical for the Soot aesthetic.
+
+    New implementation:
+    - Load project OCIO config (from 11-1)
+    - Apply ACES Output Transform via PyOpenColorIO processor
+    - Post-transform achromatic enforcement (average RGB channels)
+    - Exposure control as pre-transform gain in ACEScg
+
+    Functions:
+    - ocio_tonemap(rgb_linear, exposure, ocio_config_path) -> NDArray
+    - aces_narkowicz(rgb, exposure) -> NDArray  (retained as fallback)
+
+    The OCIO path is the primary code path. Narkowicz retained only as
+    a no-dependency fallback for environments without PyOpenColorIO.
+
+    Acceptance criteria:
+    - OCIO tonemap matches ACES reference within 1 code value (8-bit)
+    - Near-black tonal gradation (#1a1a1a to #3d3d3d) is smooth, no banding
+    - Achromatic constraint: output R=G=B within 1 code value
+    - Fallback path warns when OCIO unavailable
+  patterns:
+    - "OCIO processor-based tone mapping"
+    - "Scene-referred to display-referred conversion"
+    - "Graceful fallback for missing dependency"
+  related_files:
+    - src/oco_viz/postprocess/tonemap.py
+    - src/oco_viz/render/ocio_config.py
+    - configs/ocio/config.ocio
+    - plan/visual_language.yaml

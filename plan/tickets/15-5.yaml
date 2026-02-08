@@ -1,0 +1,31 @@
+id: "15-5"
+title: "VDB Houdini-Convention Validation"
+wave: 15
+status: todo
+depends: ["15-4"]
+produces:
+  - tests/test_vdb_houdini_conventions.py
+  - scripts/validate_houdini_import.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_vdb_houdini_conventions.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Validate that multi-grid VDB output conforms to Houdini conventions:
+    - Grid types: vel is Vec3SGrid, others are FloatGrid
+    - Grid names: exactly {"density", "vel", "temperature", "dissolution_mask"}
+    - Metadata: file_voxel_size, file_grid_class="fog volume", creator="oco-viz"
+    - Value ranges: density [0,1], temperature [293,423]K, dissolution [0,1]
+    - No NaN/Inf in any grid
+    - Sparsity: background value = 0.0 (FloatGrid) / (0,0,0) (Vec3SGrid)
+
+    Also create scripts/validate_houdini_import.py — a hython script for
+    manual Houdini validation (not run in CI).
+  patterns:
+    - "Convention validation via unit tests"
+    - "Houdini pipeline bridge verification"
+  related_files:
+    - src/oco_viz/export/vdb.py
+    - src/oco_viz/config/schema.py

@@ -1,0 +1,63 @@
+id: "13-4"
+title: "OIDN Temporal Denoising Setup"
+wave: 13
+status: todo
+depends: ["13-3"]
+produces:
+  - src/oco_viz/postprocess/denoise.py
+  - tests/test_denoise.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_denoise.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Configure Intel Open Image Denoise (OIDN) 2.3 for temporal denoising
+    of Karma XPU renders. OIDN chosen over OptiX because it handles
+    achromatic, low-luminance content without color-shift artifacts.
+
+    Temporal denoising uses the velocity (motion vector) AOV buffer to
+    align adjacent frames before denoising, producing temporally stable
+    results without flickering.
+
+    OIDN configuration:
+    - Input: NoisyBeauty AOV (pre-denoise beauty from EXR)
+    - Albedo auxiliary: not used (volume rendering, no surface albedo)
+    - Normal auxiliary: world-space normals from N AOV
+    - Motion vectors: from motionvector AOV for temporal stability
+    - Quality: tier-dependent (aggressive/balanced/fine)
+
+    NoisyBeauty preservation:
+    - The NoisyBeauty AOV is stored in the EXR (ticket 11-2)
+    - After denoising, a percentage (10-15%) of NoisyBeauty is mixed
+      back to restore micro-detail and grain (ticket 14-2)
+
+    Functions:
+    - denoise_frame(noisy, normal, motion, quality) -> NDArray
+    - denoise_sequence(frames_dir, output_dir, quality) -> list[Path]
+    - configure_oidn(quality) -> OidnConfig
+
+    Quality levels:
+    - aggressive: scout tier, maximum noise reduction, some detail loss
+    - balanced: preview tier, good noise/detail trade-off
+    - fine: final tier, minimal noise reduction, preserves micro-detail
+
+    Acceptance criteria:
+    - Denoised frames are temporally stable (no flickering)
+    - Near-black regions (#1a1a1a to #3d3d3d) maintain tonal gradation
+    - No color shift introduced by denoiser (R=G=B preserved)
+    - NoisyBeauty AOV preserved for downstream grain restoration
+    - Quality modes produce visibly different noise/detail trade-offs
+  patterns:
+    - "OIDN 2.3 temporal denoising pipeline"
+    - "Motion-vector-guided frame alignment"
+    - "AOV-driven denoising auxiliaries"
+  related_files:
+    - src/oco_viz/render/exr_writer.py
+    - src/oco_viz/export/karma_config.py
+    - src/oco_viz/config/schema.py

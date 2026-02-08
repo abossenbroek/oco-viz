@@ -1,0 +1,60 @@
+id: "14-2"
+title: "Grain & NoisyBeauty Restoration"
+wave: 14
+status: todo
+depends: ["14-1"]
+produces:
+  - src/oco_viz/postprocess/grain_restore.py
+  - tests/test_grain_restore.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_grain_restore.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Restore film-like grain and micro-detail to denoised frames by mixing
+    back a percentage of the NoisyBeauty AOV. OIDN denoising (13-4)
+    removes noise but also kills subtle detail. This step restores
+    organic texture appropriate for the Soot aesthetic.
+
+    Grain restoration pipeline:
+    1. Read denoised beauty and NoisyBeauty AOV from EXR
+    2. Compute difference: grain = NoisyBeauty - denoised
+    3. Apply motion-tracked blending: use velocity AOV to warp grain
+       from adjacent frames for temporal stability
+    4. Mix: final = denoised + grain * mix_ratio
+    5. mix_ratio: 0.10-0.15 (10-15% grain restoration)
+
+    Motion tracking prevents grain from "swimming" (moving independently
+    of the volume). The velocity AOV from Karma provides per-pixel motion
+    vectors to warp the grain field.
+
+    Additional synthetic grain layer (optional):
+    - Gaussian grain at 0.5-1.0% amplitude for print deliverables
+    - Matched to Kodak Tri-X 400 grain profile (achromatic reference)
+    - Applied after NoisyBeauty restoration
+
+    Functions:
+    - restore_grain(denoised, noisy_beauty, velocity, mix_ratio) -> NDArray
+    - warp_grain(grain, velocity, dt) -> NDArray
+    - add_synthetic_grain(image, profile, amplitude, seed) -> NDArray
+
+    Acceptance criteria:
+    - Grain restoration adds visible micro-texture without noise
+    - Motion-tracked grain is temporally stable (no swimming)
+    - Mix ratio 10-15% is subtle — detail, not noise
+    - Synthetic grain optional and independently controlled
+    - Output remains achromatic (grain applied equally to R, G, B)
+  patterns:
+    - "NoisyBeauty AOV grain restoration"
+    - "Motion-vector-tracked grain warping"
+    - "Film grain profile matching"
+  related_files:
+    - src/oco_viz/postprocess/denoise.py
+    - src/oco_viz/render/exr_writer.py
+    - scripts/nuke_comp_template.py

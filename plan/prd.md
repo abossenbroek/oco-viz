@@ -1,3 +1,5 @@
+> **Note: Superseded by PRD v3.0 — see [`plan/prd_exhibition.md`](prd_exhibition.md) for the full exhibition pipeline specification. This document is retained as the v2.0 baseline.**
+
 # PRD: Sasol Secunda CO2 Atmospheric Visualization — "Soot"
 
 **Version**: 2.0

@@ -1,0 +1,48 @@
+id: "10-3"
+title: "Camera-Relative VDB Resolution Matrix"
+wave: 10
+status: todo
+depends: []
+produces:
+  - src/oco_viz/render/resolution_matrix.py
+  - tests/test_resolution_matrix.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_resolution_matrix.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Map each shot type to an appropriate VDB resolution tier. Close-up shots
+    (push_in, nadir_zoom) require higher voxel resolution to avoid visible
+    voxel edges; wide shots (parallel_dolly, boom_up) can use lower resolution.
+
+    Resolution tiers:
+    - Scout: 128^3 — motion timing, creative approval
+    - Preview: 512^3 — lighting, materials, technical review
+    - Final: 1024^3 — maximum detail, no creative surprises
+
+    Resolution matrix maps (shot_preset, render_tier) -> VDB resolution.
+    Close shots at final tier may use 1024^3 or even adaptive refinement.
+    Wide shots at final tier can remain at 512^3.
+
+    Functions:
+    - get_vdb_resolution(shot_preset, render_tier) -> tuple[int, int, int]
+    - estimate_vdb_memory(resolution) -> int  (bytes)
+    - validate_resolution_for_camera(resolution, camera_distance) -> bool
+
+    Acceptance criteria:
+    - Matrix covers all 6 shots x 3 tiers = 18 combinations
+    - Memory estimates are within GPU VRAM budget (24 GB target)
+    - Validation warns if voxel size > 1/500th of screen height
+  patterns:
+    - "Shot-to-resolution lookup table"
+    - "Progressive validation (scout -> preview -> final)"
+  related_files:
+    - src/oco_viz/render/camera_path.py
+    - src/oco_viz/render/shot_presets.py
+    - src/oco_viz/config/schema.py

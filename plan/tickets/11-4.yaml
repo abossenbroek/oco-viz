@@ -1,0 +1,61 @@
+id: "11-4"
+title: "Production VDB Multi-Grid Export"
+wave: 11
+status: todo
+depends: ["7-1", "15-4"]
+produces:
+  - src/oco_viz/sequencer/vdb_export.py
+  - tests/test_vdb_export.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_vdb_export.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Upgrade vdb_export.py from single-grid density export to production
+    multi-grid VDB files. Four grids per file as specified in RFC Decision 11.
+
+    Grid specification:
+    - density (FloatGrid): normalized 0.0-1.0 concentration
+    - vel (Vec3SGrid): wind velocity in m/s for particle advection
+    - temperature (FloatGrid): Kelvin (293-3000K) for emission shading
+    - dissolution_mask (FloatGrid): 0.0 (solid core) to 1.0 (dissolved edge)
+
+    Sparse design: all voxels with value < 1e-6 stored as exactly 0.0.
+    This ensures VDB tree pruning keeps active voxel count < 5% of domain.
+
+    Voxel transform uses GridConfig dx/dy/dz (not hardcoded 1000m).
+    Grid metadata: creator, frame, timestamp, origin_lat, origin_lon,
+    voxel_size_m, render_tier.
+
+    File naming: soot.{frame:06d}.vdb
+
+    Functions:
+    - export_production_vdb(concentration, velocity, temperature,
+        dissolution, output_path, grid_cfg, metadata) -> Path
+    - compute_dissolution_mask(concentration, threshold) -> NDArray
+    - export_vdb_sequence(ds, config, output_dir) -> list[Path]
+
+    Pressure grid intentionally omitted (no rendering use case,
+    saves 4 bytes/voxel at ~24 MB/frame for 512^3).
+
+    Acceptance criteria:
+    - All four grids present in output VDB with correct names and types
+    - Sparse: active voxel ratio < 5% of total domain
+    - Voxel transform matches GridConfig (not hardcoded)
+    - Grid metadata roundtrips through write/read
+    - File naming follows soot.{frame:06d}.vdb convention
+  patterns:
+    - "pyopenvdb FloatGrid/Vec3SGrid with metadata"
+    - "Sparse VDB design with explicit zero background"
+    - "GridConfig-driven voxel transform"
+  related_files:
+    - src/oco_viz/sequencer/vdb_export.py
+    - src/oco_viz/sequencer/controller.py
+    - src/oco_viz/config/schema.py
+    - src/oco_viz/plume/advection.py

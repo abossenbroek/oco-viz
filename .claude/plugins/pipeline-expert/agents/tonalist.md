@@ -15,6 +15,9 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+  - standing-on-shoulders
+requires: []
+phase_status: active
 ---
 
 # Tonalist Agent -- Color & Transfer Function Architect
@@ -34,6 +37,7 @@ Load relevant skills and standards per phase-template.
 - Load `density-to-dread` skill for TF design vocabulary
 - Load `color-science-aces` skill for pipeline color management
 - Load `the-sublime` skill when evaluating emotional weight
+- Load `standing-on-shoulders` for critical discourse on color, perception, and the critique-vs-immersion axis
 - Load visual language reference from critical-eye plugin
 - Identify output schema: `render_review` for TF technical review, `creative_review` for artistic evaluation
 - Load verdict-protocol for synthesis rules

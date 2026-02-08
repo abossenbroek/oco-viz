@@ -18,6 +18,9 @@ ND = "ND"
 LOD = "LOD"
 PNGs = "PNGs"
 PN = "PN"
+Nam = "Nam"
+Canva = "Canva"
+CLL = "CLL"
 
 [default.extend-identifiers]
 GES_DISC = "GES_DISC"
@@ -27,4 +30,4 @@ iy = "iy"
 ix = "ix"
 
 [files]
-extend-exclude = ["pixi.lock", ".pixi/", "pipelin_roles.json", "pipeline_expertise.json"]
+extend-exclude = ["pixi.lock", ".pixi/", "pipelin_roles.json", "pipeline_expertise.json", "plan/artist_stand_on_shoulder.*", "plan/artist_references.yaml"]

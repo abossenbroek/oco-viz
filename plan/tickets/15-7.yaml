@@ -1,0 +1,44 @@
+id: "15-7"
+title: "Chapter-Based Spec Review"
+wave: 15
+status: todo
+depends: ["15-1"]
+produces:
+  - plan/spec_review_log.yaml
+gates:
+  - cmd: "pixi run spell"
+    expect: exit_0
+context:
+  key_behavior: |
+    Create plan/spec_review_log.yaml that catalogs all 13 plan/ documents
+    with status headers and chapter assignments.
+
+    Four chapters:
+    1. Rendering — prd.md, prd_exhibition.md, coding_guide_2026.md, rfc.md,
+       visual_language.yaml
+    2. Compositing — finishing_spec.md, lookdev_bible.md
+    3. Exhibition — shot_design.md, curatorial_framework.md, technical_rider.md
+    4. Archival — conservation_package_spec.md, print_spec.md,
+       render_farm_spec.md
+
+    Each entry has: filename, spec-status (active/superseded/aspirational),
+    chapter, depends-on-wave, and a one-line summary.
+
+    Mark prd.md as superseded by prd_exhibition.md.
+  patterns:
+    - "Structured document catalog"
+    - "Chapter-based organization"
+  related_files:
+    - plan/prd.md
+    - plan/prd_exhibition.md
+    - plan/coding_guide_2026.md
+    - plan/rfc.md
+    - plan/visual_language.yaml
+    - plan/shot_design.md
+    - plan/lookdev_bible.md
+    - plan/finishing_spec.md
+    - plan/technical_rider.md
+    - plan/print_spec.md
+    - plan/render_farm_spec.md
+    - plan/conservation_package_spec.md
+    - plan/curatorial_framework.md

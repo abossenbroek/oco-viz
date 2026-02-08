@@ -25,6 +25,12 @@ physically realizable colors while remaining practical for CG computation.
 Scene-linear encoding preserves the physical accuracy of light transport
 calculations.
 
+**Implementation:** OpenColorIO (OCIO) is the target implementation for all ACES
+transforms, using the ACES 1.3 Studio Config. The current Narkowicz ACES
+approximation (used in VTK post-processing) will be replaced by OCIO-driven
+transforms in the exhibition pipeline (Wave 11+). Target: < 2% dE2000 difference
+between Narkowicz approximation and OCIO reference in the achromatic range.
+
 **Critical:** The ACES RRT provides the highlight rolloff that prevents the
 dirty near-white (#c8c8c8 in display space) from hard-clipping. The rolloff
 curve must be verified -- if it compresses the top of the achromatic ramp,

@@ -17,6 +17,8 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+requires: ["Karma XPU renderer (Wave 13)", "OIDN temporal denoise (Wave 13)"]
+phase_status: dormant_until_wave_13
 ---
 
 # Spectralist Agent -- Atmospheric Physics & Remote Sensing

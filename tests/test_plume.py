@@ -7,7 +7,7 @@ from oco_viz.plume.gaussian import generate_sequence, generate_timestep
 def test_low_wind_uses_floor() -> None:
     """Very low wind speed should use floor of 0.5 m/s."""
     grid = GridConfig(nx=50, ny=50, nz=30, dx=1000.0, dy=1000.0, dz=500.0)
-    plume = PlumeConfig(wind_speed=0.001)  # Very low but valid
+    plume = PlumeConfig(wind_speed=0.001, source_x=25.0, source_y=25.0)  # Very low but valid
     result = generate_timestep(plume, grid, 0)
     assert result.max() > 0, "Should produce non-zero plume even with very low wind"
     assert np.all(np.isfinite(result)), "No NaN/Inf with very low wind"
@@ -17,7 +17,7 @@ def test_generate_timestep_shape() -> None:
     grid = GridConfig()
     plume = PlumeConfig()
     result = generate_timestep(plume, grid, time_index=0)
-    assert result.shape == (60, 100, 100)
+    assert result.shape == (60, 300, 300)
     assert result.dtype == np.float32
 
 
@@ -77,5 +77,5 @@ def test_generate_sequence_returns_dataset() -> None:
     ds = generate_sequence(plume, grid, num_timesteps=4)
     assert "concentration" in ds
     assert ds.concentration.dims == ("time", "z", "y", "x")
-    assert ds.concentration.shape == (4, 60, 100, 100)
+    assert ds.concentration.shape == (4, 60, 300, 300)
     assert ds.concentration.dtype == np.float32

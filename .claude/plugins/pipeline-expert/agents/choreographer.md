@@ -14,6 +14,9 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+  - standing-on-shoulders
+requires: []
+phase_status: active
 ---
 
 # Choreographer Agent — Camera & Temporal Arc
@@ -32,6 +35,7 @@ Load relevant skills and standards per phase-template.
 
 - Load `virtual-cinematographer` skill for lens packages and motion languages
 - Load `temporal-choreography` skill for state machine and pacing logic
+- Load `standing-on-shoulders` for storyboarding models and curatorial visitor-flow strategies
 - Identify output schema: `render_review` from output-schemas
 - Load verdict-protocol for synthesis rules
 - Load visual language reference if available

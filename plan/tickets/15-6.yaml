@@ -1,0 +1,23 @@
+id: "15-6"
+title: "Timeline Recalibration"
+wave: 15
+status: blocked
+depends: ["15-4"]
+produces:
+  - plan/prd_exhibition.md
+gates:
+  - cmd: "pixi run spell"
+    expect: exit_0
+context:
+  key_behavior: |
+    Cannot execute until USD + MaterialX + Karma XPU spike completes
+    (Waves 12-13). When unblocked, update plan/prd_exhibition.md with
+    spike-calibrated durations and measured Karma render times.
+
+    Blocking condition: No Karma XPU benchmark data available yet.
+    The current timeline estimates in prd_exhibition.md are speculative.
+  patterns:
+    - "Evidence-based timeline estimation"
+    - "Blocked until empirical data available"
+  related_files:
+    - plan/prd_exhibition.md

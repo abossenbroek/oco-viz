@@ -1,0 +1,69 @@
+spec_review_log:
+  version: "1.0"
+  last_updated: "2026-02-07"
+  chapters:
+    rendering:
+      name: "Rendering Pipeline"
+      specs:
+        - file: "plan/prd.md"
+          status: superseded
+          superseded_by: "plan/prd_exhibition.md"
+          depends_on_wave: null
+          summary: "v2.0 baseline product requirements (superseded by exhibition PRD)"
+        - file: "plan/prd_exhibition.md"
+          status: active
+          depends_on_wave: 10
+          summary: "v3.0 exhibition PRD — phases 0-8 from VTK pre-viz to gallery output"
+        - file: "plan/coding_guide_2026.md"
+          status: active
+          depends_on_wave: null
+          summary: "2026 production pipeline architecture and quality principles"
+        - file: "plan/rfc.md"
+          status: active
+          depends_on_wave: null
+          summary: "Architecture decision records 1-9"
+        - file: "plan/visual_language.yaml"
+          status: active
+          depends_on_wave: null
+          summary: "Canonical Soot aesthetic machine specification"
+    compositing:
+      name: "Compositing & Lookdev"
+      specs:
+        - file: "plan/finishing_spec.md"
+          status: aspirational
+          depends_on_wave: 13
+          summary: "Nuke compositing pipeline — grain, OCIO, multi-pass assembly"
+        - file: "plan/lookdev_bible.md"
+          status: aspirational
+          depends_on_wave: 11
+          summary: "7 exhibition lookdev techniques (Soot Crust shader stack)"
+    exhibition:
+      name: "Exhibition & Installation"
+      specs:
+        - file: "plan/shot_design.md"
+          status: aspirational
+          depends_on_wave: 10
+          summary: "6-shot Descent of Carbon storyboard with camera vocabulary"
+        - file: "plan/curatorial_framework.md"
+          status: aspirational
+          depends_on_wave: 14
+          summary: "Artist statement, achromatic manifesto, curatorial context"
+        - file: "plan/technical_rider.md"
+          status: aspirational
+          depends_on_wave: 14
+          summary: "Gallery installation requirements — display, room, audio, backup"
+    archival:
+      name: "Archival & Conservation"
+      specs:
+        - file: "plan/conservation_package_spec.md"
+          status: aspirational
+          depends_on_wave: 14
+          summary: "Institutional acquisition package for 20-year re-exhibition"
+        - file: "plan/print_spec.md"
+          status: aspirational
+          depends_on_wave: 14
+          summary: "Baryta paper archival print pipeline — ICC, Dmax, GCR"
+        - file: "plan/render_farm_spec.md"
+          status: aspirational
+          depends_on_wave: 13
+          summary: "Karma XPU render settings — scout/preview/final tiers"

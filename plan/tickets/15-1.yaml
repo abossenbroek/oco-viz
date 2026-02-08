@@ -1,0 +1,33 @@
+id: "15-1"
+title: "Reframe VTK as Pre-Viz Stage"
+wave: 15
+status: done
+depends: []
+produces:
+  - CLAUDE.md
+  - plan/prd_exhibition.md
+  - plan/visual_language.yaml
+gates:
+  - cmd: "pixi run spell"
+    expect: exit_0
+context:
+  key_behavior: |
+    Reframe documentation to honestly label the current VTK renderer as
+    Stage 0 pre-visualization, not exhibition-quality output. The existing
+    pipeline produces study-grade imagery suitable for creative direction,
+    timing, and composition validation. Exhibition-grade output requires
+    the downstream Karma XPU pipeline (Waves 12-13).
+
+    Changes:
+    - CLAUDE.md: add Stage 0/Stage 1+ labels in Cinematic Pipeline Context
+    - prd_exhibition.md: add "Phase 0: VTK Pre-Viz" framing at top
+    - visual_language.yaml: add renderer: field to each tier definition
+
+    This is documentation-only — no code changes.
+  patterns:
+    - "Honest staging labels"
+    - "Renderer-aware tier definitions"
+  related_files:
+    - CLAUDE.md
+    - plan/prd_exhibition.md
+    - plan/visual_language.yaml

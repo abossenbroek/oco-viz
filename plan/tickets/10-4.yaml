@@ -1,0 +1,53 @@
+id: "10-4"
+title: "Print Hero Frame Specification"
+wave: 10
+status: todo
+depends: ["10-1"]
+produces:
+  - plan/print_spec.md
+  - src/oco_viz/render/print_frame.py
+  - tests/test_print_frame.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_print_frame.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Define the hero frame selection and high-resolution print render
+    specification. A "hero frame" is a single frame from the animation
+    chosen for archival-quality large-format printing.
+
+    PrintFrameSpec dataclass:
+    - frame_index: int (selected from animation)
+    - resolution_multiplier: 4x base (e.g., 7680x9600 for 4:5 at 300 DPI A0)
+    - motion_blur: disabled (zero shutter angle)
+    - ink_limit: 280% total area coverage (FOGRA39 / ISO 12647-2)
+    - color_profile: GRACoL2013 or custom achromatic ICC
+    - output_format: 16-bit TIFF
+
+    Functions:
+    - select_hero_frame(animation_ds, criteria) -> int
+    - configure_print_render(frame_spec) -> RenderConfig
+    - validate_ink_limit(image, max_tac) -> bool
+
+    Hero frame selection criteria: maximum plume structural complexity
+    (measured by gradient magnitude), good composition within safe zone,
+    representative of the Soot aesthetic at its most dense and textured.
+
+    Acceptance criteria:
+    - PrintFrameSpec fully specifies a print-ready render
+    - Ink limit validation prevents press issues
+    - 4x resolution multiplier produces artifact-free enlargement
+  patterns:
+    - "High-resolution single-frame render configuration"
+    - "Print production validation (ink limit, DPI, color profile)"
+  related_files:
+    - src/oco_viz/render/safe_zone.py
+    - src/oco_viz/render/camera_path.py
+    - src/oco_viz/config/schema.py
+    - plan/visual_language.yaml

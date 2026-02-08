@@ -1,6 +1,10 @@
 ---
 extends: default
 
+ignore:
+  - plan/artist_references.yaml
+  - plan/artist_stand_on_shoulder.yaml
+
 rules:
   line-length:
     max: 120

@@ -80,6 +80,22 @@ pixi run ci          # full CI suite: format, lint, typecheck, test, spell, dead
 
 If either fails, fix the issue before pushing. This prevents CI failures on GitHub that could have been caught locally.
 
+### 4.2 Commit Message & PR Title Convention
+
+This repo enforces **Conventional Commits** via `commitlint` (config: `.commitlintrc.yml`). Both commit messages and PR titles must follow the format:
+
+```
+<type>: <lowercase subject>
+```
+
+**Rules:**
+- **Subject must be lowercase** — `feat: add new skill` not `feat: Add new skill`
+- **No sentence-case, start-case, pascal-case, or upper-case** in the subject
+- **Allowed types:** `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `plan`, `refactor`, `revert`, `style`, `test`
+- **PR titles** follow the same convention — GitHub Actions checks both
+
+**Local check:** `pixi run commit-lint` validates the latest commit message (also included in `pixi run ci`).
+
 ## 5. Visual Quality Gate
 
 The `output/examples/` directory contains gallery PNGs (tracked via Git LFS) that serve as **visual regression baselines**. These are the ground truth for rendering quality.
@@ -150,10 +166,20 @@ from __future__ import annotations
 
 This project generates VTK volumetric data for downstream cinematic rendering. See `plan/coding_guide_2026.md` for the full 2026 production pipeline.
 
+### Pipeline Stages
+
+| Stage | Renderer | Quality Level | Status |
+|-------|----------|---------------|--------|
+| **Stage 0: VTK Pre-Viz** | VTK (Python) | Study/pre-visualization | **Active** (Waves 1-9) |
+| **Stage 1+: Production** | Karma XPU (Houdini) | Exhibition/gallery-quality | Planned (Waves 12-13) |
+
+The current oco-viz pipeline produces **pre-visualization quality** imagery via VTK. This is suitable for creative direction approval, timing validation, and composition exploration. Exhibition-grade output requires the downstream Karma XPU pipeline, which is not yet implemented.
+
 ### Pipeline Overview
 
 ```
-VTK Generation (oco-viz) → OpenVDB Conversion → Houdini Processing → GPU Rendering
+Stage 0: VTK Generation (oco-viz) → OpenVDB Export → Pre-viz review
+Stage 1+: OpenVDB → Houdini Processing → Karma XPU → Nuke Compositing → Exhibition
 ```
 
 ### Critical VTK Design Decisions

@@ -47,9 +47,9 @@ VTK voxel data transforms into cinematic-quality volumetric renders through Open
 ┌─────────────────────────────────────────────────────────────────────────┐
 │            RENDERING (Linux RTX 6000 Headless Cloud Instances)           │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  Karma XPU: GPU+CPU hybrid rendering, full CUDA acceleration            │
-│  RenderMan: GPU path tracing, Disney ML Denoiser (Academy Award 2025)   │
-│  Configuration: 256-512 samples + ML denoise = 1024 sample quality      │
+│  Karma XPU: GPU+CPU hybrid rendering, full CUDA acceleration (SOLE)     │
+│  Configuration: 256-512 samples + OIDN 2.3 temporal denoise             │
+│  Render step size: ≤ 0.5× voxel spacing for final delivery              │
 │  Multi-pass: Beauty, Density, Emission, Deep, Temperature/Vel AOVs      │
 └─────────────────────────────────────────────────────────────────────────┘
                                     ↓
@@ -71,7 +71,7 @@ VTK voxel data transforms into cinematic-quality volumetric renders through Open
 | Technology | Status | Production Impact |
 |------------|--------|------------------|
 | **ML Denoisers** | Universal standard | 60-75% render time reduction, maintains detail |
-| **GPU Rendering** | Production default | Karma XPU, RenderMan: 3-5× faster than CPU-only |
+| **GPU Rendering** | Production default | Karma XPU (sole renderer): 3-5× faster than CPU-only |
 | **GPU Simulation** | Widely adopted | Axiom solver: 5-10× speedup, Metal/CUDA support |
 | **USD Pipelines** | Industry mandatory | Universal Scene Description, cross-tool compatibility |
 | **OpenVDB** | Volumetric standard | Sparse hierarchical storage, 85-95% file reduction |
@@ -131,14 +131,14 @@ Cache to Cloud → Render on Linux RTX
 
 **RTX 6000 Ada Specifications:**
 - 48GB VRAM (supports large volumetric scenes)
-- CUDA cores for Karma XPU, RenderMan, Axiom
+- CUDA cores for Karma XPU, Axiom
 - Tensor cores for ML denoising acceleration
 - Multiple instances for render farm scaling
 
 **Rendering Performance:**
-- Karma XPU: Full GPU+CPU hybrid, optimal RTX utilization
-- RenderMan: GPU path tracing, CUDA-accelerated
-- ML Denoisers: OptiX (NVIDIA), Disney ML (RenderMan)
+- Karma XPU: Full GPU+CPU hybrid, optimal RTX utilization (sole production renderer)
+- OIDN 2.3: Intel Open Image Denoise with temporal stability — eliminates flicker in animation sequences
+- Render step size: ≤ 0.5× voxel spacing for final delivery (exploration renders may use 1.0× for speed)
 - Multi-instance: Linear scaling across cloud nodes
 
 **Headless Configuration:**
@@ -170,6 +170,18 @@ The most expensive mistakes happen in VTK generation. Incorrect units, wrong vox
 **Multi-Resolution Consistency Principle:**
 
 Generate scout (128³), preview (512³), and final (1024³) from identical parameters—only resolution changes. This ensures scout accurately predicts final behavior, preventing expensive surprises.
+
+**Camera-Relative Procedural Upres:**
+
+For exhibition-quality detail without regenerating the full volume, apply camera-relative procedural upres: add turbulent noise detail only in the camera frustum at render time. This strategy keeps VDB file sizes manageable while delivering hero-shot detail where the viewer is actually looking. The upres noise parameters (frequency, octaves, amplitude) must be consistent with the base simulation's turbulence settings.
+
+**VDB Domain Boundary Falloff:**
+
+All exported VDB grids must include a smooth density falloff at domain boundaries to prevent hard-edge artifacts when the volume intersects the grid extents. Apply a cosine-ramp falloff over the outermost 5-10% of the grid in each axis. This is critical for the Soot aesthetic — hard box edges instantly break the illusion of a volumetric atmosphere.
+
+**Quality Gates — Delivery vs. Exploration:**
+
+Quality gates (histogram validation, sparsity checks, metadata completeness) are enforced on **delivery VDBs only**. Exploration and iteration VDBs skip quality gates for faster turnaround. This two-track approach prevents quality infrastructure from slowing creative iteration while ensuring every VDB that enters the production pipeline meets specification.
 
 **Validation Before Conversion:**
 - Histogram check: Verify value ranges (density 0-1, temperature in Kelvin)

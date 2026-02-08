@@ -1,0 +1,57 @@
+id: "11-6"
+title: "VDB Delivery Quality Gates"
+wave: 11
+status: todo
+depends: ["11-4"]
+produces:
+  - src/oco_viz/sequencer/vdb_quality.py
+  - tests/test_vdb_quality.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_vdb_quality.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Automated quality gates that validate delivery VDB files before they
+    enter the render farm. These gates run on final delivery exports only;
+    exploration/iteration exports skip them for speed.
+
+    Quality checks:
+    1. Mass conservation: total density delta < 1% frame-to-frame
+       (excluding source injection region). Detects advection leaks.
+    2. Sparsity: active voxel ratio < 5% of total domain. Files
+       exceeding this are likely missing background pruning.
+    3. NaN/Inf: zero non-finite values across all four grids.
+       A single NaN will corrupt the entire Karma render.
+    4. BBox validation: active bounding box fits within domain with
+       2-voxel margin on all faces. Catches domain overflow.
+    5. Grid name validation: exact match to spec (density, vel,
+       temperature, dissolution_mask). Houdini SOPs match by name.
+
+    Functions:
+    - validate_vdb(path, prev_path=None) -> VdbValidation
+    - check_mass_conservation(current, previous, tolerance) -> bool
+    - check_sparsity(grid, max_ratio) -> bool
+    - check_finite(grid) -> bool
+    - check_bbox(grid, domain_shape, margin) -> bool
+    - check_grid_names(path, expected_names) -> bool
+
+    VdbValidation is a dataclass with per-check pass/fail, messages,
+    and an overall pass property.
+
+    Acceptance criteria:
+    - All five checks implemented and independently testable
+    - VdbValidation provides clear error messages for failures
+    - Tests include deliberately malformed VDB files for each check
+    - Gate runs in < 2 seconds per frame (I/O bound, not compute)
+  patterns:
+    - "Dataclass-driven validation result"
+    - "Per-check independent validation with aggregate pass/fail"
+  related_files:
+    - src/oco_viz/sequencer/vdb_export.py
+    - src/oco_viz/config/schema.py

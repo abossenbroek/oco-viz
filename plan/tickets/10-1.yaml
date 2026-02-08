@@ -1,0 +1,46 @@
+id: "10-1"
+title: "Aspect Ratio & Multi-Format Safe Zone"
+wave: 10
+status: todo
+depends: []
+produces:
+  - plan/shot_design.md
+  - src/oco_viz/render/safe_zone.py
+  - tests/test_safe_zone.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_safe_zone.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Define the master aspect ratio and multi-format safe-zone system for all
+    exhibition deliverables. The primary format is 4:5 portrait ("Monolith")
+    — vertical emphasis matching the industrial stack motif.
+
+    SafeZone dataclass: aspect_ratio (4:5 primary), title_safe (90%),
+    action_safe (95%), bleed (102%). All camera framing and composition
+    must keep critical plume mass within action_safe across all target
+    formats: 4:5 gallery print, 16:9 projection, 1:1 social, 9:16 mobile.
+
+    Functions:
+    - compute_safe_zone(width, height, format) -> SafeZone
+    - is_within_safe(bbox_2d, safe_zone) -> bool
+    - overlay_safe_zone_debug(image, safe_zone) -> NDArray (study tier)
+
+    Acceptance criteria:
+    - SafeZone correctly computed for all four target formats
+    - Debug overlay draws title/action/bleed guides on study-tier frames
+    - Unit tests verify safe-zone geometry for each format
+  patterns:
+    - "Dataclass-driven safe zone geometry"
+    - "Multi-format aspect ratio conversion"
+  related_files:
+    - src/oco_viz/render/camera_path.py
+    - src/oco_viz/render/camera.py
+    - src/oco_viz/config/schema.py
+    - plan/visual_language.yaml

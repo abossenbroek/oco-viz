@@ -13,6 +13,8 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+requires: ["USD scene export (Wave 12)", "Houdini SOP pipeline (Wave 12)"]
+phase_status: dormant_until_wave_12
 ---
 
 # Alchemist Agent -- Pipeline & Procedural Graph

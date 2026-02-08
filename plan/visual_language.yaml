@@ -117,13 +117,14 @@ visual_language:
       directional light — the soot is its own dim, oppressive light source.
     vtk_parameters:
       global_illumination_reach: 0.6
-      scattering_anisotropy: 0.35
+      scattering_anisotropy: 0.35  # study tier; exhibition tier uses 0.8 ("ghost light")
       ambient: 0.4
       diffuse: 0.5
       specular: 0.0
     notes:
       - "Exhibition tier: remove all external lights, diffuse=0.0 (no external light response)"
-      - "Study tier: basic volume shading acceptable, diffuse=0.5"
+      - "Exhibition tier: scattering_anisotropy=0.8 for ghost light depth cues"
+      - "Study tier: basic volume shading acceptable, diffuse=0.5, scattering_anisotropy=0.35"
       - "Sketch tier: no lighting computation"
 
   motion:
@@ -191,6 +192,8 @@ visual_language:
   tiers:
     sketch:
       purpose: "Fast iteration, form exploration"
+      renderer: "vtk"
+      pipeline_stage: "pre_viz"
       treatment: "wireframe or point cloud on black"
       color: "single grey (#6b6b6b), no transfer function"
       particles: false
@@ -202,6 +205,8 @@ visual_language:
       post_processing: "none — raw output"
     study:
       purpose: "Density/TF refinement"
+      renderer: "vtk"
+      pipeline_stage: "pre_viz"
       treatment: "volume rendering with grey-scale TF"
       color: "full Soot palette via soot.json transfer function"
       particles: false
@@ -213,6 +218,8 @@ visual_language:
       post_processing: "fog -> bloom -> ACES tonemap"
     exhibition:
       purpose: "Gallery-quality output"
+      renderer: "karma_xpu"
+      pipeline_stage: "production"
       treatment: "full volume + particle dissolution + turbulent detail"
       color: "full Soot palette with opacity curves"
       particles: "granular soot dissolution at volume boundaries"
@@ -222,6 +229,87 @@ visual_language:
       motion: "slow, creeping, glacial camera — heavy easing"
       annotations: false
       post_processing: "ACES tonemap only (no bloom, no fog)"
+      exhibition_lookdev:
+        description: >
+          Full Soot Crust lookdev stack applied at exhibition tier.
+          See plan/lookdev_bible.md for detailed specification of each technique.
+        soot_crust_shader:
+          type: "dual-state volume shader"
+          crust_field: "|grad(density)| normalized to 95th percentile"
+          crust_state: "absorption 1.0, scattering 0.0, matte black"
+          interior_state: "absorption 0.1, scattering 0.8, translucent grey"
+          scattering_anisotropy: 0.8
+          blend_width: 0.05
+        curvature_driven_emission:
+          formula: "fuel * oxygen * emission_intensity"
+          oxygen_proxy: "max(vorticity_magnitude, surface_curvature)"
+          emission_color: [0.68, 0.68, 0.68]
+          arrhythmic_pulse: "sin(0.2Hz*t) * sin(0.05Hz*t)"
+          pulse_amplitude: 0.2
+        stochastic_ash_culling:
+          crumble_zone: [0.0, 0.2]
+          threshold_noise: "blue noise 3D, 128^3 tiled"
+          alpha_mode: "binary (1.0 or 0.0)"
+          temporal_stability: "same noise texture every frame"
+        sedimentary_noise:
+          y_compression: 0.1
+          viscosity_strength: 0.5
+          octaves: 5
+          description: "Stratified horizontal shelves, dense regions resist deformation"
+        paper_grain_manifold:
+          octaves: 8
+          lacunarity: 2.2
+          amplitude: 0.05
+          advects: false
+          weight: "inverse density gradient — grain visible at low density, suppressed at high"
+
+  lookdev:
+    description: >
+      Exhibition-tier lookdev techniques that transform the base volume
+      into gallery-quality Soot imagery. Full specification in
+      plan/lookdev_bible.md. These techniques are exhibition-only unless
+      noted; study and sketch tiers use the base pipeline.
+    techniques:
+      - name: "Paper Grain Manifold"
+        tier: "exhibition"
+        description: "Static high-frequency 3D noise subtracted from density, weighted by inverse gradient"
+        reference: "William Kentridge — charcoal substrate grain"
+      - name: "Sedimentary Motion"
+        tier: "exhibition"
+        description: "Anisotropic noise (compressed Y=0.1) for horizontal stratification, viscosity mapped to density"
+        reference: "Geological strata, coal seam layering"
+      - name: "Curvature-Driven Emission"
+        tier: "exhibition"
+        description: "emission = fuel * oxygen (vorticity/curvature), replaces density*noise"
+        reference: "Industrial combustion — oxygen at surfaces drives glow"
+      - name: "Stochastic Ash Culling"
+        tier: "exhibition"
+        description: "Blue noise binary alpha in crumble zone (density 0.0-0.2)"
+        reference: "Ash falling from industrial stacks"
+      - name: "Three Chords of Dread"
+        tier: "exhibition"
+        description: "Drone (HYSPLIT glacial) + Churn (convective rolls) + Spark (emission crackles)"
+        reference: "Sunn O))) — three sustained notes"
+      - name: "The Soot Crust"
+        tier: "exhibition"
+        description: >-
+          Dual-state shader: steep gradient = matte black crust,
+          shallow gradient = translucent grey interior
+        reference: "Industrial slag, cooling lava crust"
+      - name: "Contact Sheet Bible"
+        tier: "exhibition"
+        description: "TOPs wedge 100 variations, print best 5 on baryta, lock on paper then animate"
+        reference: "Photographer contact sheet workflow"
+    scattering_anisotropy:
+      study: 0.35
+      exhibition: 0.8
+      note: >
+        Study tier uses 0.35 (moderate forward scattering, standard smoke).
+        Exhibition tier uses 0.8 (strong forward scattering, 'ghost light')
+        to create depth cues in the dual-state Soot Crust shader. The high
+        anisotropy causes light to bleed through the translucent interior
+        while being blocked by the opaque crust, producing visible spatial
+        depth even in achromatic imagery.
 
   developer_self_check:
     - "The plume feels industrial and oppressive with weight and texture"

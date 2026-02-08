@@ -18,8 +18,8 @@ def _configs_dir() -> Path:
 class GridConfig(BaseModel):
     """Spatial grid configuration."""
 
-    nx: int = Field(default=100, gt=0)
-    ny: int = Field(default=100, gt=0)
+    nx: int = Field(default=300, gt=0)
+    ny: int = Field(default=300, gt=0)
     nz: int = Field(default=60, gt=0)
     dx: float = Field(default=1000.0, gt=0, description="Grid spacing in meters")
     dy: float = Field(default=1000.0, gt=0)
@@ -91,8 +91,8 @@ class CameraConfig(BaseModel):
     azimuth_start: float = 0.0
     azimuth_end: float = 360.0
     elevation: float = 30.0
-    distance: float = 300.0
-    focal_point: tuple[float, float, float] = (50.0, 50.0, 30.0)
+    distance: float = 600.0
+    focal_point: tuple[float, float, float] = (150.0, 150.0, 30.0)
 
 
 class LightingConfig(BaseModel):
@@ -154,8 +154,8 @@ class OutputConfig(BaseModel):
 class PlumeConfig(BaseModel):
     """Gaussian plume source configuration."""
 
-    source_x: float = 50.0
-    source_y: float = 10.0
+    source_x: float = 150.0
+    source_y: float = 150.0
     source_z: float = 5.0
     emission_rate: float = Field(default=1000.0, gt=0, description="kg/s")
     stability_class: str = Field(default="D")
@@ -178,8 +178,8 @@ class DomainConfig(BaseModel):
 
     origin_lat: float = Field(default=-26.52, description="Facility latitude")
     origin_lon: float = Field(default=29.17, description="Facility longitude")
-    extent_x_km: float = Field(default=100.0, gt=0, description="East-west extent in km")
-    extent_y_km: float = Field(default=100.0, gt=0, description="North-south extent in km")
+    extent_x_km: float = Field(default=300.0, gt=0, description="East-west extent in km")
+    extent_y_km: float = Field(default=300.0, gt=0, description="North-south extent in km")
     extent_z_km: float = Field(default=15.0, gt=0, description="Vertical extent in km")
 
     def bbox(self) -> tuple[float, float, float, float]:
@@ -400,6 +400,26 @@ class CompositionConfig(BaseModel):
         return v
 
 
+class VdbExportConfig(BaseModel):
+    """Multi-grid VDB export configuration."""
+
+    enabled: bool = True
+    include_velocity: bool = True
+    include_temperature: bool = True
+    include_dissolution: bool = True
+    t_ambient: float = Field(default=293.0, gt=0, description="Ambient temperature in Kelvin")
+    t_source: float = Field(default=423.0, gt=0, description="Source temperature in Kelvin")
+    temperature_decay_cells: float = Field(
+        default=50.0, gt=0, description="Temperature decay distance in grid cells"
+    )
+    dissolution_low: float = Field(
+        default=0.05, ge=0, le=1, description="Low threshold for dissolution mask"
+    )
+    dissolution_high: float = Field(
+        default=0.30, ge=0, le=1, description="High threshold for dissolution mask"
+    )
+
+
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
@@ -423,6 +443,7 @@ class AppConfig(BaseModel):
     validation: ValidationConfig = Field(default_factory=ValidationConfig)
     motion: MotionConfig = Field(default_factory=MotionConfig)
     composition: CompositionConfig = Field(default_factory=CompositionConfig)
+    vdb_export: VdbExportConfig = Field(default_factory=VdbExportConfig)
 
     @field_validator("tier")
     @classmethod

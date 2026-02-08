@@ -16,7 +16,8 @@ Optional features:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal, cast, overload
 
 import numpy as np
 import xarray as xr
@@ -35,6 +36,15 @@ if TYPE_CHECKING:
         PlumeConfig,
         TurbulenceConfig,
     )
+
+
+@dataclass(frozen=True)
+class AdvectionResult:
+    """Result of a single advection step with optional velocity fields."""
+
+    concentration: NDArray[np.float32]
+    velocity: tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]] | None = None
+
 
 logger = logging.getLogger(__name__)
 
@@ -329,9 +339,73 @@ def _apply_mass_correction(
     return result
 
 
+def _check_cfl(
+    u_wind: NDArray[np.float32],
+    v_wind: NDArray[np.float32],
+    dt: float,
+    grid: GridConfig,
+    t_idx: int,
+) -> None:
+    """Log a warning when the CFL number exceeds 1.0."""
+    max_u = float(np.max(np.abs(u_wind)))
+    max_v = float(np.max(np.abs(v_wind)))
+    cfl = max(max_u * dt / grid.dx, max_v * dt / grid.dy)
+    if cfl > 1.0:
+        logger.warning(
+            "CFL number %.2f > 1.0 at step %d; consider reducing dt or increasing sub_steps",
+            cfl,
+            t_idx,
+        )
+
+
+def _apply_mixing_height_lid(
+    result: NDArray[np.float32],
+    plume_cfg: PlumeConfig | None,
+    grid: GridConfig,
+) -> None:
+    """Zero out concentration above the mixing-height layer (in-place)."""
+    if plume_cfg is not None and plume_cfg.mixing_height > 0:
+        lid_layer = int(plume_cfg.mixing_height / grid.dz)
+        nz = grid.shape[0]
+        if lid_layer < nz:
+            result[lid_layer:, :, :] = 0.0
+
+
 # ------------------------------------------------------------------ #
 # Public API
 # ------------------------------------------------------------------ #
+
+
+@overload
+def advect_step(
+    conc: NDArray[np.float32],
+    u_wind: NDArray[np.float32],
+    v_wind: NDArray[np.float32],
+    dt: float,
+    grid: GridConfig,
+    turb_cfg: TurbulenceConfig,
+    t_idx: int,
+    *,
+    plume_cfg: PlumeConfig | None = ...,
+    adv_cfg: AdvectionConfig | None = ...,
+    return_velocity: Literal[False] = ...,
+) -> NDArray[np.float32]: ...
+
+
+@overload
+def advect_step(
+    conc: NDArray[np.float32],
+    u_wind: NDArray[np.float32],
+    v_wind: NDArray[np.float32],
+    dt: float,
+    grid: GridConfig,
+    turb_cfg: TurbulenceConfig,
+    t_idx: int,
+    *,
+    plume_cfg: PlumeConfig | None = ...,
+    adv_cfg: AdvectionConfig | None = ...,
+    return_velocity: Literal[True],
+) -> AdvectionResult: ...
 
 
 def advect_step(
@@ -345,7 +419,8 @@ def advect_step(
     *,
     plume_cfg: PlumeConfig | None = None,
     adv_cfg: AdvectionConfig | None = None,
-) -> NDArray[np.float32]:
+    return_velocity: bool = False,
+) -> NDArray[np.float32] | AdvectionResult:
     """Perform a single advection step on the concentration field.
 
     Steps:
@@ -402,15 +477,7 @@ def advect_step(
         w_wind = _briggs_plume_rise(plume_cfg, adv_cfg, grid, u_mean)
 
     # CFL diagnostic
-    max_u = float(np.max(np.abs(u_wind)))
-    max_v = float(np.max(np.abs(v_wind)))
-    cfl = max(max_u * dt / grid.dx, max_v * dt / grid.dy)
-    if cfl > 1.0:
-        logger.warning(
-            "CFL number %.2f > 1.0 at step %d; consider reducing dt or increasing sub_steps",
-            cfl,
-            t_idx,
-        )
+    _check_cfl(u_wind, v_wind, dt, grid, t_idx)
 
     # 2. Turbulent curl-noise
     if turb_cfg.enabled:
@@ -437,14 +504,16 @@ def advect_step(
         result = _inject_source(result, plume_cfg, grid, adv_cfg.source_injection_sigma, dt)
 
     # 5. Mixing-height lid
-    if plume_cfg is not None and plume_cfg.mixing_height > 0:
-        lid_layer = int(plume_cfg.mixing_height / grid.dz)
-        if lid_layer < nz:
-            result[lid_layer:, :, :] = 0.0
+    _apply_mixing_height_lid(result, plume_cfg, grid)
 
     # 6. Clamp negatives
     np.maximum(result, 0.0, out=result)
 
+    if return_velocity:
+        return AdvectionResult(
+            concentration=result,
+            velocity=(u_wind, v_wind, w_wind),
+        )
     return result
 
 
@@ -456,6 +525,7 @@ def advect_sequence(
     n_steps: int,
     *,
     adv_cfg: AdvectionConfig | None = None,
+    return_velocity: bool = False,
 ) -> xr.Dataset:
     """Generate an advected plume concentration sequence.
 
@@ -493,6 +563,17 @@ def advect_sequence(
     nz, ny, nx = grid.shape
 
     frames: list[NDArray[np.float32]] = [conc.astype(np.float32)]
+    vel_u_frames: list[NDArray[np.float32]] = []
+    vel_v_frames: list[NDArray[np.float32]] = []
+    vel_w_frames: list[NDArray[np.float32]] = []
+
+    # Store zero-velocity for the initial frame when collecting velocity
+    if return_velocity:
+        zero_vel = np.zeros((nz, ny, nx), dtype=np.float32)
+        vel_u_frames.append(zero_vel)
+        vel_v_frames.append(zero_vel)
+        vel_w_frames.append(zero_vel)
+
     sub_steps = adv_cfg.sub_steps
     sub_dt = adv_cfg.dt / sub_steps
 
@@ -514,23 +595,42 @@ def advect_sequence(
         v_wind = wind_ds["v_wind"].values[wind_t].astype(np.float32)
 
         for _sub in range(sub_steps):
-            conc = advect_step(
-                conc,
-                u_wind,
-                v_wind,
-                sub_dt,
-                grid,
-                turb_cfg,
-                frame_idx,
-                plume_cfg=plume_cfg,
-                adv_cfg=adv_cfg,
-            )
+            if return_velocity:
+                vel_result = advect_step(
+                    conc,
+                    u_wind,
+                    v_wind,
+                    sub_dt,
+                    grid,
+                    turb_cfg,
+                    frame_idx,
+                    plume_cfg=plume_cfg,
+                    adv_cfg=adv_cfg,
+                    return_velocity=True,
+                )
+                conc = vel_result.concentration
+                assert vel_result.velocity is not None
+                vel_u_frames.append(vel_result.velocity[0])
+                vel_v_frames.append(vel_result.velocity[1])
+                vel_w_frames.append(vel_result.velocity[2])
+            else:
+                conc = advect_step(
+                    conc,
+                    u_wind,
+                    v_wind,
+                    sub_dt,
+                    grid,
+                    turb_cfg,
+                    frame_idx,
+                    plume_cfg=plume_cfg,
+                    adv_cfg=adv_cfg,
+                )
             frame_idx += 1
             frames.append(conc.astype(np.float32))
 
     data = np.stack(frames, axis=0)  # (time, z, y, x)
 
-    return xr.Dataset(
+    ds = xr.Dataset(
         {"concentration": (["time", "z", "y", "x"], data)},
         coords={
             "time": np.arange(len(frames)),
@@ -539,3 +639,10 @@ def advect_sequence(
             "x": np.arange(nx) * grid.dx,
         },
     )
+
+    if return_velocity:
+        ds["u_vel"] = (["time", "z", "y", "x"], np.stack(vel_u_frames, axis=0))
+        ds["v_vel"] = (["time", "z", "y", "x"], np.stack(vel_v_frames, axis=0))
+        ds["w_vel"] = (["time", "z", "y", "x"], np.stack(vel_w_frames, axis=0))
+
+    return ds

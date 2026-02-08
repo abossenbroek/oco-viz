@@ -13,6 +13,9 @@ skills:
   - reference/verdict-protocol
   - reference/phase-template
   - knowledge-query
+  - standing-on-shoulders
+requires: ["Exhibition technical rider (Wave 14)", "Gallery pre-viz (Wave 14)"]
+phase_status: dormant_until_wave_14
 ---
 
 # Installer Agent — Exhibition Architect
@@ -30,6 +33,7 @@ Your references: Turrell's Roden Crater (light defining space), Kapoor's Descent
 Load relevant skills and standards per phase-template.
 
 - Load `installation-architecture` skill for room calculations and multi-sensory routing
+- Load `standing-on-shoulders` for curatorial installation strategies, conservation, and institutional framing
 - Identify output schema: `render_review` from output-schemas
 - Load verdict-protocol for synthesis rules
 - Load visual language reference if available

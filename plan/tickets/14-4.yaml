@@ -1,0 +1,60 @@
+id: "14-4"
+title: "High-Res Print Render Pass"
+wave: 14
+status: todo
+depends: ["13-5", "10-4"]
+produces:
+  - src/oco_viz/render/print_render.py
+  - tests/test_print_render.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_print_render.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Execute the high-resolution print render pass for hero frames.
+    This is a separate render from the animation — higher resolution,
+    zero motion blur, and print-specific quality settings.
+
+    Print render specification (from 10-4 PrintFrameSpec):
+    - Resolution: 4x animation base (7680x9600 for 4:5 at 300 DPI A0)
+    - Motion blur: disabled (shutter angle = 0)
+    - Samples: 2048+ (double final tier for noise-free output)
+    - Denoiser: OIDN fine with minimal strength (preserve all detail)
+    - Volume step rate: 16 (maximum quality)
+
+    The render uses Houdini procedural upres (13-5) at maximum resolution
+    to ensure no visible voxel edges in the print.
+
+    Ink limit validation: total area coverage must not exceed 280%
+    (FOGRA39 / ISO 12647-2 for coated papers). The achromatic Soot
+    palette naturally stays well under this limit (max ~100% TAC for
+    pure grey), but validation catches any processing errors.
+
+    Functions:
+    - configure_print_render(hero_spec, karma_config) -> RenderConfig
+    - execute_print_render(config, output_dir) -> Path
+    - validate_print_output(image_path, ink_limit) -> bool
+
+    Output: 16-bit TIFF in AdobeRGB, ready for RIP/prepress.
+
+    Acceptance criteria:
+    - Zero motion blur in rendered frame
+    - Resolution sufficient for 300 DPI at target print size
+    - No visible voxel edges or stepping artifacts
+    - Ink limit validation passes
+    - TIFF has correct ICC profile embedded
+  patterns:
+    - "High-resolution single-frame Karma render"
+    - "Print production validation pipeline"
+    - "Zero motion blur render configuration"
+  related_files:
+    - src/oco_viz/render/print_frame.py
+    - scripts/houdini_upres.py
+    - src/oco_viz/export/karma_config.py
+    - src/oco_viz/config/schema.py

@@ -1,0 +1,46 @@
+id: "15-4"
+title: "Velocity Exposure + Multi-Grid VDB Export"
+wave: 15
+status: todo
+depends: ["15-1"]
+produces:
+  - src/oco_viz/plume/advection.py
+  - src/oco_viz/export/vdb.py
+  - src/oco_viz/config/schema.py
+  - configs/base.yaml
+  - tests/test_vdb_export.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_vdb_export.py tests/test_advection.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Part A — Velocity Exposure:
+    - Add AdvectionResult dataclass to advection.py
+    - Add return_velocity parameter to advect_step() via @overload
+    - Extend advect_sequence() to return velocity DataArrays when enabled
+
+    Part B — Multi-Grid VDB Export:
+    - numpy_to_vec3f_grid() for velocity Vec3SGrid
+    - compute_temperature_field() for Kelvin temperature
+    - compute_dissolution_mask() for edge dissolution
+    - export_multi_grid_vdb() writes 4-grid VDB files
+    - Sparse design: voxels < 1e-6 stored as 0.0
+    - VdbExportConfig Pydantic model in schema.py
+
+    This bridges the gap between the existing single-grid VDB export
+    and the production multi-grid format needed by Houdini.
+  patterns:
+    - "Backward-compatible API extension via overloads"
+    - "Sparse VDB design with explicit zero background"
+    - "GridConfig-driven voxel transform"
+  related_files:
+    - src/oco_viz/plume/advection.py
+    - src/oco_viz/export/vdb.py
+    - src/oco_viz/config/schema.py
+    - configs/base.yaml

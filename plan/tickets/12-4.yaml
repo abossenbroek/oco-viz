@@ -1,0 +1,61 @@
+id: "12-4"
+title: "Stochastic Ash Culling"
+wave: 12
+status: todo
+depends: ["12-1"]
+produces:
+  - src/oco_viz/export/ash_culling.py
+  - tests/test_ash_culling.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_ash_culling.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Implement stochastic voxel culling at plume edges using blue noise
+    thresholding. This creates the "granular dissolution" effect where
+    volume boundaries break into discrete soot particles instead of
+    smooth opacity falloff.
+
+    Blue noise threshold:
+    - Pre-compute a 3D blue noise texture (or tile a 2D blue noise
+      texture along Z). Blue noise provides visually uniform random
+      distribution without clumping.
+    - At each voxel on the plume boundary (dissolution_mask > 0.3):
+      if dissolution_mask[i,j,k] > blue_noise[i,j,k]: cull voxel (set to 0)
+    - This creates spatially uniform random holes that increase toward
+      the edge, producing natural-looking particulate breakup.
+
+    The culling is applied to the density grid before VDB export.
+    Culled voxels become exactly 0.0 (background/inactive) for sparsity.
+
+    Functions:
+    - generate_blue_noise_3d(shape, seed) -> NDArray
+    - apply_ash_culling(density, dissolution_mask, blue_noise) -> NDArray
+
+    Culling intensity increases with dissolution_mask value:
+    - mask 0.3-0.5: sparse culling (5-15% of voxels removed)
+    - mask 0.5-0.7: moderate culling (15-40%)
+    - mask 0.7-1.0: heavy culling (40-80%)
+
+    Exhibition tier only. Study and sketch tiers skip culling.
+
+    Acceptance criteria:
+    - Culling produces visually uniform breakup (no clumps)
+    - Dense core (mask < 0.3) is unaffected
+    - Culled voxels are exactly 0.0 (maintains sparsity)
+    - Blue noise is deterministic given seed
+    - Culling intensity scales smoothly with dissolution_mask
+  patterns:
+    - "Blue noise stochastic thresholding"
+    - "Dissolution-mask-driven voxel culling"
+    - "Sparse VDB optimization via exact zero"
+  related_files:
+    - src/oco_viz/export/materialx_shader.py
+    - src/oco_viz/sequencer/vdb_export.py
+    - plan/visual_language.yaml

@@ -14,6 +14,12 @@ from oco_viz.render.composition import compose_camera_from_plume, plume_bounding
 from oco_viz.render.easing import EasingFunction
 from oco_viz.render.renderer import VolumeRenderer, resolve_transfer_function
 
+# Compact grid overrides for low-res render tests — keeps plume visible at 64x64.
+_COMPACT_GRID: dict[str, object] = {
+    "grid": {"nx": 100, "ny": 100, "nz": 60},
+    "plume": {"source_x": 50.0, "source_y": 10.0},
+}
+
 # Small grid for fast integration tests
 SMALL_GRID = GridConfig(nx=20, ny=20, nz=12, dx=1000.0, dy=1000.0, dz=500.0)
 
@@ -97,7 +103,7 @@ def test_camera_path_with_plume_composition() -> None:
     """Camera path + composition pipeline produces valid state."""
     config = load_config(
         tier="exhibition",
-        overrides={"turbulence": {"octaves": 2}},
+        overrides={"turbulence": {"octaves": 2}, "plume": {"source_x": 10.0, "source_y": 10.0}},
     )
     conc = generate_turbulent_timestep(config.plume, SMALL_GRID, config.turbulence, 0)
     focal, distance, _elevation = compose_camera_from_plume(
@@ -117,7 +123,7 @@ def test_plume_bounds_from_turbulent_field() -> None:
     """Turbulent plume produces non-degenerate bounding box."""
     config = load_config(
         tier="study",
-        overrides={"turbulence": {"octaves": 2}},
+        overrides={"turbulence": {"octaves": 2}, "plume": {"source_x": 10.0, "source_y": 10.0}},
     )
     conc = generate_turbulent_timestep(config.plume, SMALL_GRID, config.turbulence, 0)
     centroid, bmin, bmax = plume_bounding_box(
@@ -140,8 +146,9 @@ def _grid_camera(config: AppConfig) -> CameraState:
     """Compute a camera that frames the plume volume for the given config grid."""
     g = config.grid
     focal = (g.nx * g.dx / 2.0, g.ny * g.dy / 2.0, g.nz * g.dz / 2.0)
+    extent = max(g.nx * g.dx, g.ny * g.dy)
     return CameraState(
-        position=(focal[0] + 150_000, focal[1] + 150_000, focal[2] + 50_000),
+        position=(focal[0] + extent * 0.5, focal[1] + extent * 0.5, focal[2] + 50_000),
         focal_point=focal,
     )
 
@@ -155,6 +162,7 @@ def test_soot_render_produces_non_black_frame() -> None:
         overrides={
             "output": {"width": 64, "height": 64},
             "turbulence": {"octaves": 2},
+            **_COMPACT_GRID,
         },
     )
     renderer = VolumeRenderer(config)
@@ -178,6 +186,7 @@ def test_soot_render_achromatic_output() -> None:
         overrides={
             "output": {"width": 64, "height": 64},
             "turbulence": {"octaves": 2},
+            **_COMPACT_GRID,
         },
     )
     renderer = VolumeRenderer(config)
@@ -206,6 +215,7 @@ def test_exhibition_render_no_fog_no_bloom() -> None:
         overrides={
             "output": {"width": 64, "height": 64},
             "turbulence": {"octaves": 2},
+            **_COMPACT_GRID,
         },
     )
     renderer = VolumeRenderer(config)
@@ -228,6 +238,7 @@ def test_exhibition_render_non_black() -> None:
         overrides={
             "output": {"width": 64, "height": 64},
             "turbulence": {"octaves": 2},
+            **_COMPACT_GRID,
         },
     )
     renderer = VolumeRenderer(config)

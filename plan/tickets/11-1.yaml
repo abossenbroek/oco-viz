@@ -1,0 +1,54 @@
+id: "11-1"
+title: "ACES/OCIO Config Generation"
+wave: 11
+status: todo
+depends: []
+produces:
+  - configs/ocio/config.ocio
+  - src/oco_viz/render/ocio_config.py
+  - tests/test_ocio_config.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_ocio_config.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Generate a project-specific OpenColorIO configuration for the ACES
+    scene-referred pipeline. All rendering, compositing, and delivery
+    operations use this config for color management.
+
+    OCIO config specifies:
+    - Working space: ACEScg (AP1 primaries, linear)
+    - Rendering space: ACEScg
+    - Display transform: ACES 1.0 SDR-video (sRGB) for preview,
+      ACES 1.0 HDR (ST-2084 PQ) for exhibition displays
+    - Achromatic override: custom Look that enforces R=G=B constraint
+      post-tonemap to prevent any color drift from ACES transforms
+    - File rules: EXR -> ACEScg, TIFF -> sRGB, PNG -> sRGB
+
+    Functions:
+    - generate_ocio_config(output_dir) -> Path
+    - validate_ocio_config(config_path) -> bool
+    - get_display_transform(target) -> str
+
+    The config must be loadable by PyOpenColorIO, Nuke, and Houdini.
+    Achromatic Look uses a custom 1D LUT that averages RGB channels
+    post-display-transform to guarantee monochrome output.
+
+    Acceptance criteria:
+    - config.ocio validates with ociocheck
+    - Roundtrip: ACEScg -> sRGB display -> verify R=G=B within 1 code value
+    - Config loads in PyOpenColorIO without errors
+  patterns:
+    - "ACES scene-referred color management"
+    - "OpenColorIO config generation"
+    - "Achromatic constraint via OCIO Look"
+  related_files:
+    - src/oco_viz/postprocess/tonemap.py
+    - src/oco_viz/config/schema.py
+    - plan/visual_language.yaml

@@ -1,0 +1,71 @@
+id: "13-3"
+title: "Karma XPU Render Config"
+wave: 13
+status: todo
+depends: ["12-5", "13-1"]
+produces:
+  - src/oco_viz/export/karma_config.py
+  - configs/karma/
+  - tests/test_karma_config.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_karma_config.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Generate Karma XPU render configurations for the three render tiers
+    (scout/preview/final). Configuration stored as USD RenderSettings
+    prims and as standalone YAML for reference.
+
+    Tier specifications (from RFC Decision 10):
+    Scout:
+    - Resolution: 1920x2400 (4:5)
+    - Samples: 64
+    - Denoiser: OIDN aggressive
+    - Volume step rate: 2
+    - Purpose: motion timing, creative direction approval
+
+    Preview:
+    - Resolution: 3840x4800
+    - Samples: 256
+    - Denoiser: OIDN balanced
+    - Volume step rate: 4
+    - Purpose: lighting, materials, technical review
+
+    Final:
+    - Resolution: 7680x9600
+    - Samples: 1024+
+    - Denoiser: OIDN fine + NoisyBeauty preservation
+    - Volume step rate: 8
+    - Purpose: maximum detail, no creative surprises
+
+    AOV configuration (all tiers):
+    - C (beauty), depth, N (normals), motionvector, NoisyBeauty, crypto
+
+    Functions:
+    - generate_karma_config(tier, output_dir) -> Path
+    - apply_karma_settings(stage, tier) -> None
+    - estimate_render_time(tier, frame_count) -> float
+
+    configs/karma/ contains per-tier YAML files: scout.yaml, preview.yaml,
+    final.yaml.
+
+    Acceptance criteria:
+    - All three tier configs are valid and distinct
+    - USD RenderSettings prim is correct for Karma XPU
+    - AOV list complete for compositing pipeline (11-2)
+    - Volume step rate scales appropriately per tier
+    - Render time estimates are reasonable (based on benchmarks)
+  patterns:
+    - "USD RenderSettings for Karma XPU"
+    - "Tier-driven render configuration"
+    - "YAML config with USD prim generation"
+  related_files:
+    - src/oco_viz/export/usd_scene.py
+    - src/oco_viz/render/exr_writer.py
+    - src/oco_viz/config/schema.py

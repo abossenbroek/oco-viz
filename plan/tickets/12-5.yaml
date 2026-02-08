@@ -1,0 +1,58 @@
+id: "12-5"
+title: "Lookdev Contact Sheet Wedge"
+wave: 12
+status: todo
+depends: ["12-1", "12-2", "12-3", "12-4"]
+produces:
+  - scripts/render_lookdev_wedge.py
+  - configs/lookdev_wedge.yaml
+gates:
+  - cmd: "pixi run ruff check src/ tests/ scripts/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+context:
+  key_behavior: |
+    Generate a lookdev contact sheet of 100 shader variations using
+    Houdini TOPs (Task Operator Network) for parallel wedging. The
+    contact sheet systematically varies Soot Crust shader parameters
+    to find the optimal exhibition look.
+
+    Wedge parameters (10 x 10 grid = 100 variations):
+    - Axis 1 (10 steps): extinction_coeff range 2.0 to 12.0
+    - Axis 2 (10 steps): scatter_albedo range 0.05 to 0.95
+    - Fixed: anisotropy=0.35, emission from curvature, paper grain on
+
+    Each variation renders a single frame (hero frame from 10-4) at
+    scout resolution (1920x2400) with 64 samples + OIDN.
+
+    Houdini TOPs graph:
+    - Wedge TOP: generates 100 parameter combinations
+    - ROP Karma TOP: renders each combination
+    - ImageMagick/Mosaic TOP: assembles 10x10 contact sheet
+    - Output: single PNG contact sheet + individual frames
+
+    The script generates the TOPs network programmatically via hou module
+    or outputs a .hip file with the network pre-built.
+
+    configs/lookdev_wedge.yaml defines the wedge ranges, hero frame
+    selection, and render settings.
+
+    Acceptance criteria:
+    - 100 variations rendered and assembled into contact sheet
+    - Contact sheet clearly labeled with parameter values
+    - Wedge covers meaningful range (not all variations look identical)
+    - Script runs unattended via Houdini batch (hython)
+    - Total render time < 2 hours on single GPU (scout tier)
+  patterns:
+    - "Houdini TOPs parallel wedging"
+    - "Systematic parameter space exploration"
+    - "Contact sheet assembly"
+  related_files:
+    - src/oco_viz/export/materialx_shader.py
+    - src/oco_viz/export/curvature_emission.py
+    - src/oco_viz/export/paper_grain.py
+    - src/oco_viz/export/ash_culling.py
+    - configs/lookdev_wedge.yaml

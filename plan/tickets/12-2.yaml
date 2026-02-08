@@ -1,0 +1,56 @@
+id: "12-2"
+title: "Curvature-Driven Emission Logic"
+wave: 12
+status: todo
+depends: ["12-1"]
+produces:
+  - src/oco_viz/export/curvature_emission.py
+  - tests/test_curvature_emission.py
+gates:
+  - cmd: "pixi run ruff check src/ tests/"
+    expect: exit_0
+  - cmd: "pixi run mypy src/"
+    expect: exit_0
+  - cmd: "pixi run pyright src/"
+    expect: exit_0
+  - cmd: "pixi run pytest tests/test_curvature_emission.py -x"
+    expect: exit_0
+context:
+  key_behavior: |
+    Add curvature-driven emission to the Soot Crust shader. Regions of
+    high surface curvature (folds, creases, ridges in the density field)
+    emit more strongly, creating the "internal smoldering" effect where
+    light appears trapped in geological folds.
+
+    Curvature computation:
+    - Compute gradient of density field (numpy.gradient)
+    - Compute divergence of gradient (Laplacian) for mean curvature
+    - High curvature regions (ridges, folds) get emission boost
+    - Curvature field exported as additional VDB grid or baked into
+      temperature grid as additive contribution
+
+    Emission mapping:
+    - curvature_normalized = clamp(abs(laplacian) / max_curvature, 0, 1)
+    - emission_boost = curvature_normalized * emission_scale
+    - Total emission = base_temperature_emission + emission_boost
+    - All emission values remain achromatic (grey-scale)
+
+    Functions:
+    - compute_curvature_field(density) -> NDArray
+    - apply_curvature_emission(temperature, curvature, scale) -> NDArray
+
+    The emission_scale parameter controls the smoldering intensity.
+    Default 0.3 — subtle fold glow, not overwhelming.
+
+    Acceptance criteria:
+    - Curvature field highlights density folds and ridges
+    - Emission boost is visible in rendered output at folds
+    - Flat regions unaffected (emission boost near zero)
+    - Emission remains strictly achromatic
+  patterns:
+    - "Laplacian curvature from density gradient"
+    - "Curvature-driven volumetric emission"
+  related_files:
+    - src/oco_viz/export/materialx_shader.py
+    - src/oco_viz/sequencer/vdb_export.py
+    - plan/visual_language.yaml
