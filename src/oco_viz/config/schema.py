@@ -420,6 +420,25 @@ class VdbExportConfig(BaseModel):
     )
 
 
+class EncodingConfig(BaseModel):
+    """Video encoding configuration."""
+
+    codec: str = Field(default="h264", description="h264 | h265 | prores4444 | dnxhr_hqx | png")
+    crf: int = Field(default=18, ge=0, le=63)
+    pixel_format: str | None = Field(default=None, description="Auto from codec if None")
+    include_slate: bool = True
+    slate_duration_s: float = Field(default=3.0, gt=0, le=10.0)
+
+    @field_validator("codec")
+    @classmethod
+    def _valid_codec(cls, v: str) -> str:
+        valid = {"h264", "h265", "prores4444", "dnxhr_hqx", "png"}
+        if v not in valid:
+            msg = f"Codec must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
+
+
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
@@ -433,6 +452,7 @@ class AppConfig(BaseModel):
     transfer_function: TransferFunctionConfig = Field(default_factory=TransferFunctionConfig)
     postprocess: PostProcessConfig = Field(default_factory=PostProcessConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
+    encoding: EncodingConfig = Field(default_factory=EncodingConfig)
     plume: PlumeConfig = Field(default_factory=PlumeConfig)
     turbulence: TurbulenceConfig = Field(default_factory=TurbulenceConfig)
     advection: AdvectionConfig = Field(default_factory=AdvectionConfig)

@@ -1,7 +1,7 @@
 id: "7-2"
 title: "Professional Video Encoding + Title Slate"
 wave: 7
-status: todo
+status: done
 depends: ["6-4"]
 produces:
   - tests/test_encode_formats.py

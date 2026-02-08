@@ -57,6 +57,12 @@ output:
   fps: 24
   bit_depth: 16
 
+encoding:
+  codec: h264
+  crf: 18
+  include_slate: true
+  slate_duration_s: 3.0
+
 turbulence:
   enabled: true
   octaves: 6

@@ -13,9 +13,9 @@ from oco_viz.plume.turbulent import generate_turbulent_sequence
 from oco_viz.sequencer.controller import render_sequence
 from oco_viz.sequencer.encode import (
     CODEC_PRESETS,
-    prepare_frames_with_slate,
     encode_video,
     generate_slate,
+    prepare_frames_with_slate,
 )
 
 
