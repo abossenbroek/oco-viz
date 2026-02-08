@@ -17,6 +17,10 @@ postprocess:
   fog_enabled: false
   bloom_enabled: false
   exposure: 4.0
+  dof:
+    enabled: true
+    aperture: 2.8
+    max_blur_radius: 10.0
 
 lighting:
   mode: smoldering
@@ -29,3 +33,12 @@ composition:
   enabled: true
   asymmetric_offset: [0.05, 0.02]
   vertical_emphasis: true
+
+particle_dissolution:
+  enabled: true
+  threshold: 0.05
+  particle_count_scale: 1.0
+
+ecd:
+  enabled: true
+  anomaly_scale: 1.0
