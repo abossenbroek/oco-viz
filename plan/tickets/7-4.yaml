@@ -1,7 +1,7 @@
 id: "7-4"
 title: "Final Assembly Script (End-to-End Pipeline)"
 wave: 7
-status: todo
+status: done
 depends: ["7-1", "7-2", "7-3"]
 produces:
   - scripts/assemble_final.py

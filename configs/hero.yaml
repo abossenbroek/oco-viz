@@ -1,0 +1,78 @@
+# Hero configuration: exhibition-quality VTK pre-viz
+# Usage: pixi run python scripts/assemble_final.py --config configs/hero.yaml
+
+tier: exhibition
+
+grid:
+  nx: 96
+  ny: 96
+  nz: 64
+  dx: 100.0
+  dy: 100.0
+  dz: 50.0
+
+sky:
+  enabled: false
+
+ground_plane:
+  enabled: false
+
+scattering:
+  sample_distance: 10.0
+  shade: false
+  global_illumination_reach: 0.8
+  jittering: true
+
+lighting:
+  mode: smoldering
+
+camera:
+  rig: orbit
+  azimuth_start: 0.0
+  azimuth_end: 90.0
+  elevation: 30.0
+  distance: 600.0
+  focal_point: [48.0, 48.0, 16.0]
+
+transfer_function:
+  preset: soot_exhibition
+
+postprocess:
+  exposure: 25.0
+  bloom_threshold: 0.50
+  bloom_intensity: 0.25
+  bloom_passes: 3
+  fog_density: 0.02
+  fog_color: [0.0, 0.0, 0.0]
+  tonemap: aces
+
+output:
+  width: 3840
+  height: 2160
+  frames_dir: output/hero/frames
+  video_dir: output/hero/video
+  vdb_dir: output/hero/vdb
+  fps: 24
+  bit_depth: 16
+
+encoding:
+  codec: prores4444
+  crf: 18
+  include_slate: true
+  slate_duration_s: 3.0
+
+rendering:
+  mode: max
+  opacity_gamma: 2.2
+
+data_source:
+  start_date: "2024-01-15"
+  end_date: "2024-04-15"
+
+annotations:
+  show_timestamp: true
+  show_facility: true
+  show_credits: true
+  show_scale_bar: true
+  font_size: 24
+  facility_name: "Sasol Secunda"
