@@ -117,6 +117,17 @@ class TransferFunctionConfig(BaseModel):
     json_path: str | None = None
 
 
+class DOFConfig(BaseModel):
+    """Shallow depth of field configuration (nested inside PostProcessConfig)."""
+
+    enabled: bool = False
+    focal_distance: float | None = Field(
+        default=None, description="Focal distance in depth units; None = auto (plume centroid)"
+    )
+    aperture: float = Field(default=2.8, gt=0)
+    max_blur_radius: float = Field(default=10.0, gt=0)
+
+
 class PostProcessConfig(BaseModel):
     """Post-processing pipeline configuration."""
 
@@ -129,6 +140,7 @@ class PostProcessConfig(BaseModel):
     bloom_intensity: float = Field(default=0.3, ge=0)
     bloom_passes: int = Field(default=3, ge=1)
     exposure: float = Field(default=0.6, gt=0)
+    dof: DOFConfig = Field(default_factory=DOFConfig)
 
 
 class OutputConfig(BaseModel):
@@ -420,6 +432,28 @@ class VdbExportConfig(BaseModel):
     )
 
 
+class ParticleDissolutionConfig(BaseModel):
+    """Particle dissolution at volume boundaries (exhibition tier)."""
+
+    enabled: bool = False
+    threshold: float = Field(default=0.05, ge=0, le=1)
+    particle_count_scale: float = Field(default=1.0, gt=0)
+    drift_speed: float = Field(default=0.5, ge=0)
+    gravity: float = Field(default=0.1, ge=0)
+    particle_scale: float = Field(default=150.0, gt=0)
+    particle_opacity: float = Field(default=0.4, ge=0, le=1)
+    seed: int = 42
+
+
+class ECDConfig(BaseModel):
+    """Enhanced Column Density (ECD) data ingestion configuration."""
+
+    enabled: bool = False
+    cache_dir: str = "data/ecd"
+    date_range: tuple[str, str] = ("2024-01-01", "2024-01-31")
+    anomaly_scale: float = Field(default=1.0, ge=0)
+
+
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
@@ -444,6 +478,10 @@ class AppConfig(BaseModel):
     motion: MotionConfig = Field(default_factory=MotionConfig)
     composition: CompositionConfig = Field(default_factory=CompositionConfig)
     vdb_export: VdbExportConfig = Field(default_factory=VdbExportConfig)
+    particle_dissolution: ParticleDissolutionConfig = Field(
+        default_factory=ParticleDissolutionConfig,
+    )
+    ecd: ECDConfig = Field(default_factory=ECDConfig)
 
     @field_validator("tier")
     @classmethod
