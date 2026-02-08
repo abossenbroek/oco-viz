@@ -3,5 +3,17 @@
   "version": "1.0.0",
   "description": "Wave-based ticket orchestration with parallel quality gates and auto-fix for Python projects",
   "author": { "name": "oco-viz team" },
-  "keywords": ["wave", "tickets", "quality-gates", "python"]
+  "keywords": ["wave", "tickets", "quality-gates", "python"],
+  "commands": {
+    "gate": { "source": "./commands/gate.md" },
+    "ticket": { "source": "./commands/ticket.md" },
+    "wave": { "source": "./commands/wave.md" },
+    "wave-status": { "source": "./commands/wave-status.md" }
+  },
+  "agents": [
+    "./agents/gate-runner.md",
+    "./agents/ticket-executor.md",
+    "./agents/wave-orchestrator.md"
+  ],
+  "hooks": "./hooks/hooks.json"
 }

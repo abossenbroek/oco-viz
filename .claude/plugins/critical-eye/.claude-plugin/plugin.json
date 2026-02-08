@@ -3,5 +3,15 @@
   "version": "1.0.0",
   "description": "Two-agent visual quality review: VFX technical eye + independent art director with tier-specific personas",
   "author": { "name": "oco-viz team" },
-  "keywords": ["visual-review", "vfx", "art-direction", "quality-gate", "rendering"]
+  "keywords": ["visual-review", "vfx", "art-direction", "quality-gate", "rendering"],
+  "commands": {
+    "review": { "source": "./commands/review.md" },
+    "review-gallery": { "source": "./commands/review-gallery.md" },
+    "review-gate": { "source": "./commands/review-gate.md" },
+    "image-stats": { "source": "./commands/image-stats.md" }
+  },
+  "agents": [
+    "./agents/critical-eye.md",
+    "./agents/art-director.md"
+  ]
 }

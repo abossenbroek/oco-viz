@@ -3,5 +3,20 @@
   "version": "1.0.0",
   "description": "Seven-agent art-first pipeline expertise: from OCO-2/3 satellite data to museum-quality exhibition. Creative direction, volumetric sculpting, color science, cinematic craft, atmospheric physics, and procedural pipeline intelligence.",
   "author": { "name": "oco-viz team" },
-  "keywords": ["pipeline", "artistic-direction", "volumetric", "exhibition", "atmospheric", "VFX", "Houdini", "RenderMan"]
+  "keywords": ["pipeline", "artistic-direction", "volumetric", "exhibition", "atmospheric", "VFX", "Houdini", "RenderMan"],
+  "commands": {
+    "audit": { "source": "./commands/audit.md" },
+    "consult": { "source": "./commands/consult.md" },
+    "ideate": { "source": "./commands/ideate.md" },
+    "review-stage": { "source": "./commands/review-stage.md" }
+  },
+  "agents": [
+    "./agents/alchemist.md",
+    "./agents/auteur.md",
+    "./agents/choreographer.md",
+    "./agents/installer.md",
+    "./agents/sculptor.md",
+    "./agents/spectralist.md",
+    "./agents/tonalist.md"
+  ]
 }
