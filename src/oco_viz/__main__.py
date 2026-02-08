@@ -11,7 +11,12 @@ from oco_viz.data.zarr_store import write_zarr
 from oco_viz.plume.gaussian import generate_sequence
 from oco_viz.plume.turbulent import generate_turbulent_sequence
 from oco_viz.sequencer.controller import render_sequence
-from oco_viz.sequencer.encode import encode_video
+from oco_viz.sequencer.encode import (
+    CODEC_PRESETS,
+    prepare_frames_with_slate,
+    encode_video,
+    generate_slate,
+)
 
 
 def _get_tier(args: argparse.Namespace) -> str | None:
@@ -56,10 +61,25 @@ def cmd_render(args: argparse.Namespace) -> None:
 def cmd_encode(args: argparse.Namespace) -> None:
     """Encode frames to video."""
     config = load_config(args.profile, tier=_get_tier(args))
+    if getattr(args, "codec", None):
+        config = config.model_copy(
+            update={"encoding": config.encoding.model_copy(update={"codec": args.codec})}
+        )
     frames_dir = Path(config.output.frames_dir)
     video_dir = Path(config.output.video_dir)
-    output_path = video_dir / "synthetic_plume.mp4"
-    encode_video(frames_dir, output_path, fps=config.output.fps)
+
+    # Handle slate
+    work_dir = None
+    encode_dir = frames_dir
+    if config.encoding.include_slate:
+        slate_frames = generate_slate(config)
+        work_dir = Path(config.output.video_dir) / "_slate_work"
+        encode_dir = prepare_frames_with_slate(frames_dir, slate_frames, work_dir)
+
+    codec = config.encoding.codec
+    ext = "" if codec == "png" else CODEC_PRESETS.get(codec, ([], ".mp4", True))[1]
+    output_path = video_dir / f"synthetic_plume{ext}"
+    encode_video(encode_dir, output_path, fps=config.output.fps, encoding=config.encoding)
     print(f"Encoded video: {output_path}")
 
 
@@ -95,6 +115,27 @@ def cmd_validate(args: argparse.Namespace) -> None:
     print(f"Status: {status} (RMSE={result.rmse_ppm:.2f} ppm, r={result.correlation:.3f})")
 
 
+def cmd_batch_render(args: argparse.Namespace) -> None:
+    """Batch render with progress tracking and crash recovery."""
+    from oco_viz.sequencer.batch import BatchRenderManager  # noqa: PLC0415
+
+    config = load_config(args.profile, tier=_get_tier(args))
+    manager = BatchRenderManager(
+        zarr_path=Path(args.zarr),
+        output_dir=Path(args.output_dir),
+        config=config,
+        chunk_size=args.chunk_size,
+    )
+    result = manager.resume() if args.resume else manager.run()
+    print(
+        f"\nBatch render {result.status}: "
+        f"{result.completed_frames}/{result.total_frames} frames "
+        f"in {result.elapsed_seconds:.1f}s"
+    )
+    if result.error:
+        print(f"Error: {result.error}")
+
+
 def cmd_pipeline(args: argparse.Namespace) -> None:
     """Run full pipeline: generate -> render -> encode."""
     config = load_config(args.profile, tier=_get_tier(args))
@@ -122,9 +163,23 @@ def cmd_pipeline(args: argparse.Namespace) -> None:
     print(f"Rendered {len(paths)} frames")
 
     # Encode
+    if getattr(args, "codec", None):
+        config = config.model_copy(
+            update={"encoding": config.encoding.model_copy(update={"codec": args.codec})}
+        )
+    frames_dir = Path(config.output.frames_dir)
     video_dir = Path(config.output.video_dir)
-    output_path = video_dir / "synthetic_plume.mp4"
-    encode_video(Path(config.output.frames_dir), output_path, fps=config.output.fps)
+
+    encode_dir = frames_dir
+    if config.encoding.include_slate:
+        slate_frames = generate_slate(config)
+        slate_work = video_dir / "_slate_work"
+        encode_dir = prepare_frames_with_slate(frames_dir, slate_frames, slate_work)
+
+    codec = config.encoding.codec
+    ext = "" if codec == "png" else CODEC_PRESETS.get(codec, ([], ".mp4", True))[1]
+    output_path = video_dir / f"synthetic_plume{ext}"
+    encode_video(encode_dir, output_path, fps=config.output.fps, encoding=config.encoding)
     print(f"Video: {output_path}")
 
 
@@ -154,6 +209,11 @@ def main() -> None:
     p_encode = sub.add_parser("encode", help="Encode frames to video")
     p_encode.add_argument("--profile", default="dev_mac")
     p_encode.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
+    p_encode.add_argument(
+        "--codec",
+        default=None,
+        help="Video codec (h264, h265, prores4444, dnxhr_hqx, png)",
+    )
     p_encode.set_defaults(func=cmd_encode)
 
     # pipeline
@@ -171,6 +231,11 @@ def main() -> None:
     p_pipe.add_argument(
         "--era5", default=None, help="Path to ERA5 NetCDF (for wind/advected mode)"
     )
+    p_pipe.add_argument(
+        "--codec",
+        default=None,
+        help="Video codec (h264, h265, prores4444, dnxhr_hqx, png)",
+    )
     p_pipe.set_defaults(func=cmd_pipeline)
 
     # validate
@@ -180,6 +245,20 @@ def main() -> None:
     p_validate.add_argument("--zarr", required=True, help="Path to Zarr store")
     p_validate.add_argument("--output-dir", default="output/validation", help="Report output dir")
     p_validate.set_defaults(func=cmd_validate)
+
+    # batch-render
+    p_batch = sub.add_parser("batch-render", help="Batch render with progress tracking")
+    p_batch.add_argument("--profile", default="dev_mac")
+    p_batch.add_argument("--tier", default=None, choices=["sketch", "study", "exhibition"])
+    p_batch.add_argument("--zarr", required=True, help="Path to Zarr store")
+    p_batch.add_argument(
+        "--output-dir", default="output/frames", help="Output directory for frames"
+    )
+    p_batch.add_argument("--chunk-size", type=int, default=100, help="Frames per chunk")
+    p_batch.add_argument(
+        "--resume", action="store_true", help="Resume from last completed frame"
+    )
+    p_batch.set_defaults(func=cmd_batch_render)
 
     args = parser.parse_args()
     args.func(args)
