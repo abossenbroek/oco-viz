@@ -80,6 +80,22 @@ pixi run ci          # full CI suite: format, lint, typecheck, test, spell, dead
 
 If either fails, fix the issue before pushing. This prevents CI failures on GitHub that could have been caught locally.
 
+### 4.2 Commit Message & PR Title Convention
+
+This repo enforces **Conventional Commits** via `commitlint` (config: `.commitlintrc.yml`). Both commit messages and PR titles must follow the format:
+
+```
+<type>: <lowercase subject>
+```
+
+**Rules:**
+- **Subject must be lowercase** — `feat: add new skill` not `feat: Add new skill`
+- **No sentence-case, start-case, pascal-case, or upper-case** in the subject
+- **Allowed types:** `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `plan`, `refactor`, `revert`, `style`, `test`
+- **PR titles** follow the same convention — GitHub Actions checks both
+
+**Local check:** `pixi run commit-lint` validates the latest commit message (also included in `pixi run ci`).
+
 ## 5. Visual Quality Gate
 
 The `output/examples/` directory contains gallery PNGs (tracked via Git LFS) that serve as **visual regression baselines**. These are the ground truth for rendering quality.

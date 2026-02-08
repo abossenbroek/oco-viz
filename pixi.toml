@@ -41,9 +41,10 @@ dockerfile-lint = "bash -c 'command -v hadolint >/dev/null 2>&1 || { echo \"hado
 file-size = "bash -c 'big=$(find . -type f -size +1M -not -path \"./.git/*\" -not -path \"./.pixi/*\" -not -path \"./.mypy_cache/*\" -not -path \"./.pytest_cache/*\" -not -name \"pixi.lock\" -not -path \"./tests/fixtures/*\" -not -path \"./plan/idea_board/*\" -not -name \"*_roles.json\" -not -name \"*_expertise.json\" -not -name \"artist_stand_on_shoulder.*\" -not -name \"artist_references.yaml\"); if [ -n \"$big\" ]; then echo \"Files >1MB:\" && echo \"$big\" && exit 1; fi'"
 future-annotations = "bash -c 'fail=0; for f in $(find src/ -name \"*.py\"); do head -20 \"$f\" | grep -q \"from __future__ import annotations\" || { echo \"Missing future annotations: $f\"; fail=1; }; done; exit $fail'"
 py-typed = "test -f src/oco_viz/py.typed"
+commit-lint = "bash -c 'eval \"$(mise activate bash)\" && bun x --bun commitlint -- --from=HEAD~1 --to=HEAD'"
 fix = "ruff format src/ tests/ scripts/ && ruff check --fix src/ tests/"
 check = { depends-on = ["lint", "typecheck", "test"] }
-ci = { depends-on = ["format-check", "import-sort", "lint", "typecheck", "test", "spell", "dead-code", "complexity", "yaml-lint", "dockerfile-lint", "file-size", "future-annotations", "py-typed"] }
+ci = { depends-on = ["format-check", "import-sort", "lint", "typecheck", "test", "spell", "dead-code", "complexity", "yaml-lint", "dockerfile-lint", "file-size", "future-annotations", "py-typed", "commit-lint"] }
 image-stats = "python scripts/image_stats.py"
 find-passes = "python scripts/find_passes.py"
 find-secunda-granule = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/find_secunda_granule.py"
