@@ -20,8 +20,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import structlog
-import yaml
-from PIL import Image
 
 mpl.use("Agg")
 
@@ -34,6 +32,7 @@ from oco_viz.plume.advection import advect_sequence
 from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.render.camera import CameraState, FixedCamera
 from oco_viz.render.renderer import VolumeRenderer
+from scripts.gallery._common import save_rgb
 
 log = structlog.get_logger()
 
@@ -44,6 +43,16 @@ OCO2_FIXTURE = FIXTURES_DIR / "oco2_secunda_2025-10-13.nc4"
 OCO3_FIXTURE = FIXTURES_DIR / "oco3_secunda_2025-10-26.nc4"
 
 OUTPUT_DIR = Path("output/examples/real_data")
+
+# Manifest includes minimum guaranteed images (oct13 + oco2 + comparison + diagnostics).
+# Oct26 images are conditional on fixture availability.
+IMAGE_MANIFEST: list[str] = [
+    *[f"oct13_advected_t{t:02d}.png" for t in [0, 8, 16, 24]],
+    "oct13_oco2_overlay.png",
+    "compare_synthetic_vs_real_wind.png",
+    "diagnostic_oco2_footprint.png",
+    "diagnostic_era5_wind_profile.png",
+]
 
 
 def _load_config() -> AppConfig:
@@ -86,14 +95,6 @@ def _render_frame(config: AppConfig, conc: np.ndarray, cam_state: CameraState) -
     return rgb
 
 
-def _save_image(rgb: np.ndarray, path: Path) -> None:
-    """Save float32 RGB array as PNG."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    img = Image.fromarray(np.clip(rgb * 255, 0, 255).astype(np.uint8))
-    img.save(str(path))
-    log.info("saved", path=str(path))
-
-
 # ── Scene helpers ──────────────────────────────────────────────────
 
 
@@ -102,6 +103,7 @@ def render_advected_scene(
     era5_path: Path,
     cam_state: CameraState,
     prefix: str,
+    output_dir: Path,
 ) -> None:
     """Render an ERA5-advected plume sequence for a given date's wind field."""
     grid = config.grid
@@ -110,7 +112,6 @@ def render_advected_scene(
     wind_ds = load_era5_winds(era5_path, domain, grid)
     log.info("ERA5 loaded", prefix=prefix, n_times=wind_ds.sizes["time"])
 
-    # Derive wind direction from first timestep for the initial plume
     u_mean = float(np.nanmean(wind_ds["u_wind"].isel(time=0).values))
     v_mean = float(np.nanmean(wind_ds["v_wind"].isel(time=0).values))
     speed = max(math.sqrt(u_mean**2 + v_mean**2), 0.1)
@@ -120,7 +121,6 @@ def render_advected_scene(
         update={"wind_speed": speed, "wind_direction": direction},
     )
 
-    # Advect for 25 timesteps
     n_steps = 25
     ds = advect_sequence(
         plume_cfg,
@@ -131,11 +131,10 @@ def render_advected_scene(
         adv_cfg=config.advection,
     )
 
-    # Render snapshots at t = 0, 8, 16, 24
     for t in [0, 8, 16, 24]:
         conc = ds["concentration"].isel(time=t).values
         rgb = _render_frame(config, conc, cam_state)
-        _save_image(rgb, OUTPUT_DIR / f"{prefix}_advected_t{t:02d}.png")
+        save_rgb(rgb, output_dir / f"{prefix}_advected_t{t:02d}.png")
 
 
 def render_overlay_scene(
@@ -145,6 +144,7 @@ def render_overlay_scene(
     cam_state: CameraState,
     prefix: str,
     sat_label: str,
+    output_dir: Path,
 ) -> None:
     """Render a plume + satellite overlay frame."""
     grid = config.grid
@@ -160,7 +160,6 @@ def render_overlay_scene(
         update={"wind_speed": speed, "wind_direction": direction},
     )
 
-    # Advect a short sequence and pick last frame
     ds = advect_sequence(
         plume_cfg,
         grid,
@@ -173,24 +172,23 @@ def render_overlay_scene(
 
     conc = ds["concentration"].isel(time=-1).values
     rgb = _render_frame(config, conc, cam_state)
-    _save_image(rgb, OUTPUT_DIR / f"{prefix}_{sat_label}_overlay.png")
+    save_rgb(rgb, output_dir / f"{prefix}_{sat_label}_overlay.png")
 
 
 def render_comparison_scene(
     config: AppConfig,
     era5_path: Path,
     cam_state: CameraState,
+    output_dir: Path,
 ) -> None:
     """Side-by-side comparison: synthetic vs ERA5-driven advection."""
     grid = config.grid
     domain = config.data_source.domain
     n_steps = 10
 
-    # Synthetic wind plume
     synth_conc = generate_timestep(config.plume, grid, time_index=n_steps)
     rgb_synth = _render_frame(config, synth_conc, cam_state)
 
-    # Real ERA5 wind plume
     wind_ds = load_era5_winds(era5_path, domain, grid)
     u_mean = float(np.nanmean(wind_ds["u_wind"].isel(time=0).values))
     v_mean = float(np.nanmean(wind_ds["v_wind"].isel(time=0).values))
@@ -210,15 +208,14 @@ def render_comparison_scene(
     real_conc = ds["concentration"].isel(time=-1).values
     rgb_real = _render_frame(config, real_conc, cam_state)
 
-    # Stitch side by side
     combined = np.concatenate([rgb_synth, rgb_real], axis=1)
-    _save_image(combined, OUTPUT_DIR / "compare_synthetic_vs_real_wind.png")
+    save_rgb(combined, output_dir / "compare_synthetic_vs_real_wind.png")
 
 
 # ── Diagnostic panels ─────────────────────────────────────────────
 
 
-def _render_footprint_diagnostic(oco_path: Path, label: str) -> None:
+def _render_footprint_diagnostic(oco_path: Path, label: str, output_dir: Path) -> None:
     """Plot satellite footprint XCO2 locations."""
     oco_ds = load_granule(oco_path)
     if "latitude" not in oco_ds or "longitude" not in oco_ds or "xco2" not in oco_ds:
@@ -236,21 +233,20 @@ def _render_footprint_diagnostic(oco_path: Path, label: str) -> None:
     ax.set_xlabel("Longitude")
     ax.set_ylabel("Latitude")
     ax.set_title(f"{label} sounding footprints")
-    out = OUTPUT_DIR / f"diagnostic_{label.lower().replace('-', '')}_footprint.png"
+    out = output_dir / f"diagnostic_{label.lower().replace('-', '')}_footprint.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(str(out), dpi=150, bbox_inches="tight")
     plt.close(fig)
     log.info("saved diagnostic", path=str(out))
 
 
-def _render_wind_diagnostic(era5_path: Path, config: AppConfig) -> None:
+def _render_wind_diagnostic(era5_path: Path, config: AppConfig, output_dir: Path) -> None:
     """Plot ERA5 wind speed and direction vs altitude."""
     grid = config.grid
     domain = config.data_source.domain
     wind_ds = load_era5_winds(era5_path, domain, grid)
 
-    # First timestep, horizontal mean at each level
-    u = wind_ds["u_wind"].isel(time=0).values  # (z, y, x)
+    u = wind_ds["u_wind"].isel(time=0).values
     v = wind_ds["v_wind"].isel(time=0).values
     speed = np.sqrt(u**2 + v**2)
 
@@ -279,36 +275,30 @@ def _render_wind_diagnostic(era5_path: Path, config: AppConfig) -> None:
     ax2.set_title("ERA5 wind direction profile")
 
     fig.tight_layout()
-    out = OUTPUT_DIR / "diagnostic_era5_wind_profile.png"
+    out = output_dir / "diagnostic_era5_wind_profile.png"
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(str(out), dpi=150, bbox_inches="tight")
     plt.close(fig)
     log.info("saved diagnostic", path=str(out))
 
 
-# ── Main ───────────────────────────────────────────────────────────
+# ── Public API ─────────────────────────────────────────────────────
 
 
-def main() -> None:
-    def yaml_renderer(
-        _logger: object,
-        _name: str,
-        event_dict: dict[str, object],
-    ) -> str:
-        return yaml.dump(dict(event_dict), default_flow_style=False, sort_keys=False).rstrip()
+def render_wave(
+    *,
+    tier_override: str | None = None,  # noqa: ARG001
+    progress: object | None = None,
+    output_dir: Path | None = None,
+) -> list[Path]:
+    """Public entry point for unified gallery orchestration."""
+    if progress is not None and hasattr(progress, "begin_wave"):
+        progress.begin_wave("real_data")
 
-    structlog.configure(
-        processors=[structlog.stdlib.add_log_level, yaml_renderer],
-        wrapper_class=structlog.make_filtering_bound_logger(0),
-    )
+    out = output_dir if output_dir is not None else OUTPUT_DIR
+    out.mkdir(parents=True, exist_ok=True)
 
-    log.info("real-data gallery starting")
-
-    # Validate fixture availability
-    required = {
-        "era5_oct13": ERA5_OCT13,
-        "oco2": OCO2_FIXTURE,
-    }
+    required = {"era5_oct13": ERA5_OCT13, "oco2": OCO2_FIXTURE}
     missing = [k for k, v in required.items() if not v.exists()]
     if missing:
         log.error("missing required fixtures", missing=missing)
@@ -317,32 +307,24 @@ def main() -> None:
     config = _load_config()
     cam = _camera_state(config)
 
-    # ── Scene 1: Oct 13, ERA5 + OCO-2 ──
-    log.info("scene 1: Oct 13 advection + OCO-2 overlay")
-    render_advected_scene(config, ERA5_OCT13, cam, "oct13")
-    render_overlay_scene(config, ERA5_OCT13, OCO2_FIXTURE, cam, "oct13", "oco2")
+    render_advected_scene(config, ERA5_OCT13, cam, "oct13", out)
+    render_overlay_scene(config, ERA5_OCT13, OCO2_FIXTURE, cam, "oct13", "oco2", out)
 
-    # ── Scene 2: Oct 26, ERA5 + OCO-3 (if available) ──
     if ERA5_OCT26.exists() and OCO3_FIXTURE.exists():
-        log.info("scene 2: Oct 26 advection + OCO-3 overlay")
-        render_advected_scene(config, ERA5_OCT26, cam, "oct26")
-        render_overlay_scene(config, ERA5_OCT26, OCO3_FIXTURE, cam, "oct26", "oco3")
-    else:
-        log.info("scene 2 skipped: Oct 26 fixtures not present")
+        render_advected_scene(config, ERA5_OCT26, cam, "oct26", out)
+        render_overlay_scene(config, ERA5_OCT26, OCO3_FIXTURE, cam, "oct26", "oco3", out)
 
-    # ── Scene 3: Synthetic vs real comparison ──
-    log.info("scene 3: synthetic vs real wind comparison")
-    render_comparison_scene(config, ERA5_OCT13, cam)
+    render_comparison_scene(config, ERA5_OCT13, cam, out)
 
-    # ── Scene 4: Diagnostics ──
-    log.info("scene 4: diagnostic panels")
-    _render_footprint_diagnostic(OCO2_FIXTURE, "OCO-2")
+    _render_footprint_diagnostic(OCO2_FIXTURE, "OCO-2", out)
     if OCO3_FIXTURE.exists():
-        _render_footprint_diagnostic(OCO3_FIXTURE, "OCO-3")
-    _render_wind_diagnostic(ERA5_OCT13, config)
+        _render_footprint_diagnostic(OCO3_FIXTURE, "OCO-3", out)
+    _render_wind_diagnostic(ERA5_OCT13, config, out)
 
-    log.info("real-data gallery complete", output_dir=str(OUTPUT_DIR))
+    rendered = [out / name for name in IMAGE_MANIFEST]
 
+    if progress is not None and hasattr(progress, "image_done"):
+        for p in rendered:
+            progress.image_done(p.name)
 
-if __name__ == "__main__":
-    main()
+    return rendered

@@ -6,8 +6,6 @@ Demonstrates the data pipeline layer:
 - OCO-3 sounding footprint geometry (matplotlib patches)
 - Coordinate transform grid overlay (matplotlib)
 
-Usage:
-    python scripts/render_wave2_gallery.py
 """
 
 from __future__ import annotations
@@ -20,21 +18,27 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import structlog
-import yaml
-from PIL import Image
 
 from oco_viz.config import load_config
 from oco_viz.config.schema import AppConfig, RenderingConfig, TransferFunctionConfig
-from oco_viz.data.transform import latlon_to_local_km, local_km_to_latlon
+from oco_viz.data.transform import local_km_to_latlon
 from oco_viz.plume.gaussian import generate_timestep
-from oco_viz.render.camera import CameraState, FixedCamera
+from oco_viz.render.camera import FixedCamera
 from oco_viz.render.renderer import VolumeRenderer
+from scripts.gallery._common import save_rgb
 
 matplotlib.use("Agg")
 
 log = structlog.get_logger()
 
 OUTPUT_DIR = Path("output/examples/wave2")
+
+IMAGE_MANIFEST: list[str] = [
+    "data_pipeline_gaussian.png",
+    "era5_wind_profile.png",
+    "oco3_footprints.png",
+    "coordinate_transform.png",
+]
 
 
 def _load_gallery_config() -> AppConfig:
@@ -51,15 +55,7 @@ def _load_gallery_config() -> AppConfig:
     )
 
 
-def _save_rgb(rgb: np.ndarray, out_path: Path) -> None:
-    """Save a float32 [0,1] RGB array as a PNG file."""
-    rgb_uint8 = np.clip(rgb * 255.0, 0, 255).astype(np.uint8)
-    img = Image.fromarray(rgb_uint8)
-    img.save(str(out_path))
-    log.info("saved", path=str(out_path))
-
-
-def render_data_pipeline_gaussian(config: AppConfig) -> None:
+def render_data_pipeline_gaussian(config: AppConfig, output_dir: Path) -> None:
     """Render full pipeline Gaussian plume output using VTK."""
     log.info("=== Data pipeline: Gaussian plume ===")
 
@@ -87,12 +83,12 @@ def render_data_pipeline_gaussian(config: AppConfig) -> None:
     renderer.configure()
     try:
         rgb = renderer.render_frame_postprocessed(conc, camera_state, pre_normalized=False)
-        _save_rgb(rgb, OUTPUT_DIR / "data_pipeline_gaussian.png")
+        save_rgb(rgb, output_dir / "data_pipeline_gaussian.png")
     finally:
         renderer.finalize()
 
 
-def render_era5_wind_profile(config: AppConfig) -> None:
+def render_era5_wind_profile(config: AppConfig, output_dir: Path) -> None:
     """Render synthetic ERA5 wind field as a matplotlib quiver plot."""
     log.info("=== Data pipeline: ERA5 wind profile ===")
 
@@ -117,13 +113,13 @@ def render_era5_wind_profile(config: AppConfig) -> None:
     cbar.ax.tick_params(labelsize=9)
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    out_path = OUTPUT_DIR / "era5_wind_profile.png"
+    out_path = output_dir / "era5_wind_profile.png"
     fig.savefig(str(out_path), dpi=150)
     plt.close(fig)
     log.info("saved", path=str(out_path))
 
 
-def render_oco3_footprints(config: AppConfig) -> None:
+def render_oco3_footprints(config: AppConfig, output_dir: Path) -> None:
     """Render OCO-3 sounding footprint geometry as matplotlib patches."""
     log.info("=== Data pipeline: OCO-3 footprints ===")
 
@@ -190,13 +186,13 @@ def render_oco3_footprints(config: AppConfig) -> None:
     ax.set_aspect("equal")
     ax.grid(alpha=0.2)
     fig.tight_layout()
-    out_path = OUTPUT_DIR / "oco3_footprints.png"
+    out_path = output_dir / "oco3_footprints.png"
     fig.savefig(str(out_path), dpi=150)
     plt.close(fig)
     log.info("saved", path=str(out_path))
 
 
-def render_coordinate_transform(config: AppConfig) -> None:
+def render_coordinate_transform(config: AppConfig, output_dir: Path) -> None:
     """Render lat/lon grid overlaid on local coordinate system."""
     log.info("=== Data pipeline: Coordinate transform ===")
 
@@ -262,44 +258,36 @@ def render_coordinate_transform(config: AppConfig) -> None:
     ax.set_aspect("equal")
     ax.legend(loc="upper right", fontsize=9)
     fig.tight_layout()
-    out_path = OUTPUT_DIR / "coordinate_transform.png"
+    out_path = output_dir / "coordinate_transform.png"
     fig.savefig(str(out_path), dpi=150)
     plt.close(fig)
     log.info("saved", path=str(out_path))
 
 
-def main() -> None:
-    """Generate Wave 2 gallery images."""
+def render_wave(
+    *,
+    tier_override: str | None = None,  # noqa: ARG001
+    progress: object | None = None,
+    output_dir: Path | None = None,
+) -> list[Path]:
+    """Public entry point for unified gallery orchestration."""
+    if progress is not None and hasattr(progress, "begin_wave"):
+        progress.begin_wave("2")
 
-    def yaml_renderer(
-        _logger: object,
-        _name: str,
-        event_dict: dict[str, object],
-    ) -> str:
-        return yaml.dump(
-            dict(event_dict),
-            default_flow_style=False,
-            sort_keys=False,
-        ).rstrip()
-
-    structlog.configure(
-        processors=[structlog.stdlib.add_log_level, yaml_renderer],
-        wrapper_class=structlog.make_filtering_bound_logger(0),
-    )
-
-    log.info("wave-2 gallery starting")
+    out = output_dir if output_dir is not None else OUTPUT_DIR
+    out.mkdir(parents=True, exist_ok=True)
 
     config = _load_gallery_config()
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    render_data_pipeline_gaussian(config)
-    render_era5_wind_profile(config)
-    render_oco3_footprints(config)
-    render_coordinate_transform(config)
+    render_data_pipeline_gaussian(config, out)
+    render_era5_wind_profile(config, out)
+    render_oco3_footprints(config, out)
+    render_coordinate_transform(config, out)
 
-    n_files = len(list(OUTPUT_DIR.glob("*.png")))
-    log.info("wave-2 gallery complete", total_images=n_files, output_dir=str(OUTPUT_DIR))
+    rendered = [out / name for name in IMAGE_MANIFEST]
 
+    if progress is not None and hasattr(progress, "image_done"):
+        for p in rendered:
+            progress.image_done(p.name)
 
-if __name__ == "__main__":
-    main()
+    return rendered

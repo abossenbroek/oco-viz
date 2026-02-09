@@ -16,18 +16,16 @@ import numpy as np
 import structlog
 import vtk
 import xarray as xr
-import yaml
-from PIL import Image
 
 from oco_viz.config import load_config
 from oco_viz.config.schema import RenderingConfig, TransferFunctionConfig
 from oco_viz.data.era5 import load_era5_winds
-from oco_viz.data.oco import load_granule
 from oco_viz.data.transform import latlon_to_local_km
 from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.plume.turbulent import apply_turbulence
 from oco_viz.render.camera import FixedCamera
 from oco_viz.render.renderer import VolumeRenderer
+from scripts.gallery._common import save_rgb
 
 log = structlog.get_logger()
 
@@ -44,6 +42,12 @@ PRESET_NAMES = [
     "cinematic_ember",
     "cinematic_atmospheric",
     "absolute_atmospheric",
+]
+
+PLUME_TYPES = ["gaussian", "turbulent", "composite"]
+
+IMAGE_MANIFEST: list[str] = [
+    f"{preset}_{ptype}.png" for preset in PRESET_NAMES for ptype in PLUME_TYPES
 ]
 
 
@@ -206,10 +210,10 @@ def _build_plume_variants(config, wind_ds):
     return {"gaussian": gaussian_conc, "turbulent": turbulent_conc, "composite": composite_conc}
 
 
-def _render_all_presets(config, plume_variants, camera_state) -> int:
-    """Render all preset x plume_type combinations, return count."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    n_rendered = 0
+def _render_all_presets(config, plume_variants, camera_state, output_dir: Path) -> list[Path]:
+    """Render all preset x plume_type combinations, return list of saved paths."""
+    output_dir.mkdir(parents=True, exist_ok=True)
+    rendered: list[Path] = []
 
     for preset_name in PRESET_NAMES:
         for plume_type, conc in plume_variants.items():
@@ -235,85 +239,53 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
             )
             renderer.finalize()
 
-            rgb_uint8 = np.clip(rgb_pp * 255.0, 0, 255).astype(np.uint8)
-            img = Image.fromarray(rgb_uint8)
-            out_path = OUTPUT_DIR / f"{preset_name}_{plume_type}.png"
-            img.save(str(out_path))
-            log.info("saved", path=str(out_path))
-            n_rendered += 1
+            out_path = output_dir / f"{preset_name}_{plume_type}.png"
+            save_rgb(rgb_pp, out_path)
+            rendered.append(out_path)
 
-    return n_rendered
+    return rendered
 
 
-def main() -> None:
-    def yaml_renderer(_logger: object, _name: str, event_dict: dict[str, object]) -> str:
-        return yaml.dump(dict(event_dict), default_flow_style=False, sort_keys=False).rstrip()
+def render_wave(
+    *,
+    tier_override: str | None = None,  # noqa: ARG001
+    progress: object | None = None,
+    output_dir: Path | None = None,
+) -> list[Path]:
+    """Public entry point for unified gallery orchestration.
 
-    structlog.configure(
-        processors=[structlog.stdlib.add_log_level, yaml_renderer],
-        wrapper_class=structlog.make_filtering_bound_logger(0),
-    )
+    Parameters
+    ----------
+    tier_override
+        Ignored for this wave (always uses native config).
+    progress
+        Optional progress tracker with ``begin_wave`` and ``image_done`` methods.
+    output_dir
+        Override output directory (default: ``output/examples``).
+    """
+    if progress is not None and hasattr(progress, "begin_wave"):
+        progress.begin_wave("base")
 
-    log.info("render gallery starting")
-    inventory = validate_fixtures()
-
+    out = output_dir if output_dir is not None else OUTPUT_DIR
+    validate_fixtures()
     config = _load_gallery_config()
 
-    # --- ERA5 winds (required) ---
     wind_ds = load_era5_winds(ERA5_FIXTURE, config.data_source.domain, config.grid)
-    log.info("ERA5 winds ready", n_times=wind_ds.sizes["time"])
-
-    # --- OCO satellite overlays ---
-    oco3_ds = load_granule(OCO3_FIXTURE)
-    oco2_ds = load_granule(OCO2_FIXTURE)
-
-    # --- Build plume variants ---
     plume_variants = _build_plume_variants(config, wind_ds)
-
-    domain = config.data_source.domain
-    overlay_actors = [
-        a
-        for a in [
-            build_oco_overlay_actor(
-                oco3_ds,
-                domain.origin_lat,
-                domain.origin_lon,
-                config.grid.dx,
-                config.grid.dy,
-            ),
-            build_oco_overlay_actor(
-                oco2_ds,
-                domain.origin_lat,
-                domain.origin_lon,
-                config.grid.dx,
-                config.grid.dy,
-            ),
-        ]
-        if a is not None
-    ]
-    log.info("OCO overlay actors", count=len(overlay_actors))
 
     grid = config.grid
     cx, cy = grid.nx * grid.dx / 2.0, grid.ny * grid.dy / 2.0
     cz = grid.nz * grid.dz / 3.0
-    # Scale camera distance to grid extent so plume is visible
-    # Camera lowered (0.3 instead of 0.5) to capture full atmospheric volume
     extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
     camera_state = FixedCamera(
         position=(cx + extent * 1.2, cy - extent * 0.8, cz + extent * 0.3),
         focal_point=(cx, cy, cz),
     ).evaluate(0.0)
 
-    n_rendered = _render_all_presets(config, plume_variants, camera_state)
+    rendered = _render_all_presets(config, plume_variants, camera_state, out)
 
-    sources = [k for k, v in inventory.items() if v]
-    log.info(
-        "gallery complete",
-        total_renders=n_rendered,
-        fused_sources=sources,
-        output_dir=str(OUTPUT_DIR),
-    )
+    if progress is not None and hasattr(progress, "image_done"):
+        for p in rendered:
+            progress.image_done(p.name)
 
-
-if __name__ == "__main__":
-    main()
+    return rendered

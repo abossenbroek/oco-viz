@@ -6,8 +6,6 @@ Generates images demonstrating wave-5 features:
 - Automatic composition from plume geometry
 - Exhibition vs study vs sketch tier comparisons
 
-Usage:
-    python scripts/render_wave5_gallery.py
 """
 
 from __future__ import annotations
@@ -15,10 +13,7 @@ from __future__ import annotations
 import math
 from pathlib import Path
 
-import numpy as np
 import structlog
-import yaml
-from PIL import Image
 
 from oco_viz.config import load_config
 from oco_viz.config.schema import GridConfig
@@ -33,19 +28,28 @@ from oco_viz.render.camera_path import (
 from oco_viz.render.composition import compose_camera_from_plume
 from oco_viz.render.easing import EasingFunction
 from oco_viz.render.renderer import VolumeRenderer
+from scripts.gallery._common import save_rgb
 
 log = structlog.get_logger()
 
 OUTPUT_DIR = Path("output/examples/wave5")
 GALLERY_GRID = GridConfig(nx=48, ny=48, nz=32, dx=1000.0, dy=1000.0, dz=500.0)
 
+_PATH_NAMES = ["reveal", "orbit_rise", "push_in", "glacial_drift"]
+_EASING_NAMES = ["linear", "smoothstep", "heavy_ease_in", "ease_in_out_cubic"]
 
-def _save(rgb: np.ndarray, name: str) -> None:
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    rgb_uint8 = np.clip(rgb * 255.0, 0, 255).astype(np.uint8)
-    out_path = OUTPUT_DIR / f"{name}.png"
-    Image.fromarray(rgb_uint8).save(str(out_path))
-    log.info("saved", path=str(out_path), shape=rgb.shape)
+IMAGE_MANIFEST: list[str] = [
+    # Tier comparison
+    *[f"tier_{t}_soot.png" for t in ["study", "exhibition", "sketch"]],
+    # Camera paths: 4 presets x 5 frames
+    *[f"path_{name}_t{ti}.png" for name in _PATH_NAMES for ti in range(5)],
+    # Composition
+    "compose_manual.png",
+    "compose_auto.png",
+    *[f"compose_reveal_t{ti}.png" for ti in range(3)],
+    # Easing: 4 functions x 3 time values
+    *[f"easing_{e}_{t}.png" for e in _EASING_NAMES for t in ["t02", "t05", "t08"]],
+]
 
 
 def _generate_plume(config):
@@ -53,7 +57,7 @@ def _generate_plume(config):
     return generate_turbulent_timestep(config.plume, config.grid, config.turbulence, 0)
 
 
-def render_tier_comparison() -> None:
+def render_tier_comparison(output_dir: Path) -> None:
     """Render the same plume at study, exhibition, and sketch tiers."""
     log.info("=== Tier comparison (soot TF) ===")
 
@@ -90,10 +94,10 @@ def render_tier_comparison() -> None:
         renderer.configure()
         rgb = renderer.render_frame_postprocessed(conc, camera)
         renderer.finalize()
-        _save(rgb, f"tier_{tier}_soot")
+        save_rgb(rgb, output_dir / f"tier_{tier}_soot.png")
 
 
-def render_camera_paths() -> None:
+def render_camera_paths(output_dir: Path) -> None:
     """Render frames from each camera path preset."""
     log.info("=== Camera path presets ===")
 
@@ -133,10 +137,10 @@ def render_camera_paths() -> None:
             renderer.configure()
             rgb = renderer.render_frame_postprocessed(conc, camera)
             renderer.finalize()
-            _save(rgb, f"path_{name}_t{ti}")
+            save_rgb(rgb, output_dir / f"path_{name}_t{ti}.png")
 
 
-def render_composition_comparison() -> None:
+def render_composition_comparison(output_dir: Path) -> None:
     """Compare manual vs auto-composed camera framing."""
     log.info("=== Composition comparison ===")
 
@@ -168,7 +172,7 @@ def render_composition_comparison() -> None:
     renderer.configure()
     rgb = renderer.render_frame_postprocessed(conc, manual_cam)
     renderer.finalize()
-    _save(rgb, "compose_manual")
+    save_rgb(rgb, output_dir / "compose_manual.png")
 
     # Auto-composed camera from plume geometry
     focal, distance, elevation = compose_camera_from_plume(
@@ -189,7 +193,7 @@ def render_composition_comparison() -> None:
     renderer.configure()
     rgb = renderer.render_frame_postprocessed(conc, composed_cam)
     renderer.finalize()
-    _save(rgb, "compose_auto")
+    save_rgb(rgb, output_dir / "compose_auto.png")
 
     # Auto-composed + reveal camera path
     path = reveal_path(focal, distance, EasingFunction.heavy_ease_in)
@@ -199,10 +203,10 @@ def render_composition_comparison() -> None:
         renderer.configure()
         rgb = renderer.render_frame_postprocessed(conc, camera)
         renderer.finalize()
-        _save(rgb, f"compose_reveal_t{ti}")
+        save_rgb(rgb, output_dir / f"compose_reveal_t{ti}.png")
 
 
-def render_easing_comparison() -> None:
+def render_easing_comparison(output_dir: Path) -> None:
     """Compare easing functions on the same camera path."""
     log.info("=== Easing comparison ===")
 
@@ -241,28 +245,31 @@ def render_easing_comparison() -> None:
             renderer.configure()
             rgb = renderer.render_frame_postprocessed(conc, camera)
             renderer.finalize()
-            _save(rgb, f"easing_{easing.value}_{t_name}")
+            save_rgb(rgb, output_dir / f"easing_{easing.value}_{t_name}.png")
 
 
-def main() -> None:
-    def yaml_renderer(_logger: object, _name: str, event_dict: dict[str, object]) -> str:
-        return yaml.dump(dict(event_dict), default_flow_style=False, sort_keys=False).rstrip()
+def render_wave(
+    *,
+    tier_override: str | None = None,  # noqa: ARG001
+    progress: object | None = None,
+    output_dir: Path | None = None,
+) -> list[Path]:
+    """Public entry point for unified gallery orchestration."""
+    if progress is not None and hasattr(progress, "begin_wave"):
+        progress.begin_wave("5")
 
-    structlog.configure(
-        processors=[structlog.stdlib.add_log_level, yaml_renderer],
-        wrapper_class=structlog.make_filtering_bound_logger(0),
-    )
+    out = output_dir if output_dir is not None else OUTPUT_DIR
+    out.mkdir(parents=True, exist_ok=True)
 
-    log.info("wave-5 gallery starting")
+    render_tier_comparison(out)
+    render_camera_paths(out)
+    render_composition_comparison(out)
+    render_easing_comparison(out)
 
-    render_tier_comparison()
-    render_camera_paths()
-    render_composition_comparison()
-    render_easing_comparison()
+    rendered = [out / name for name in IMAGE_MANIFEST]
 
-    n_files = len(list(OUTPUT_DIR.glob("*.png")))
-    log.info("wave-5 gallery complete", total_images=n_files, output_dir=str(OUTPUT_DIR))
+    if progress is not None and hasattr(progress, "image_done"):
+        for p in rendered:
+            progress.image_done(p.name)
 
-
-if __name__ == "__main__":
-    main()
+    return rendered
