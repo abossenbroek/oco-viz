@@ -154,6 +154,9 @@ class PostProcessConfig(BaseModel):
     bloom_passes: int = Field(default=3, ge=1)
     exposure: float = Field(default=0.6, gt=0)
     dof: DOFConfig = Field(default_factory=DOFConfig)
+    void_mask_enabled: bool = False
+    void_mask_margin_px: int = Field(default=20, ge=0)
+    void_mask_falloff_px: int = Field(default=5, ge=0)
 
 
 class OutputConfig(BaseModel):

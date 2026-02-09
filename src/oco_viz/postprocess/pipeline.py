@@ -11,6 +11,7 @@ from oco_viz.postprocess.bloom import apply_bloom
 from oco_viz.postprocess.dof import apply_dof
 from oco_viz.postprocess.fog import apply_depth_fog
 from oco_viz.postprocess.tonemap import aces_tonemap
+from oco_viz.postprocess.void_mask import apply_void_mask
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -49,7 +50,14 @@ class PostProcessPipeline:
             )
         if self._config.dof.enabled:
             result = apply_dof(result, depth, self._config.dof)
-        return aces_tonemap(result, exposure=self._config.exposure)
+        result = aces_tonemap(result, exposure=self._config.exposure)
+        if self._config.void_mask_enabled:
+            result = apply_void_mask(
+                result,
+                margin_px=self._config.void_mask_margin_px,
+                falloff_px=self._config.void_mask_falloff_px,
+            )
+        return result
 
     def quantize(self, rgb: NDArray[np.float32]) -> NDArray[np.uint8]:
         """Convert float32 [0,1] to uint8 [0,255]."""
