@@ -24,6 +24,36 @@ _DISSOLUTION_SHADER = (
     "opacity = opacity * alpha;\n"
 )
 
+_CLUMP_SHADER = (
+    "//VTK::Color::Impl\n"
+    "float dist2 = dot(offsetVCVSOutput.xy, offsetVCVSOutput.xy);\n"
+    "if (dist2 > 1.0) { discard; }\n"
+    "float alpha = exp(-dist2 * 1.0);\n"
+    "ambientColor = vec3(0.65, 0.65, 0.65);\n"
+    "diffuseColor = vec3(0.0);\n"
+    "opacity = opacity * alpha;\n"
+)
+
+_FILAMENT_SHADER = (
+    "//VTK::Color::Impl\n"
+    "float dist2 = dot(offsetVCVSOutput.xy, offsetVCVSOutput.xy);\n"
+    "if (dist2 > 1.0) { discard; }\n"
+    "float alpha = exp(-dist2 * 1.5);\n"
+    "ambientColor = vec3(0.55, 0.55, 0.55);\n"
+    "diffuseColor = vec3(0.0);\n"
+    "opacity = opacity * alpha;\n"
+)
+
+_DUST_SHADER = (
+    "//VTK::Color::Impl\n"
+    "float dist2 = dot(offsetVCVSOutput.xy, offsetVCVSOutput.xy);\n"
+    "if (dist2 > 1.0) { discard; }\n"
+    "float alpha = exp(-dist2 * 3.0);\n"
+    "ambientColor = vec3(0.45, 0.45, 0.45);\n"
+    "diffuseColor = vec3(0.0);\n"
+    "opacity = opacity * alpha;\n"
+)
+
 
 def _gradient_magnitude(conc: NDArray[np.float32]) -> NDArray[np.float32]:
     """Compute gradient magnitude of a 3D concentration field."""
@@ -192,6 +222,175 @@ def create_dissolution_particles(
     actor.SetMapper(mapper)
     actor.GetProperty().SetOpacity(config.particle_opacity)
     return actor
+
+
+def _clamp_to_bbox(
+    positions: NDArray[np.float64],
+    bbox: tuple[float, float, float, float, float, float],
+) -> NDArray[np.bool_]:
+    """Return boolean mask of positions within bbox + 10% margin."""
+    x_min, x_max, y_min, y_max, z_min, z_max = bbox
+    margin_x = (x_max - x_min) * 0.1
+    margin_y = (y_max - y_min) * 0.1
+    margin_z = (z_max - z_min) * 0.1
+    keep: NDArray[np.bool_] = (
+        (positions[:, 0] >= x_min - margin_x)
+        & (positions[:, 0] <= x_max + margin_x)
+        & (positions[:, 1] >= y_min - margin_y)
+        & (positions[:, 1] <= y_max + margin_y)
+        & (positions[:, 2] >= z_min - margin_z)
+        & (positions[:, 2] <= z_max + margin_z)
+    )
+    return keep
+
+
+def _compute_plume_bbox(
+    conc: NDArray[np.float32],
+    spacing: tuple[float, float, float],
+) -> tuple[float, float, float, float, float, float] | None:
+    """Compute world-space bounding box of lit voxels (conc > 0.01)."""
+    coords = np.argwhere(conc > 0.01)
+    if len(coords) == 0:
+        return None
+    z_min_i, y_min_i, x_min_i = coords.min(axis=0)
+    z_max_i, y_max_i, x_max_i = coords.max(axis=0)
+    return (
+        float(x_min_i * spacing[0]),
+        float(x_max_i * spacing[0]),
+        float(y_min_i * spacing[1]),
+        float(y_max_i * spacing[1]),
+        float(z_min_i * spacing[2]),
+        float(z_max_i * spacing[2]),
+    )
+
+
+def _build_layer_actor(
+    conc: NDArray[np.float32],
+    grad_mag: NDArray[np.float32],
+    spacing: tuple[float, float, float],
+    bbox: tuple[float, float, float, float, float, float],
+    config: ParticleDissolutionConfig,
+    layer_index: int,
+    conc_lo: float,
+    conc_hi: float,
+    grad_thresh: float,
+    scale: float,
+    count_base: int,
+    opacity: float,
+    shader: str,
+) -> vtk.vtkActor:
+    """Build a single particle layer actor for a concentration band."""
+    layer_mask = (conc >= conc_lo) & (conc <= conc_hi)
+    if grad_thresh > 0:
+        grad_norm = grad_mag / max(float(grad_mag.max()), 1e-8)
+        layer_mask &= grad_norm > grad_thresh
+
+    candidates = np.argwhere(layer_mask)
+    if len(candidates) == 0:
+        return _empty_dissolution_actor()
+
+    rng = np.random.default_rng(config.seed + layer_index * 100)
+    n_sample = min(int(count_base * config.particle_count_scale), len(candidates))
+    indices = rng.choice(len(candidates), size=n_sample, replace=False)
+    selected = candidates[indices]
+
+    # Convert to world coordinates with jitter
+    positions = np.zeros((n_sample, 3), dtype=np.float64)
+    positions[:, 0] = selected[:, 2] * spacing[0]
+    positions[:, 1] = selected[:, 1] * spacing[1]
+    positions[:, 2] = selected[:, 0] * spacing[2]
+    positions += rng.standard_normal((n_sample, 3)) * np.array(spacing) * 0.3
+
+    # Opacities from gradient strength
+    grad_norm_full = grad_mag / max(float(grad_mag.max()), 1e-8)
+    opacities = grad_norm_full[selected[:, 0], selected[:, 1], selected[:, 2]]
+    opacities = np.clip(opacities, 0.2, 1.0).astype(np.float32)
+
+    # Apply drift/gravity and clamp to bbox
+    positions = _apply_drift_gravity(
+        positions,
+        drift_speed=config.drift_speed,
+        gravity=config.gravity,
+        spacing=spacing,
+        seed=config.seed + layer_index * 100,
+    )
+    keep = _clamp_to_bbox(positions, bbox)
+    positions = positions[keep]
+    opacities = opacities[: len(positions)]
+
+    if len(positions) == 0:
+        return _empty_dissolution_actor()
+
+    polydata = _build_particle_polydata(positions, opacities)
+    mapper = vtk.vtkPointGaussianMapper()
+    mapper.SetInputData(polydata)
+    mapper.SetScaleFactor(scale)
+    mapper.EmissiveOn()
+    mapper.SetSplatShaderCode(shader)
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    actor.GetProperty().SetOpacity(opacity)
+    return actor
+
+
+def create_multilayer_dissolution_particles(
+    conc: NDArray[np.float32],
+    spacing: tuple[float, float, float],
+    config: ParticleDissolutionConfig,
+) -> list[vtk.vtkActor]:
+    """Create three-layer dissolution particles for exhibition-tier rendering.
+
+    Returns actors for clump, filament, and dust layers with different
+    scales, opacities, and shader programs.
+
+    Parameters
+    ----------
+    conc
+        3D concentration field (z, y, x) in [0, 1].
+    spacing
+        Physical spacing (dx, dy, dz).
+    config
+        Particle dissolution configuration.
+
+    Returns
+    -------
+    list[vtk.vtkActor]
+        List of actors (clump, filament, dust), or empty list if no boundary found.
+
+    """
+    grad_mag = _gradient_magnitude(conc)
+    bbox = _compute_plume_bbox(conc, spacing)
+    if bbox is None:
+        return [_empty_dissolution_actor()]
+
+    # Layer definitions: (conc_lo, conc_hi, grad_thresh, scale, count, opacity, shader)
+    layers = [
+        (0.15, 0.40, 0.03, 600.0, 5000, 0.7, _CLUMP_SHADER),
+        (0.05, 0.15, 0.02, 250.0, 15000, 0.5, _FILAMENT_SHADER),
+        (0.01, 0.05, 0.0, 80.0, 25000, 0.3, _DUST_SHADER),
+    ]
+
+    return [
+        _build_layer_actor(
+            conc,
+            grad_mag,
+            spacing,
+            bbox,
+            config,
+            i,
+            conc_lo,
+            conc_hi,
+            grad_thresh,
+            scale,
+            count_base,
+            opacity,
+            shader,
+        )
+        for i, (conc_lo, conc_hi, grad_thresh, scale, count_base, opacity, shader) in enumerate(
+            layers,
+        )
+    ]
 
 
 def _empty_dissolution_actor() -> vtk.vtkActor:
