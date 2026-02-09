@@ -20,6 +20,8 @@ def apply_dissolution(
     noise_octaves: int = 4,
     noise_seed: int = 12345,
     noise_amplitude: float = 1.5,
+    anisotropic: bool = False,
+    stretch_factor: float = 0.3,
 ) -> NDArray[np.float32]:
     """Inject multiplicative noise into the boundary region of a concentration field.
 
@@ -41,6 +43,11 @@ def apply_dissolution(
         Random seed for reproducible noise.
     noise_amplitude
         Scaling factor for the noise modulation. Higher = more holes.
+    anisotropic
+        When True, stretch noise features along concentration gradients
+        to create filamentary dissolution patterns at boundaries.
+    stretch_factor
+        Strength of anisotropic stretching (0 = isotropic, 1 = fully stretched).
 
     """
     result = conc.copy()
@@ -48,6 +55,17 @@ def apply_dissolution(
 
     # Generate noise field in [0, 1]
     noise = fbm_3d(shape, octaves=noise_octaves, seed=noise_seed)
+
+    # Anisotropic gradient-stretched dissolution
+    if anisotropic:
+        gz, gy, gx = np.gradient(conc.astype(np.float64))
+        grad_mag = np.sqrt(gz**2 + gy**2 + gx**2)
+        grad_mag_safe = np.maximum(grad_mag, 1e-8)
+        gz_n = gz / grad_mag_safe
+        noise2 = fbm_3d(shape, octaves=noise_octaves, seed=noise_seed + 7)
+        stretch = noise2 * stretch_factor
+        noise = noise * (1.0 - stretch_factor) + stretch * np.abs(gz_n).astype(np.float32)
+        noise = np.clip(noise, 0.0, 1.0).astype(np.float32)
 
     # Build boundary mask: cells in the dissolution zone
     boundary = (conc >= low_threshold) & (conc <= high_threshold)
