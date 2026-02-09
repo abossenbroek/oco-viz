@@ -38,9 +38,12 @@ log = structlog.get_logger()
 
 OUTPUT_DIR = Path("output/examples/wave8")
 
-_EXPOSURE = 55.0
+_EXPOSURE_DISSOLUTION = 4.0
+_EXPOSURE_DOF = 3.0
+_EXPOSURE_ECD = 3.0
+_EXPOSURE_EXHIBITION = 2.5
 _VIEW_ANGLE = 35.0
-_CAMERA_FILL_SCALE = 0.55
+_CAMERA_FILL_SCALE = 1.2
 
 
 def _parse_args() -> argparse.Namespace:
@@ -69,32 +72,34 @@ def _load_exhibition_config(*, dof_enabled: bool = False) -> AppConfig:
                 "dz": 50.0,
             },
             "postprocess": {
-                "exposure": _EXPOSURE,
+                "exposure": _EXPOSURE_EXHIBITION,
                 "bloom_enabled": False,
                 "dof": dof_override,
             },
             "particle_dissolution": {
                 "enabled": True,
-                "threshold": 0.03,
-                "particle_count_scale": 3.5,
-                "particle_scale": 500.0,
-                "particle_opacity": 0.85,
+                "threshold": 0.02,
+                "particle_count_scale": 15.0,
+                "particle_scale": 1500.0,
+                "particle_opacity": 0.95,
             },
         },
         tier="exhibition",
     )
 
 
-def _get_standard_plume(config: AppConfig, modulator: float = 1.0) -> np.ndarray:
+def _get_standard_plume(
+    config: AppConfig, modulator: float = 1.0, *, density_scale: float = 1.0
+) -> np.ndarray:
     """Generate a standard turbulent plume for gallery consistency."""
     grid = config.grid
     plume_cfg = config.plume.model_copy(
         update={
             "source_x": grid.nx * 0.4,
             "source_y": grid.ny * 0.5,
-            "emission_rate": 15000.0,
-            "stability_class": "C",
-            "wind_speed": 4.0,
+            "emission_rate": 35000.0 * density_scale,
+            "stability_class": "B",
+            "wind_speed": 3.0,
         },
     )
     base = generate_timestep(plume_cfg, grid, time_index=0)
@@ -136,6 +141,19 @@ def _frame_camera(
         wy_min, wy_max = y_min * grid.dy, y_max * grid.dy
         wz_min, wz_max = z_min * grid.dz, z_max * grid.dz
 
+        # Add margin for breathing room before computing diagonal.
+        # Extra vertical (Y) margin ensures black edges at top/bottom of frame,
+        # since the camera views primarily along X with Y mapping to screen vertical.
+        avg_extent = (wx_max - wx_min + wy_max - wy_min + wz_max - wz_min) / 3.0
+        margin_h = avg_extent * 0.15
+        margin_v = avg_extent * 0.35  # larger vertical margin for edge blackness
+        wx_min -= margin_h
+        wx_max += margin_h
+        wy_min -= margin_v
+        wy_max += margin_v
+        wz_min -= margin_h
+        wz_max += margin_h
+
         fx = (wx_min + wx_max) * 0.5
         fy = (wy_min + wy_max) * 0.5
         fz = (wz_min + wz_max) * 0.5
@@ -146,7 +164,7 @@ def _frame_camera(
         cam_dist = bbox_diag * fill_scale
 
     return FixedCamera(
-        position=(fx + cam_dist * 0.90, fy + cam_dist * 0.05, fz + cam_dist * 0.30),
+        position=(fx + cam_dist * 0.85, fy + cam_dist * 0.10, fz + cam_dist * 0.02),
         focal_point=(fx, fy, fz),
     ).evaluate(0.0)
 
@@ -173,35 +191,38 @@ def _render_dissolution_comparison(
     n_rendered = 0
     conc = _get_standard_plume(config)
 
-    # Normalize for dissolution
+    # Apply aggressive dissolution for dramatic on/off contrast.
+    # Wide threshold range [0.005, 0.95] catches nearly all voxels.
+    # High noise_amplitude=8.0 means noise in [0,8]: values below ~0.12
+    # create deep holes while values above 1.0 saturate at clip.
     max_val = float(np.max(conc))
     if max_val > 0:
         norm = conc / max_val
         dissolved = apply_dissolution(
             norm.astype(np.float32),
-            low_threshold=0.05,
-            high_threshold=0.35,
-            noise_octaves=4,
-            noise_amplitude=1.5,
+            low_threshold=0.005,
+            high_threshold=0.95,
+            noise_octaves=6,
+            noise_amplitude=8.0,
         )
         conc_dissolved = dissolved * max_val
     else:
         conc_dissolved = conc.copy()
 
-    camera_state = _frame_camera(config, conc_dissolved)
+    # Frame camera on raw undissolved plume for consistent framing.
+    camera_state = _frame_camera(config, conc, fill_scale=0.55)
 
-    # --- Without particle dissolution ---
     render_cfg = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=1.6),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=3.0),
             "postprocess": PostProcessConfig(
                 fog_enabled=False,
                 bloom_enabled=True,
                 bloom_threshold=0.3,
                 bloom_intensity=0.6,
                 bloom_passes=4,
-                exposure=_EXPOSURE,
+                exposure=_EXPOSURE_DISSOLUTION,
                 dof=DOFConfig(enabled=False),
             ),
         },
@@ -212,25 +233,40 @@ def _render_dissolution_comparison(
     renderer._renderer.GetActiveCamera().SetViewAngle(_VIEW_ANGLE)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
 
     try:
+        # Shared normalization: both renders use the RAW max so dissolved
+        # volume faithfully shows reduced density (not re-normalized to full).
+        raw_max = max(float(conc.max()), 1e-8)
+        # Lower gamma (1.8 vs 3.0) preserves more voxel-level variation so
+        # dissolution holes are visible instead of being washed out by ray
+        # accumulation.  The exposure is also bumped to compensate.
+        gamma = 1.8
+
+        # "Off" render: raw undissolved volume — clean plume, smooth edges
+        norm_off = np.clip(conc / raw_max, 0, 1).astype(np.float32)
+        norm_off = np.power(norm_off, 1.0 / gamma).astype(np.float32)
         rgb = renderer.render_frame_postprocessed(
-            conc_dissolved,
+            norm_off,
             camera_state,
-            pre_normalized=False,
+            pre_normalized=True,
         )
         _save_rgb(rgb, OUTPUT_DIR / "dissolution_off.png")
         n_rendered += 1
 
-        # --- With particle dissolution overlay ---
+        # "On" render: dissolved volume + particles from raw gradients
         pdiss_cfg = config.particle_dissolution
         spacing = (config.grid.dx, config.grid.dy, config.grid.dz)
-        norm = conc_dissolved / max(float(conc_dissolved.max()), 1e-8)
-        particle_actor = create_dissolution_particles(norm.astype(np.float32), spacing, pdiss_cfg)
+        # Generate particles from RAW undissolved volume (sharp gradients
+        # needed for _sample_boundary_points to find boundary voxels)
+        norm_raw = np.clip(conc / raw_max, 0, 1).astype(np.float32)
+        particle_actor = create_dissolution_particles(norm_raw, spacing, pdiss_cfg)
         renderer.add_actor(particle_actor)
 
+        norm_on = np.clip(conc_dissolved / raw_max, 0, 1).astype(np.float32)
+        norm_on = np.power(norm_on, 1.0 / gamma).astype(np.float32)
         rgb = renderer.render_frame_postprocessed(
-            conc_dissolved,
+            norm_on,
             camera_state,
-            pre_normalized=False,
+            pre_normalized=True,
         )
         _save_rgb(rgb, OUTPUT_DIR / "dissolution_on.png")
         n_rendered += 1
@@ -264,7 +300,7 @@ def _render_dof_comparison(
 
     base_update = {
         "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-        "rendering": RenderingConfig(mode="max", opacity_gamma=1.6),
+        "rendering": RenderingConfig(mode="max", opacity_gamma=3.0),
     }
 
     # --- Without DOF ---
@@ -277,7 +313,7 @@ def _render_dof_comparison(
                 bloom_threshold=0.3,
                 bloom_intensity=0.5,
                 bloom_passes=4,
-                exposure=_EXPOSURE,
+                exposure=_EXPOSURE_DOF,
                 dof=DOFConfig(enabled=False),
             )
         },
@@ -304,11 +340,11 @@ def _render_dof_comparison(
                 bloom_threshold=0.3,
                 bloom_intensity=0.5,
                 bloom_passes=4,
-                exposure=_EXPOSURE,
+                exposure=_EXPOSURE_DOF,
                 dof=DOFConfig(
                     enabled=True,
-                    aperture=2.8,
-                    max_blur_radius=12.0,
+                    aperture=1.8,
+                    max_blur_radius=18.0,
                     depth_mode="luminance",
                 ),
             )
@@ -334,26 +370,40 @@ def _render_ecd_turbulence_comparison(
 ) -> int:
     """Render turbulence with different amplitude modulators (simulating ECD coupling).
 
-    Uses shared normalization so amplitude differences are preserved across renders.
-    Modulator sweep: 1.0, 2.0, 3.0 for visible density progression.
+    Scales turbulence amplitude and base density. Per-frame normalization ensures
+    each modulator level is rendered at full brightness; the visual progression
+    comes from increasing structural complexity and plume extent.
+    Modulator sweep: 1.0, 1.5, 2.0.
     Returns the number of images rendered.
     """
     n_rendered = 0
-    modulators = [1.0, 2.0, 3.0]
+    modulators = [1.0, 2.0, 4.0]
 
-    # Generate all plumes first to find shared normalization reference
-    plumes = {m: _get_standard_plume(config, modulator=m) for m in modulators}
-    all_values = np.concatenate([v.ravel() for v in plumes.values()])
-    global_max = float(np.percentile(all_values, 99.9))
-    global_max = max(global_max, 1e-8)
+    # Scale both turbulence amplitude AND base density for visible difference
+    plumes = {
+        m: _get_standard_plume(config, modulator=m, density_scale=m) for m in modulators
+    }
 
     # Camera frames the densest plume (highest modulator)
-    camera_state = _frame_camera(config, plumes[modulators[-1]], fill_scale=0.75)
+    camera_state = _frame_camera(config, plumes[modulators[-1]])
+
+    # Shared normalization: normalize all plumes to the DENSEST plume's max so
+    # brightness differences between modulator levels are preserved.
+    shared_max = max(float(plumes[modulators[-1]].max()), 1e-8)
 
     render_cfg = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=1.6),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=3.0),
+            "postprocess": PostProcessConfig(
+                fog_enabled=False,
+                bloom_enabled=True,
+                bloom_threshold=0.3,
+                bloom_intensity=0.5,
+                bloom_passes=4,
+                exposure=_EXPOSURE_ECD,
+                dof=DOFConfig(enabled=False),
+            ),
         },
     )
     renderer = VolumeRenderer(render_cfg)
@@ -361,19 +411,17 @@ def _render_ecd_turbulence_comparison(
     assert renderer._renderer is not None  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
     renderer._renderer.GetActiveCamera().SetViewAngle(_VIEW_ANGLE)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
 
-    gamma = render_cfg.rendering.opacity_gamma
-
-    def shared_norm(c: np.ndarray) -> np.ndarray:
-        n = np.clip(c / global_max, 0, 1)
-        if gamma != 1.0:
-            n = np.power(n, 1.0 / gamma)
-        return n.astype(np.float32)
-
     try:
+        gamma = 3.0
         for mod in modulators:
             conc = plumes[mod]
+            # Shared normalization: divide by densest plume's max so brightness
+            # differences between modulator levels are preserved.
+            norm = np.clip(conc / shared_max, 0, 1).astype(np.float32)
+            # Apply gamma manually (pre_normalized=True skips renderer's gamma)
+            norm = np.power(norm, 1.0 / gamma).astype(np.float32)
             rgb = renderer.render_frame_postprocessed(
-                shared_norm(conc), camera_state, pre_normalized=True
+                norm, camera_state, pre_normalized=True
             )
             _save_rgb(rgb, OUTPUT_DIR / f"ecd_modulator_{mod:.1f}.png")
             n_rendered += 1
@@ -416,18 +464,15 @@ def _render_combined_exhibition(
     cfg = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=1.6),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=3.0),
             "postprocess": PostProcessConfig(
                 fog_enabled=False,
-                bloom_enabled=True,
-                bloom_threshold=0.3,
-                bloom_intensity=0.5,
-                bloom_passes=4,
-                exposure=_EXPOSURE,
+                bloom_enabled=False,
+                exposure=_EXPOSURE_EXHIBITION,
                 dof=DOFConfig(
                     enabled=True,
-                    aperture=2.8,
-                    max_blur_radius=10.0,
+                    aperture=2.0,
+                    max_blur_radius=14.0,
                     depth_mode="luminance",
                 ),
             ),
@@ -443,9 +488,10 @@ def _render_combined_exhibition(
         spacing = (config.grid.dx, config.grid.dy, config.grid.dz)
         pdiss_cfg = ParticleDissolutionConfig(
             enabled=True,
-            particle_count_scale=4.0,
-            particle_scale=550.0,
-            particle_opacity=0.80,
+            threshold=0.02,
+            particle_count_scale=15.0,
+            particle_scale=1500.0,
+            particle_opacity=0.95,
         )
         norm = conc / max(float(conc.max()), 1e-8)
         particle_actor = create_dissolution_particles(norm.astype(np.float32), spacing, pdiss_cfg)

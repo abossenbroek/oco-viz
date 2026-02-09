@@ -19,7 +19,7 @@ _DISSOLUTION_SHADER = (
     "float dist2 = dot(offsetVCVSOutput.xy, offsetVCVSOutput.xy);\n"
     "if (dist2 > 1.0) { discard; }\n"
     "float alpha = exp(-dist2 * 0.5);\n"
-    "ambientColor = vec3(0.95, 0.88, 0.75);\n"
+    "ambientColor = vec3(0.75, 0.75, 0.75);\n"
     "diffuseColor = vec3(0.0);\n"
     "opacity = opacity * alpha;\n"
 )
