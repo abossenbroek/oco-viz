@@ -49,20 +49,21 @@ def _parse_args() -> argparse.Namespace:
 def _load_exhibition_config() -> AppConfig:
     """Load config for exhibition renders.
 
-    Grid is 96x96x64 with anisotropic Z-squash (dz < dx) for geological
-    layering appearance. Exhibition tier sets soot_exhibition TF, shade=false,
-    fog/bloom off.
+    Grid is 128x128x96 with anisotropic Z-squash (dz < dx) for geological
+    layering appearance. Higher resolution than study tier to support
+    multi-octave noise detail at exhibition quality. Exhibition tier sets
+    soot_exhibition TF, shade=false, fog/bloom off.
     """
     return load_config(
         "dev_mac",
         overrides={
             "grid": {
-                "nx": 96,
-                "ny": 96,
-                "nz": 64,
-                "dx": 100.0,
-                "dy": 100.0,
-                "dz": 50.0,
+                "nx": 128,
+                "ny": 128,
+                "nz": 96,
+                "dx": 75.0,
+                "dy": 75.0,
+                "dz": 35.0,
             },
         },
         tier="exhibition",
@@ -119,38 +120,52 @@ def _generate_exhibition_plume(
         - (zz - cz) ** 2 / (2 * sz**2),
     ).astype(np.float32)
 
-    # fBm noise for organic structure
+    # Primary fBm noise for organic structure
     noise = fbm_3d(shape, octaves=octaves, lacunarity=lacunarity, gain=gain, seed=seed)
 
-    # Modulate: envelope * noise creates organic clumps
-    conc = envelope * noise * 3.5
+    # Secondary noise field for boundary modulation — 4 octaves for multi-scale
+    # edge breakup (large lobes + medium eddies + small wisps)
+    boundary_noise = fbm_3d(shape, octaves=4, lacunarity=2.0, gain=0.55, seed=seed + 7)
+
+    # Tertiary fine-detail noise for internal void pockets and filaments
+    detail_noise = fbm_3d(shape, octaves=4, lacunarity=2.5, gain=0.45, seed=seed + 13)
+
+    # Modulate: envelope * (noise * detail_noise)^1.2 creates organic clumps
+    # with internal void pockets from the detail noise multiplication
+    combined = noise * (0.5 + 0.5 * detail_noise)
+    conc = envelope * np.power(combined, 1.2) * 6.0
     np.clip(conc, 0.0, None, out=conc)
 
-    # Smooth the result to remove voxel-level artifacts
-    conc = gaussian_filter(conc, sigma=1.2).astype(np.float32)
+    # Lighter smoothing at higher resolution (sigma=1.0 vs 1.5)
+    conc = gaussian_filter(conc, sigma=1.0).astype(np.float32)
 
-    # Soft thresholding: smoothly ramp to zero below 5% of max
+    # Soft thresholding: smoothly ramp to zero below 3% of max (tighter for more detail)
     max_val = float(conc.max())
     if max_val > 0:
-        cutoff = 0.05 * max_val
+        cutoff = 0.03 * max_val
         mask = conc < cutoff
         conc[mask] *= (conc[mask] / cutoff) ** 2
 
-    # Domain boundary falloff: raised-cosine window over outer 25% of each axis.
-    # Must be wider than Gaussian smoothing sigma to prevent smearing data back
-    # into the falloff zone, which creates a visible bounding-box silhouette.
-    margin = 0.25
-    for axis, n in enumerate(shape):
-        m = int(n * margin)
-        if m < 1:
-            continue
-        ramp = np.ones(n, dtype=np.float32)
-        t = np.linspace(0.0, np.pi / 2, m, dtype=np.float32)
-        ramp[:m] = np.sin(t) ** 2
-        ramp[-m:] = np.sin(t[::-1]) ** 2
-        slices: list[None | slice] = [None, None, None]
-        slices[axis] = slice(None)
-        conc *= ramp[tuple(slices)]
+    # Noise-modulated radial boundary falloff for organic, fractal-like edges.
+    # The radial distance field is modulated by boundary noise so the edge
+    # breaks up into lobes, wisps, tendrils, and void pockets.
+    rz, ry, rx = nz / 2.0, ny / 2.0, nx / 2.0
+    dist = np.sqrt(
+        ((zz - cz) / rz) ** 2 + ((yy - cy) / ry) ** 2 + ((xx - cx) / rx) ** 2,
+    ).astype(np.float32)
+
+    # Strong noise modulation: boundary_noise shifts the falloff threshold by ±0.25
+    # so some regions extend far out (wisps/tendrils) while others cut in (voids)
+    falloff_center = 0.35
+    falloff_width = 0.15
+    noise_amplitude = 0.25
+    effective_dist = dist - noise_amplitude * (boundary_noise - 0.5) * 2.0
+    boundary = 1.0 - np.clip(
+        (effective_dist - falloff_center) / falloff_width,
+        0.0,
+        1.0,
+    )
+    conc *= boundary.astype(np.float32)
 
     return conc.astype(np.float32)
 
@@ -191,10 +206,10 @@ def _render_to_rgb(
         norm = conc / max_val
         dissolved = apply_dissolution(
             norm.astype(np.float32),
-            low_threshold=0.05,
-            high_threshold=0.35,
-            noise_octaves=3,
-            noise_amplitude=1.2,
+            low_threshold=0.08,
+            high_threshold=0.45,
+            noise_octaves=4,
+            noise_amplitude=1.6,
         )
         conc[:] = dissolved * max_val
 
@@ -263,12 +278,12 @@ def main() -> None:
         n_rendered = 0
         for i, seed_offset in enumerate([0, 100, 200, 300]):
             t_idx = i * 8
-            src_x_frac = 0.22 + i * 0.05
+            src_x_frac = 0.25 + i * 0.06
             conc = _generate_exhibition_plume(
                 shape,
                 seed=42 + seed_offset,
-                src_frac=(src_x_frac, 0.5, 0.38 + i * 0.01),
-                sigma_frac=(0.26 + i * 0.03, 0.20 + i * 0.02, 0.18 + i * 0.015),
+                src_frac=(src_x_frac, 0.5, 0.40 + i * 0.01),
+                sigma_frac=(0.16 + i * 0.03, 0.13 + i * 0.02, 0.11 + i * 0.015),
             )
             log.info(
                 "plume generated",
@@ -284,8 +299,8 @@ def main() -> None:
         conc_compact = _generate_exhibition_plume(
             shape,
             seed=77,
-            src_frac=(0.30, 0.5, 0.40),
-            sigma_frac=(0.26, 0.20, 0.18),
+            src_frac=(0.35, 0.5, 0.42),
+            sigma_frac=(0.15, 0.12, 0.10),
         )
         rgb = _render_to_rgb(renderer, conc_compact, camera_state)
         _save_rgb(rgb, OUTPUT_DIR / "compare_gaussian.png")
@@ -294,8 +309,8 @@ def main() -> None:
         conc_spread = _generate_exhibition_plume(
             shape,
             seed=88,
-            src_frac=(0.35, 0.5, 0.38),
-            sigma_frac=(0.30, 0.22, 0.20),
+            src_frac=(0.38, 0.5, 0.40),
+            sigma_frac=(0.20, 0.15, 0.13),
         )
         rgb = _render_to_rgb(renderer, conc_spread, camera_state)
         _save_rgb(rgb, OUTPUT_DIR / "compare_turbulent.png")
@@ -304,8 +319,8 @@ def main() -> None:
         conc_evolved = _generate_exhibition_plume(
             shape,
             seed=342,
-            src_frac=(0.40, 0.48, 0.38),
-            sigma_frac=(0.35, 0.24, 0.20),
+            src_frac=(0.42, 0.48, 0.40),
+            sigma_frac=(0.25, 0.18, 0.14),
         )
         rgb = _render_to_rgb(renderer, conc_evolved, camera_state)
         _save_rgb(rgb, OUTPUT_DIR / "compare_advected.png")

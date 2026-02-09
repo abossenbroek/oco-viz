@@ -28,10 +28,12 @@ def create_pipeline(config: PostProcessConfig, tier: str) -> PostProcessPipeline
         bloom -> ACES tonemap -> grain (no fog).
     """
     if tier == "sketch":
-        # Passthrough: disable all stages, tonemap is essentially identity at exposure=1
+        # Minimal pipeline: disable fog/bloom, boost exposure to compensate for
+        # low-opacity transfer functions (e.g. soot with max opacity 0.55).
+        # exposure=5.0 ensures ~40-50% peak luminance even for dim TFs.
         return PostProcessPipeline(
             config.model_copy(
-                update={"fog_enabled": False, "bloom_enabled": False, "exposure": 1.0},
+                update={"fog_enabled": False, "bloom_enabled": False, "exposure": 5.0},
             ),
         )
 

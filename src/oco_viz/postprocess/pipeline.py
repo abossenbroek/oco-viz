@@ -26,6 +26,8 @@ class PostProcessPipeline:
         self,
         rgb: NDArray[np.float32],
         depth: NDArray[np.float32],
+        *,
+        extra_exposure: float = 1.0,
     ) -> NDArray[np.float32]:
         """Apply enabled stages: [fog] -> [bloom] -> tonemap -> [grain].
 
@@ -47,7 +49,7 @@ class PostProcessPipeline:
                 intensity=self._config.bloom_intensity,
                 passes=self._config.bloom_passes,
             )
-        result = aces_tonemap(result, exposure=self._config.exposure)
+        result = aces_tonemap(result, exposure=self._config.exposure * extra_exposure)
         if self._config.grain_strength > 0:
             result = apply_grain(result, strength=self._config.grain_strength)
         return result

@@ -29,6 +29,7 @@ class TransferFunction:
 
     color_points: list[ControlPoint] = attr.Factory(list)
     opacity_points: list[ControlPoint] = attr.Factory(list)
+    exposure_multiplier: float = 1.0
 
     def to_vtk(self) -> tuple[vtk.vtkColorTransferFunction, vtk.vtkPiecewiseFunction]:
         """Convert to VTK transfer function objects."""
@@ -47,6 +48,7 @@ class TransferFunction:
         data = {
             "color_points": [attr.asdict(cp) for cp in self.color_points],
             "opacity_points": [attr.asdict(cp) for cp in self.opacity_points],
+            "exposure_multiplier": self.exposure_multiplier,
         }
         return json.dumps(data, indent=2)
 
@@ -57,6 +59,7 @@ class TransferFunction:
         return cls(
             color_points=[ControlPoint(**cp) for cp in data["color_points"]],
             opacity_points=[ControlPoint(**cp) for cp in data["opacity_points"]],
+            exposure_multiplier=data.get("exposure_multiplier", 1.0),
         )
 
     @classmethod
@@ -188,6 +191,7 @@ class TransferFunction:
                 ControlPoint(scalar=0.85, opacity=0.18),
                 ControlPoint(scalar=1.0, opacity=0.20),
             ],
+            exposure_multiplier=0.8,
         )
 
     @classmethod

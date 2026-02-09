@@ -40,5 +40,6 @@
     { "scalar": 0.9,  "r": 0.0, "g": 0.0, "b": 0.0, "opacity": 0.525 },
     { "scalar": 0.95, "r": 0.0, "g": 0.0, "b": 0.0, "opacity": 0.537 },
     { "scalar": 1.0,  "r": 0.0, "g": 0.0, "b": 0.0, "opacity": 0.550 }
-  ]
+  ],
+  "exposure_multiplier": 2.5
 }

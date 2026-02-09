@@ -138,6 +138,73 @@ def _apply_gamma_scaling(
     )
 
 
+def _normalize_max(
+    conc: NDArray[np.float32],
+    rendering_cfg: RenderingConfig,
+) -> NDArray[np.float32]:
+    """Max-normalize: divide by maximum value, optionally gamma-correct."""
+    if np.all(np.isnan(conc)):
+        return np.zeros_like(conc)
+    max_val = float(np.nanmax(conc))
+    if max_val > 0:
+        normalized = np.clip(conc / max_val, 0, 1).astype(np.float32)
+    else:
+        normalized = np.zeros_like(conc)
+
+    if rendering_cfg.opacity_gamma != 1.0:
+        normalized = _apply_gamma_scaling(normalized, rendering_cfg.opacity_gamma)
+
+    return cast("NDArray[np.float32]", normalized)
+
+
+def _normalize_anomaly(
+    conc: NDArray[np.float32],
+    rendering_cfg: RenderingConfig,
+) -> NDArray[np.float32]:
+    """Anomaly-normalize: subtract background profile, clip, divide."""
+    background = compute_background_profile(conc)
+    enhancement = np.clip(conc - background, 0, None)
+
+    if rendering_cfg.adaptive_normalization:
+        divisor = _compute_adaptive_divisor(
+            enhancement,
+            rendering_cfg.adaptive_percentile,
+            rendering_cfg.min_enhancement_ppm,
+        )
+    else:
+        divisor = rendering_cfg.anomaly_max_ppm
+
+    normalized = np.clip(enhancement / divisor, 0, 1).astype(np.float32)
+
+    # Order matters: gamma first (boosts values), then edge falloff (tapers to zero).
+    if rendering_cfg.opacity_gamma != 1.0:
+        normalized = _apply_gamma_scaling(normalized, rendering_cfg.opacity_gamma)
+
+    # Edge feathering applied AFTER normalization to avoid corrupting background estimation
+    normalized *= _compute_edge_falloff(normalized.shape, mode="ellipsoidal")
+    return cast("NDArray[np.float32]", normalized)
+
+
+def _normalize_absolute(
+    conc: NDArray[np.float32],
+    rendering_cfg: RenderingConfig,
+) -> NDArray[np.float32]:
+    """Absolute-normalize: map [lo, hi] ppm range linearly to [0, 1]."""
+    if rendering_cfg.adaptive_normalization:
+        lo = float(np.nanpercentile(conc, rendering_cfg.absolute_low_percentile))
+        hi = float(np.nanpercentile(conc, rendering_cfg.absolute_high_percentile))
+        if hi <= lo:
+            hi = lo + 1.0
+    else:
+        lo = rendering_cfg.absolute_min_ppm
+        hi = rendering_cfg.absolute_max_ppm
+
+    span = hi - lo
+    if span <= 0:
+        return np.zeros_like(conc)
+    return cast("NDArray[np.float32]", np.clip((conc - lo) / span, 0, 1).astype(np.float32))
+
+
 def normalize_concentration(
     conc: NDArray[np.float32],
     rendering_cfg: RenderingConfig,
@@ -156,52 +223,9 @@ def normalize_concentration(
         Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
     """
     if rendering_cfg.mode == "max":
-        if np.all(np.isnan(conc)):
-            return np.zeros_like(conc)
-        max_val = float(np.nanmax(conc))
-        if max_val > 0:
-            # Clip to [0, max_val] before division to handle negative inputs
-            normalized = np.clip(conc / max_val, 0, 1).astype(np.float32)
-        else:
-            normalized = np.zeros_like(conc)
-
-        # Apply gamma scaling (>1 boosts low/mid-range values for visibility)
-        if rendering_cfg.opacity_gamma != 1.0:
-            normalized = _apply_gamma_scaling(normalized, rendering_cfg.opacity_gamma)
-
-        return cast("NDArray[np.float32]", normalized)
+        return _normalize_max(conc, rendering_cfg)
 
     if rendering_cfg.mode == "anomaly":
-        background = compute_background_profile(conc)
-        enhancement = np.clip(conc - background, 0, None)
+        return _normalize_anomaly(conc, rendering_cfg)
 
-        # Adaptive or fixed divisor
-        if rendering_cfg.adaptive_normalization:
-            divisor = _compute_adaptive_divisor(
-                enhancement,
-                rendering_cfg.adaptive_percentile,
-                rendering_cfg.min_enhancement_ppm,
-            )
-        else:
-            divisor = rendering_cfg.anomaly_max_ppm
-
-        normalized = np.clip(enhancement / divisor, 0, 1).astype(np.float32)
-
-        # Order matters: gamma first (boosts values), then edge falloff (tapers to zero).
-        # Reversing this would gamma-boost the falloff artifacts.
-        if rendering_cfg.opacity_gamma != 1.0:
-            normalized = _apply_gamma_scaling(normalized, rendering_cfg.opacity_gamma)
-
-        # Apply edge feathering for visual smoothness (cinematic effect)
-        # This is applied AFTER normalization to avoid corrupting background estimation
-        # Use ellipsoidal falloff to match turbulent plume geometry and avoid rectangular artifacts
-        normalized *= _compute_edge_falloff(normalized.shape, mode="ellipsoidal")
-        return cast("NDArray[np.float32]", normalized)
-
-    # absolute mode
-    lo = rendering_cfg.absolute_min_ppm
-    hi = rendering_cfg.absolute_max_ppm
-    span = hi - lo
-    if span <= 0:
-        return np.zeros_like(conc)
-    return cast("NDArray[np.float32]", np.clip((conc - lo) / span, 0, 1).astype(np.float32))
+    return _normalize_absolute(conc, rendering_cfg)
