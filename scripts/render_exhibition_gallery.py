@@ -75,7 +75,7 @@ def _generate_exhibition_plume(
     seed: int = 42,
     src_frac: tuple[float, float, float] = (0.15, 0.5, 0.35),
     sigma_frac: tuple[float, float, float] = (0.35, 0.22, 0.20),
-    octaves: int = 4,
+    octaves: int = 6,
     lacunarity: float = 2.0,
     gain: float = 0.5,
 ) -> np.ndarray:
@@ -127,7 +127,7 @@ def _generate_exhibition_plume(
     np.clip(conc, 0.0, None, out=conc)
 
     # Smooth the result to remove voxel-level artifacts
-    conc = gaussian_filter(conc, sigma=2.0).astype(np.float32)
+    conc = gaussian_filter(conc, sigma=1.2).astype(np.float32)
 
     # Soft thresholding: smoothly ramp to zero below 5% of max
     max_val = float(conc.max())
@@ -168,7 +168,7 @@ def _build_exhibition_camera(config: AppConfig) -> CameraState:
     fz = grid.nz * grid.dz * 0.45
     # Camera distance: close enough for 60-80% frame fill
     grid_extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
-    cam_dist = grid_extent * 2.4
+    cam_dist = grid_extent * 1.6
     # Near-level view with slight elevation for depth — confrontational, not landscape
     return FixedCamera(
         position=(fx + cam_dist * 0.80, fy - cam_dist * 0.15, fz + cam_dist * 0.50),

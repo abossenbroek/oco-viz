@@ -55,11 +55,11 @@ def test_exhibition_tier_config_overlay() -> None:
 
 
 def test_sketch_tier_config_overlay() -> None:
-    """Sketch tier: no sky/ground, no lighting, scattering disabled."""
+    """Sketch tier: no sky/ground, basic lighting, scattering disabled."""
     config = load_config(tier="sketch")
     assert config.sky.enabled is False
     assert config.ground_plane.enabled is False
-    assert config.lighting.mode == "none"
+    assert config.lighting.mode == "basic"
     assert config.scattering.volumetric_scattering_blending == pytest.approx(0.0)
     assert config.scattering.global_illumination_reach == pytest.approx(0.0)
 
