@@ -214,7 +214,7 @@ class RenderingConfig(BaseModel):
         absolute: Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
             Shows full atmospheric column including background.
 
-    Adaptive normalization (anomaly mode only):
+    Adaptive normalization (anomaly and absolute modes):
         When adaptive_normalization=True, divides by the adaptive_percentile-th
         percentile of positive enhancement values instead of anomaly_max_ppm.
 
@@ -228,16 +228,28 @@ class RenderingConfig(BaseModel):
     absolute_min_ppm: float = Field(default=415.0)
     absolute_max_ppm: float = Field(default=435.0, gt=0)
 
-    # Adaptive normalization (anomaly mode only)
+    # Adaptive normalization
     adaptive_normalization: bool = Field(
         default=False,
-        description="Use percentile-based max instead of fixed anomaly_max_ppm",
+        description="Use percentile-based range instead of fixed max/min values (anomaly and absolute modes)",
     )
     adaptive_percentile: float = Field(
         default=95.0,
         ge=50.0,
         le=100.0,
-        description="Percentile of positive enhancement values to use as divisor",
+        description="Percentile of positive enhancement values to use as divisor (anomaly mode)",
+    )
+    absolute_low_percentile: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=20.0,
+        description="Low percentile for absolute mode normalization",
+    )
+    absolute_high_percentile: float = Field(
+        default=99.0,
+        ge=80.0,
+        le=100.0,
+        description="High percentile for absolute mode normalization",
     )
     min_enhancement_ppm: float = Field(
         default=1.0,
