@@ -114,7 +114,9 @@ def mock_pipeline() -> dict[str, MagicMock]:
     mocks["read_zarr"] = MagicMock(return_value=ds)
 
     mock_result = MagicMock(
-        rmse_ppm=1.5, fraction_within_threshold=0.8, passed=True,
+        rmse_ppm=1.5,
+        fraction_within_threshold=0.8,
+        passed=True,
     )
     mocks["compute_column_xco2"] = MagicMock(
         return_value=np.zeros((3, 3), dtype=np.float32),
@@ -208,7 +210,8 @@ def test_stage_validate_runs(
     """stage_validate runs validation pipeline."""
     ds = _make_dataset()
     ds["xco2_observed"] = xr.DataArray(
-        np.ones((3, 3), dtype=np.float32) * 420.0, dims=["y", "x"],
+        np.ones((3, 3), dtype=np.float32) * 420.0,
+        dims=["y", "x"],
     )
     mock_pipeline["read_zarr"].return_value = ds
     zarr_path = output_dir / "concentration.zarr"
@@ -260,11 +263,14 @@ def test_stage_validate_continues_on_failure(
     """stage_validate logs warning but does not raise on low threshold."""
     ds = _make_dataset()
     ds["xco2_observed"] = xr.DataArray(
-        np.ones((3, 3), dtype=np.float32) * 420.0, dims=["y", "x"],
+        np.ones((3, 3), dtype=np.float32) * 420.0,
+        dims=["y", "x"],
     )
     mock_pipeline["read_zarr"].return_value = ds
     mock_pipeline["compare_modeled_observed"].return_value = MagicMock(
-        rmse_ppm=10.0, fraction_within_threshold=0.3, passed=False,
+        rmse_ppm=10.0,
+        fraction_within_threshold=0.3,
+        passed=False,
     )
     zarr_path = output_dir / "concentration.zarr"
 
@@ -423,7 +429,10 @@ def test_stage_report_writes_json(
     }
 
     report_path = asm.stage_report(
-        config, output_dir, stage_results, config_path="configs/hero.yaml",
+        config,
+        output_dir,
+        stage_results,
+        config_path="configs/hero.yaml",
     )
 
     assert report_path.exists()
@@ -446,7 +455,10 @@ def test_stage_report_includes_file_inventory(
     (sub / "nested.txt").write_text("world")
 
     report_path = asm.stage_report(
-        config, output_dir, {}, config_path="configs/hero.yaml",
+        config,
+        output_dir,
+        {},
+        config_path="configs/hero.yaml",
     )
 
     data = json.loads(report_path.read_text())
