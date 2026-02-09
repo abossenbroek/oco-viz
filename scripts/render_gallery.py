@@ -1,4 +1,4 @@
-"""Render fixture gallery: 5 TF presets x 2 plume types = 10+ example images.
+"""Render fixture gallery: 5 TF presets x 3 plume types = 15 example images.
 
 Demonstrates data fusion across three sources:
 - ERA5 reanalysis winds (drive plume advection)
@@ -196,7 +196,16 @@ def _build_plume_variants(config, wind_ds):
     turbulent_conc = apply_turbulence(gaussian_conc, config.turbulence, config.grid, time_index=0)
     log.info("turbulent plume generated", max_conc=round(float(turbulent_conc.max()), 6))
 
-    return {"gaussian": gaussian_conc, "turbulent": turbulent_conc}
+    # Composite: synthetic background (~420 ppm with vertical gradient) + turbulent enhancement
+    nz, ny, nx = config.grid.nz, config.grid.ny, config.grid.nx
+    background = np.full((nz, ny, nx), 420.0, dtype=np.float32)
+    # Vertical gradient: ~5 ppm decrease with altitude (realistic atmospheric profile)
+    for z in range(nz):
+        background[z, :, :] -= z * (5.0 / nz)
+    composite_conc = background + turbulent_conc
+    log.info("composite plume generated", max_conc=round(float(composite_conc.max()), 6))
+
+    return {"gaussian": gaussian_conc, "turbulent": turbulent_conc, "composite": composite_conc}
 
 
 def _render_all_presets(config, plume_variants, camera_state) -> int:
@@ -211,6 +220,10 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
             if preset_name == "absolute_atmospheric":
                 rendering_cfg = RenderingConfig(
                     mode="absolute", adaptive_normalization=True
+                )
+            elif plume_type == "composite":
+                rendering_cfg = RenderingConfig(
+                    mode="anomaly", adaptive_normalization=True
                 )
             else:
                 rendering_cfg = RenderingConfig(mode="max")
