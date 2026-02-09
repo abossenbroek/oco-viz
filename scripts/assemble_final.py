@@ -41,9 +41,7 @@ def _import_read_zarr() -> Any:
     return zarr_store.read_zarr
 
 
-def _import_validation() -> (
-    tuple[Any, Any, Any]
-):
+def _import_validation() -> tuple[Any, Any, Any]:
     from oco_viz.data import validation  # noqa: PLC0415
 
     return (
@@ -292,7 +290,10 @@ def stage_encode(
     if not skipped_master:
         prores_enc = config.encoding.model_copy(update={"codec": "prores4444"})
         encode_video(
-            encode_dir, master_path, fps=config.output.fps, encoding=prores_enc,
+            encode_dir,
+            master_path,
+            fps=config.output.fps,
+            encoding=prores_enc,
         )
         logger.info("ENCODE: master → %s", master_path)
 
@@ -300,7 +301,10 @@ def stage_encode(
     if not skipped_distribution:
         h264_enc = config.encoding.model_copy(update={"codec": "h264"})
         encode_video(
-            encode_dir, dist_path, fps=config.output.fps, encoding=h264_enc,
+            encode_dir,
+            dist_path,
+            fps=config.output.fps,
+            encoding=h264_enc,
         )
         logger.info("ENCODE: distribution → %s", dist_path)
 
@@ -428,12 +432,16 @@ def main() -> None:
     """Run all assembly stages."""
     parser = argparse.ArgumentParser(description="Assemble final deliverables")
     parser.add_argument(
-        "--config", required=True, help="Config YAML path (overlaid on base.yaml)",
+        "--config",
+        required=True,
+        help="Config YAML path (overlaid on base.yaml)",
     )
     parser.add_argument("--output-dir", default="output/hero", help="Output directory")
     parser.add_argument("--skip-validation", action="store_true")
     parser.add_argument(
-        "--no-regenerate", action="store_true", help="Skip generation if zarr exists",
+        "--no-regenerate",
+        action="store_true",
+        help="Skip generation if zarr exists",
     )
     args = parser.parse_args()
 
@@ -462,7 +470,10 @@ def main() -> None:
     # Stage 2: VALIDATE
     logger.info("=== Stage 2: VALIDATE ===")
     results["validate"] = stage_validate(
-        config, zarr_path, output_dir, skip=args.skip_validation,
+        config,
+        zarr_path,
+        output_dir,
+        skip=args.skip_validation,
     )
 
     # Stage 3: RENDER
@@ -482,8 +493,11 @@ def main() -> None:
     logger.info("=== Stage 6: REPORT ===")
     total_time = time.monotonic() - t_start
     report_path = stage_report(
-        config, output_dir, results,
-        config_path=args.config, total_time=total_time,
+        config,
+        output_dir,
+        results,
+        config_path=args.config,
+        total_time=total_time,
     )
     print(f"Assembly complete: {report_path}")
 

@@ -255,9 +255,7 @@ def main() -> None:
         "--output-dir", default="output/frames", help="Output directory for frames"
     )
     p_batch.add_argument("--chunk-size", type=int, default=100, help="Frames per chunk")
-    p_batch.add_argument(
-        "--resume", action="store_true", help="Resume from last completed frame"
-    )
+    p_batch.add_argument("--resume", action="store_true", help="Resume from last completed frame")
     p_batch.set_defaults(func=cmd_batch_render)
 
     args = parser.parse_args()

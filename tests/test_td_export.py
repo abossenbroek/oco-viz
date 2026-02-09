@@ -31,6 +31,7 @@ if TYPE_CHECKING:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _noop_grid(*_args: object, **_kwargs: object) -> MagicMock:
     return MagicMock()
 
@@ -266,13 +267,12 @@ def test_camera_chop_row_count(
     """CHOP file must have correct number of data rows."""
     n_frames = 12
     path = export_td_camera_chop(
-        camera_path_mock, tmp_path, n_frames=n_frames,
+        camera_path_mock,
+        tmp_path,
+        n_frames=n_frames,
     )
     lines = path.read_text().strip().splitlines()
-    data_lines = [
-        ln for ln in lines
-        if not ln.startswith("#") and not ln.startswith("frame")
-    ]
+    data_lines = [ln for ln in lines if not ln.startswith("#") and not ln.startswith("frame")]
     assert len(data_lines) == n_frames
 
 
@@ -284,10 +284,7 @@ def test_camera_chop_values_parseable(
     """All data values must be parseable as floats."""
     path = export_td_camera_chop(camera_path_mock, tmp_path, n_frames=5)
     lines = path.read_text().strip().splitlines()
-    data_lines = [
-        ln for ln in lines
-        if not ln.startswith("#") and not ln.startswith("frame")
-    ]
+    data_lines = [ln for ln in lines if not ln.startswith("#") and not ln.startswith("frame")]
     for line in data_lines:
         parts = line.split("\t")
         assert len(parts) == 7
@@ -309,8 +306,12 @@ def test_manifest_required_keys(
     path = export_td_manifest(app_config, tmp_path, frame_count=100)
     data = json.loads(path.read_text())
     required = {
-        "frame_count", "fps", "vdb_pattern",
-        "coordinate_system", "creator", "grid_names",
+        "frame_count",
+        "fps",
+        "vdb_pattern",
+        "coordinate_system",
+        "creator",
+        "grid_names",
     }
     assert required.issubset(set(data.keys()))
 
@@ -334,7 +335,10 @@ def test_manifest_includes_tf(
 ) -> None:
     """Manifest includes color_ramp and opacity_ramp when TF is provided."""
     path = export_td_manifest(
-        app_config, tmp_path, frame_count=10, transfer_function=sample_tf,
+        app_config,
+        tmp_path,
+        frame_count=10,
+        transfer_function=sample_tf,
     )
     data = json.loads(path.read_text())
     assert "color_ramp" in data
@@ -351,7 +355,10 @@ def test_manifest_includes_camera(
 ) -> None:
     """Manifest includes camera_keyframes when camera_path is provided."""
     path = export_td_manifest(
-        app_config, tmp_path, frame_count=5, camera_path=camera_path_mock,
+        app_config,
+        tmp_path,
+        frame_count=5,
+        camera_path=camera_path_mock,
     )
     data = json.loads(path.read_text())
     assert "camera_keyframes" in data
@@ -371,7 +378,9 @@ def test_point_cloud_header(
 ) -> None:
     """Point cloud CSV must have correct header."""
     path = export_point_cloud(
-        sample_concentration, grid_cfg, tmp_path / "pts.csv",
+        sample_concentration,
+        grid_cfg,
+        tmp_path / "pts.csv",
     )
     first_line = path.read_text().splitlines()[0]
     assert first_line == "x,y,z,density"
@@ -406,7 +415,10 @@ def test_point_cloud_world_coords(tmp_path: Path) -> None:
     assert len(lines) == 2
     parts = lines[1].split(",")
     x, y, z, density = (
-        float(parts[0]), float(parts[1]), float(parts[2]), float(parts[3]),
+        float(parts[0]),
+        float(parts[1]),
+        float(parts[2]),
+        float(parts[3]),
     )
     assert x == pytest.approx(100.0)
     assert y == pytest.approx(200.0)
@@ -422,7 +434,10 @@ def test_point_cloud_empty(
     """When all values are below threshold, CSV has only a header."""
     data = np.full((4, 4, 4), 0.001, dtype=np.float32)
     path = export_point_cloud(
-        data, grid_cfg, tmp_path / "pts.csv", threshold=0.01,
+        data,
+        grid_cfg,
+        tmp_path / "pts.csv",
+        threshold=0.01,
     )
     lines = path.read_text().strip().splitlines()
     assert len(lines) == 1
@@ -442,7 +457,11 @@ def test_vdb_frame_copy_from_array(
 ) -> None:
     """grid.copyFromArray must be called (not per-voxel iteration)."""
     export_td_vdb_frame(
-        sample_concentration, None, tmp_path, frame=0, config=app_config,
+        sample_concentration,
+        None,
+        tmp_path,
+        frame=0,
+        config=app_config,
     )
     mock_grid = mock_openvdb.FloatGrid.return_value
     mock_grid.copyFromArray.assert_called_once()
@@ -457,7 +476,11 @@ def test_vdb_frame_non_uniform_transform(
 ) -> None:
     """Non-uniform voxels (dx != dz) must use matrix transform."""
     export_td_vdb_frame(
-        sample_concentration, None, tmp_path, frame=0, config=app_config,
+        sample_concentration,
+        None,
+        tmp_path,
+        frame=0,
+        config=app_config,
     )
     call_args = mock_openvdb.createLinearTransform.call_args
     assert call_args is not None
@@ -474,7 +497,11 @@ def test_vdb_frame_naming(
     """VDB frame file naming must be plume_{frame:06d}.vdb."""
     _ = mock_openvdb  # activates fixture; inspected indirectly via openvdb.write
     path = export_td_vdb_frame(
-        sample_concentration, None, tmp_path, frame=42, config=app_config,
+        sample_concentration,
+        None,
+        tmp_path,
+        frame=42,
+        config=app_config,
     )
     assert path.name == "plume_000042.vdb"
 
@@ -488,7 +515,11 @@ def test_vdb_frame_metadata(
 ) -> None:
     """VDB grids must have metadata attached."""
     export_td_vdb_frame(
-        sample_concentration, None, tmp_path, frame=7, config=app_config,
+        sample_concentration,
+        None,
+        tmp_path,
+        frame=7,
+        config=app_config,
         metadata={"custom_key": "custom_value"},
     )
     mock_grid = mock_openvdb.FloatGrid.return_value
@@ -504,7 +535,11 @@ def test_vdb_frame_grid_name(
 ) -> None:
     """Density grid must be named 'density'."""
     export_td_vdb_frame(
-        sample_concentration, None, tmp_path, frame=0, config=app_config,
+        sample_concentration,
+        None,
+        tmp_path,
+        frame=0,
+        config=app_config,
     )
     mock_grid = mock_openvdb.FloatGrid.return_value
     assert mock_grid.name == "density"
@@ -521,10 +556,7 @@ def test_vdb_sequence_file_count(
     tmp_path: Path,
 ) -> None:
     """Sequence must produce one VDB per frame."""
-    frames = [
-        np.random.default_rng(i).random((4, 4, 4)).astype(np.float32)
-        for i in range(5)
-    ]
+    frames = [np.random.default_rng(i).random((4, 4, 4)).astype(np.float32) for i in range(5)]
     paths = export_td_vdb_sequence(frames, None, app_config, tmp_path)
     assert len(paths) == 5
 
@@ -535,14 +567,13 @@ def test_vdb_sequence_ordering(
     tmp_path: Path,
 ) -> None:
     """Sequence files must be numbered in order."""
-    frames = [
-        np.random.default_rng(i).random((4, 4, 4)).astype(np.float32)
-        for i in range(3)
-    ]
+    frames = [np.random.default_rng(i).random((4, 4, 4)).astype(np.float32) for i in range(3)]
     paths = export_td_vdb_sequence(frames, None, app_config, tmp_path)
     names = [p.name for p in paths]
     assert names == [
-        "plume_000000.vdb", "plume_000001.vdb", "plume_000002.vdb",
+        "plume_000000.vdb",
+        "plume_000001.vdb",
+        "plume_000002.vdb",
     ]
 
 

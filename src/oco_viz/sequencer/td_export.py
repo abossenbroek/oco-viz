@@ -61,10 +61,7 @@ def _create_vdb_transform(grid_cfg: GridConfig) -> object:
 def _tf_to_color_ramp(tf: TransferFunction) -> list[dict[str, float]]:
     """Convert TF color control points to a sorted list of dicts."""
     return sorted(
-        (
-            {"pos": cp.scalar, "r": cp.r, "g": cp.g, "b": cp.b}
-            for cp in tf.color_points
-        ),
+        ({"pos": cp.scalar, "r": cp.r, "g": cp.g, "b": cp.b} for cp in tf.color_points),
         key=lambda d: d["pos"],
     )
 
@@ -72,10 +69,7 @@ def _tf_to_color_ramp(tf: TransferFunction) -> list[dict[str, float]]:
 def _tf_to_opacity_ramp(tf: TransferFunction) -> list[dict[str, float]]:
     """Convert TF opacity control points to a sorted list of dicts."""
     return sorted(
-        (
-            {"pos": cp.scalar, "opacity": cp.opacity}
-            for cp in tf.opacity_points
-        ),
+        ({"pos": cp.scalar, "opacity": cp.opacity} for cp in tf.opacity_points),
         key=lambda d: d["pos"],
     )
 
@@ -114,10 +108,7 @@ def _position_to_rotation(
 
 def export_td_vdb_frame(
     concentration: NDArray[np.float32],
-    velocity: (
-        tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]]
-        | None
-    ),
+    velocity: (tuple[NDArray[np.float32], NDArray[np.float32], NDArray[np.float32]] | None),
     output_dir: Path,
     frame: int,
     config: AppConfig,
@@ -198,7 +189,11 @@ def export_td_vdb_sequence(
     for i, frame_data in enumerate(frames):
         vel = velocities[i] if velocities is not None else None
         path = export_td_vdb_frame(
-            frame_data, vel, output_dir, frame=i, config=config,
+            frame_data,
+            vel,
+            output_dir,
+            frame=i,
+            config=config,
         )
         paths.append(path)
     return paths
@@ -232,10 +227,7 @@ def export_td_camera_chop(
         state = camera_path.evaluate(t)
         tx, ty, tz = state.position
         rx, ry, rz = _position_to_rotation(state.position, state.focal_point)
-        lines.append(
-            f"{i}\t{tx:.6f}\t{ty:.6f}\t{tz:.6f}"
-            f"\t{rx:.6f}\t{ry:.6f}\t{rz:.6f}"
-        )
+        lines.append(f"{i}\t{tx:.6f}\t{ty:.6f}\t{tz:.6f}\t{rx:.6f}\t{ry:.6f}\t{rz:.6f}")
 
     path.write_text("\n".join(lines) + "\n")
     logger.info("Wrote TD camera CHOP: %s (%d frames)", path, n_frames)
@@ -288,11 +280,13 @@ def export_td_manifest(
         for i in range(frame_count):
             t = i / max(frame_count - 1, 1)
             state = camera_path.evaluate(t)
-            keyframes.append({
-                "frame": i,
-                "position": list(state.position),
-                "focal_point": list(state.focal_point),
-            })
+            keyframes.append(
+                {
+                    "frame": i,
+                    "position": list(state.position),
+                    "focal_point": list(state.focal_point),
+                }
+            )
         manifest["camera_keyframes"] = keyframes
 
     path.write_text(json.dumps(manifest, indent=2) + "\n")

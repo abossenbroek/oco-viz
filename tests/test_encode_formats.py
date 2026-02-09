@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _create_test_frames(frames_dir: Path, n: int = 5, size: int = 64) -> None:
     """Create small test PNG frames."""
     frames_dir.mkdir(parents=True, exist_ok=True)
@@ -309,9 +310,7 @@ class TestSlatePrepend:
     def test_combined_count(self, tmp_path: Path) -> None:
         frames_dir = tmp_path / "frames"
         _create_test_frames(frames_dir, n=5)
-        slate_frames = [
-            np.zeros((64, 64, 3), dtype=np.uint8) for _ in range(3)
-        ]
+        slate_frames = [np.zeros((64, 64, 3), dtype=np.uint8) for _ in range(3)]
         work_dir = tmp_path / "work"
         result = prepare_frames_with_slate(frames_dir, slate_frames, work_dir)
         total = len(list(result.glob("frame_*.png")))
@@ -320,9 +319,7 @@ class TestSlatePrepend:
     def test_contiguous_numbering(self, tmp_path: Path) -> None:
         frames_dir = tmp_path / "frames"
         _create_test_frames(frames_dir, n=3)
-        slate_frames = [
-            np.zeros((64, 64, 3), dtype=np.uint8) for _ in range(2)
-        ]
+        slate_frames = [np.zeros((64, 64, 3), dtype=np.uint8) for _ in range(2)]
         work_dir = tmp_path / "work"
         result = prepare_frames_with_slate(frames_dir, slate_frames, work_dir)
         expected_names = {f"frame_{i:06d}.png" for i in range(5)}
