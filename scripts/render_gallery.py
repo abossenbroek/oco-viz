@@ -218,13 +218,9 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
             log.info("rendering", preset=preset_name, plume_type=plume_type)
 
             if preset_name == "absolute_atmospheric":
-                rendering_cfg = RenderingConfig(
-                    mode="absolute", adaptive_normalization=True
-                )
+                rendering_cfg = RenderingConfig(mode="absolute", adaptive_normalization=True)
             elif plume_type == "composite":
-                rendering_cfg = RenderingConfig(
-                    mode="anomaly", adaptive_normalization=True
-                )
+                rendering_cfg = RenderingConfig(mode="anomaly", adaptive_normalization=True)
             else:
                 rendering_cfg = RenderingConfig(mode="max")
 

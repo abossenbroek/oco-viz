@@ -231,7 +231,10 @@ class RenderingConfig(BaseModel):
     # Adaptive normalization
     adaptive_normalization: bool = Field(
         default=False,
-        description="Use percentile-based range instead of fixed max/min values (anomaly and absolute modes)",
+        description=(
+            "Use percentile-based range instead of fixed max/min values"
+            " (anomaly and absolute modes)"
+        ),
     )
     adaptive_percentile: float = Field(
         default=95.0,
