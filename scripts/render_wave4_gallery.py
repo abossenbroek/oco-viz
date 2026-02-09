@@ -141,7 +141,7 @@ def render_absolute_atmospheric() -> None:
         camera,
         "tf_absolute",
         preset="absolute_atmospheric",
-        rendering=RenderingConfig(mode="absolute"),
+        rendering=RenderingConfig(mode="absolute", adaptive_normalization=True),
     )
 
 
