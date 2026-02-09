@@ -208,8 +208,12 @@ def _render_all_presets(config, plume_variants, camera_state) -> int:
         for plume_type, conc in plume_variants.items():
             log.info("rendering", preset=preset_name, plume_type=plume_type)
 
-            # gaussian/turbulent: use max normalization
-            rendering_cfg = RenderingConfig(mode="max")
+            if preset_name == "absolute_atmospheric":
+                rendering_cfg = RenderingConfig(
+                    mode="absolute", adaptive_normalization=True
+                )
+            else:
+                rendering_cfg = RenderingConfig(mode="max")
 
             render_config = config.model_copy(
                 update={
