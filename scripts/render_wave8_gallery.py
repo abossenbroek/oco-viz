@@ -31,7 +31,7 @@ from oco_viz.plume.dissolution import apply_dissolution
 from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.plume.turbulent import apply_turbulence
 from oco_viz.render.camera import CameraState, FixedCamera
-from oco_viz.render.particle_dissolve import create_dissolution_particles
+from oco_viz.render.particle_dissolve import create_multilayer_dissolution_particles
 from oco_viz.render.renderer import VolumeRenderer
 
 log = structlog.get_logger()
@@ -41,8 +41,8 @@ OUTPUT_DIR = Path("output/examples/wave8")
 _EXPOSURE_DISSOLUTION = 4.0
 _EXPOSURE_DOF = 3.0
 _EXPOSURE_ECD = 3.0
-_EXPOSURE_EXHIBITION = 2.5
-_VIEW_ANGLE = 35.0
+_EXPOSURE_EXHIBITION = 2.2
+_VIEW_ANGLE = 30.0
 _CAMERA_FILL_SCALE = 1.2
 
 
@@ -75,6 +75,7 @@ def _load_exhibition_config(*, dof_enabled: bool = False) -> AppConfig:
                 "exposure": _EXPOSURE_EXHIBITION,
                 "bloom_enabled": False,
                 "dof": dof_override,
+                "void_mask_enabled": True,
             },
             "particle_dissolution": {
                 "enabled": True,
@@ -145,8 +146,8 @@ def _frame_camera(
         # Extra vertical (Y) margin ensures black edges at top/bottom of frame,
         # since the camera views primarily along X with Y mapping to screen vertical.
         avg_extent = (wx_max - wx_min + wy_max - wy_min + wz_max - wz_min) / 3.0
-        margin_h = avg_extent * 0.15
-        margin_v = avg_extent * 0.35  # larger vertical margin for edge blackness
+        margin_h = avg_extent * 0.25
+        margin_v = avg_extent * 0.45  # larger vertical margin for edge blackness
         wx_min -= margin_h
         wx_max += margin_h
         wy_min -= margin_v
@@ -204,6 +205,8 @@ def _render_dissolution_comparison(
             high_threshold=0.95,
             noise_octaves=6,
             noise_amplitude=8.0,
+            anisotropic=True,
+            stretch_factor=0.3,
         )
         conc_dissolved = dissolved * max_val
     else:
@@ -215,7 +218,7 @@ def _render_dissolution_comparison(
     render_cfg = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=3.0),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
             "postprocess": PostProcessConfig(
                 fog_enabled=False,
                 bloom_enabled=True,
@@ -224,6 +227,7 @@ def _render_dissolution_comparison(
                 bloom_passes=4,
                 exposure=_EXPOSURE_DISSOLUTION,
                 dof=DOFConfig(enabled=False),
+                void_mask_enabled=True,
             ),
         },
     )
@@ -258,8 +262,9 @@ def _render_dissolution_comparison(
         # Generate particles from RAW undissolved volume (sharp gradients
         # needed for _sample_boundary_points to find boundary voxels)
         norm_raw = np.clip(conc / raw_max, 0, 1).astype(np.float32)
-        particle_actor = create_dissolution_particles(norm_raw, spacing, pdiss_cfg)
-        renderer.add_actor(particle_actor)
+        particle_actors = create_multilayer_dissolution_particles(norm_raw, spacing, pdiss_cfg)
+        for actor in particle_actors:
+            renderer.add_actor(actor)
 
         norm_on = np.clip(conc_dissolved / raw_max, 0, 1).astype(np.float32)
         norm_on = np.power(norm_on, 1.0 / gamma).astype(np.float32)
@@ -425,7 +430,7 @@ def _render_ecd_turbulence_comparison(
             )
             _save_rgb(rgb, OUTPUT_DIR / f"ecd_modulator_{mod:.1f}.png")
             n_rendered += 1
-            log.info(f"ecd modulator={mod}", max_conc=round(float(conc.max()), 4))
+            log.info("ecd modulator=%s", mod, max_conc=round(float(conc.max()), 4))
     finally:
         renderer.finalize()
 
@@ -455,6 +460,8 @@ def _render_combined_exhibition(
             high_threshold=0.35,
             noise_octaves=4,
             noise_amplitude=1.6,
+            anisotropic=True,
+            stretch_factor=0.3,
         )
         conc = dissolved * max_val
 
@@ -464,7 +471,7 @@ def _render_combined_exhibition(
     cfg = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=3.0),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
             "postprocess": PostProcessConfig(
                 fog_enabled=False,
                 bloom_enabled=False,
@@ -475,6 +482,7 @@ def _render_combined_exhibition(
                     max_blur_radius=14.0,
                     depth_mode="luminance",
                 ),
+                void_mask_enabled=True,
             ),
         },
     )
@@ -484,7 +492,7 @@ def _render_combined_exhibition(
     renderer._renderer.GetActiveCamera().SetViewAngle(_VIEW_ANGLE)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
 
     try:
-        # Add particle dissolution overlay
+        # Add multi-layer particle dissolution overlay
         spacing = (config.grid.dx, config.grid.dy, config.grid.dz)
         pdiss_cfg = ParticleDissolutionConfig(
             enabled=True,
@@ -494,8 +502,11 @@ def _render_combined_exhibition(
             particle_opacity=0.95,
         )
         norm = conc / max(float(conc.max()), 1e-8)
-        particle_actor = create_dissolution_particles(norm.astype(np.float32), spacing, pdiss_cfg)
-        renderer.add_actor(particle_actor)
+        particle_actors = create_multilayer_dissolution_particles(
+            norm.astype(np.float32), spacing, pdiss_cfg
+        )
+        for actor in particle_actors:
+            renderer.add_actor(actor)
 
         rgb = renderer.render_frame_postprocessed(conc, camera_state, pre_normalized=False)
         _save_rgb(rgb, OUTPUT_DIR / "combined_exhibition.png")
