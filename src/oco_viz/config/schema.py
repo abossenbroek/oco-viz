@@ -129,6 +129,7 @@ class PostProcessConfig(BaseModel):
     bloom_intensity: float = Field(default=0.3, ge=0)
     bloom_passes: int = Field(default=3, ge=1)
     exposure: float = Field(default=0.6, gt=0)
+    grain_strength: float = Field(default=0.0, ge=0, le=0.2)
 
 
 class OutputConfig(BaseModel):

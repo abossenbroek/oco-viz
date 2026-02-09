@@ -67,7 +67,7 @@ def test_hero_yaml_loads(config: AppConfig) -> None:
 
 def test_hero_yaml_scattering(config: AppConfig) -> None:
     """Hero config has exhibition scattering settings."""
-    assert config.scattering.sample_distance == 10.0
+    assert config.scattering.sample_distance == 50.0
     assert config.scattering.shade is False
     assert config.scattering.global_illumination_reach == 0.8
     assert config.scattering.jittering is True

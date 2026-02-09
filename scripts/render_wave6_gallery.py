@@ -114,7 +114,7 @@ def _load_gallery_config() -> AppConfig:
                 "source_z": 3.0,
                 "emission_rate": 8000.0,
             },
-            "scattering": {"shade": False, "sample_distance": 250.0},
+            "scattering": {"shade": False},
             "advection": {"dt": 3600.0, "sub_steps": 4, "scheme": "maccormack"},
             "postprocess": {
                 "bloom_threshold": 0.25,
@@ -350,7 +350,7 @@ def main() -> None:
     render_config = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=1.0),
         },
     )
     renderer = VolumeRenderer(render_config)

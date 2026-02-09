@@ -64,7 +64,6 @@ def _load_exhibition_config() -> AppConfig:
                 "dy": 100.0,
                 "dz": 50.0,
             },
-            "postprocess": {"exposure": 25.0},
         },
         tier="exhibition",
     )
@@ -169,7 +168,7 @@ def _build_exhibition_camera(config: AppConfig) -> CameraState:
     fz = grid.nz * grid.dz * 0.45
     # Camera distance: close enough for 60-80% frame fill
     grid_extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
-    cam_dist = grid_extent * 1.7
+    cam_dist = grid_extent * 2.4
     # Near-level view with slight elevation for depth — confrontational, not landscape
     return FixedCamera(
         position=(fx + cam_dist * 0.80, fy - cam_dist * 0.15, fz + cam_dist * 0.50),
@@ -245,7 +244,7 @@ def main() -> None:
     render_config = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=2.2),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=1.0),
         },
     )
     renderer = VolumeRenderer(render_config)
@@ -253,7 +252,7 @@ def main() -> None:
 
     # Telephoto FOV
     assert renderer._renderer is not None  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
-    renderer._renderer.GetActiveCamera().SetViewAngle(30.0)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
+    renderer._renderer.GetActiveCamera().SetViewAngle(45.0)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
 
     camera_state = _build_exhibition_camera(config)
 
