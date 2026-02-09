@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from oco_viz.config.schema import DOFConfig
 
 # Number of discrete blur levels for circle-of-confusion simulation
-_N_BLUR_LEVELS = 5
+_N_BLUR_LEVELS = 8
 
 
 def _estimate_focal_zbuffer(
@@ -113,6 +113,16 @@ def apply_dof(
     if not config.enabled:
         return rgb
 
+    # Determine depth source
+    if config.depth_mode == "luminance":
+        luminance = 0.2126 * rgb[:, :, 0] + 0.7152 * rgb[:, :, 1] + 0.0722 * rgb[:, :, 2]
+        max_lum = float(luminance.max())
+        if max_lum > 1e-8:
+            # Brighter = closer = smaller depth value (range [0, 1])
+            depth = (1.0 - (luminance / max_lum)).astype(np.float32)
+        else:
+            depth = np.zeros_like(luminance, dtype=np.float32)
+
     # Determine focal distance
     if config.focal_distance is not None:
         focal_dist = config.focal_distance
@@ -149,12 +159,11 @@ def apply_dof(
     high_idx = np.minimum(low_idx + 1, n_levels - 1)
     frac = (level_index - low_idx).astype(np.float32)
 
-    h, w = depth.shape
-    for y in range(h):
-        for x in range(w):
-            lo = int(low_idx[y, x])
-            hi = int(high_idx[y, x])
-            f = frac[y, x]
-            result[y, x] = blurred_levels[lo][y, x] * (1.0 - f) + blurred_levels[hi][y, x] * f
+    for i in range(n_levels):
+        mask_lo = low_idx == i
+        mask_hi = high_idx == i
+        for c in range(3):
+            result[:, :, c] += blurred_levels[i][:, :, c] * mask_lo * (1.0 - frac)
+            result[:, :, c] += blurred_levels[i][:, :, c] * mask_hi * frac
 
     return result.astype(np.float32)

@@ -18,8 +18,8 @@ _DISSOLUTION_SHADER = (
     "//VTK::Color::Impl\n"
     "float dist2 = dot(offsetVCVSOutput.xy, offsetVCVSOutput.xy);\n"
     "if (dist2 > 1.0) { discard; }\n"
-    "float alpha = exp(-dist2 * 1.5);\n"
-    "ambientColor = vec3(0.35, 0.35, 0.38);\n"
+    "float alpha = exp(-dist2 * 0.5);\n"
+    "ambientColor = vec3(0.95, 0.88, 0.75);\n"
     "diffuseColor = vec3(0.0);\n"
     "opacity = opacity * alpha;\n"
 )
@@ -48,7 +48,7 @@ def _sample_boundary_points(
 
     # Boundary mask: high gradient AND above concentration threshold
     grad_norm = grad_mag / max(float(grad_mag.max()), 1e-8)
-    boundary_mask = (grad_norm > 0.1) & (conc > threshold) & (conc < 0.5)
+    boundary_mask = (grad_norm > 0.05) & (conc > threshold) & (conc < 0.7)
 
     candidates = np.argwhere(boundary_mask)
     if len(candidates) == 0:
@@ -158,7 +158,7 @@ def create_dissolution_particles(
 
     """
     grad_mag = _gradient_magnitude(conc)
-    base_points = int(3000 * config.particle_count_scale)
+    base_points = int(5000 * config.particle_count_scale)
 
     positions, opacities = _sample_boundary_points(
         conc,
@@ -185,7 +185,7 @@ def create_dissolution_particles(
     mapper = vtk.vtkPointGaussianMapper()
     mapper.SetInputData(polydata)
     mapper.SetScaleFactor(config.particle_scale)
-    mapper.EmissiveOff()
+    mapper.EmissiveOn()
     mapper.SetSplatShaderCode(_DISSOLUTION_SHADER)
 
     actor = vtk.vtkActor()

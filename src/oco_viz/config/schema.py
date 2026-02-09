@@ -126,6 +126,19 @@ class DOFConfig(BaseModel):
     )
     aperture: float = Field(default=2.8, gt=0)
     max_blur_radius: float = Field(default=10.0, gt=0)
+    depth_mode: str = Field(
+        default="zbuffer",
+        description="Depth source: zbuffer (from VTK) or luminance (synthetic from RGB)",
+    )
+
+    @field_validator("depth_mode")
+    @classmethod
+    def _valid_depth_mode(cls, v: str) -> str:
+        valid = {"zbuffer", "luminance"}
+        if v not in valid:
+            msg = f"DOF depth_mode must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
 
 
 class PostProcessConfig(BaseModel):
