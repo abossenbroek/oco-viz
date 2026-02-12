@@ -74,8 +74,8 @@ turbulence:
   seed: 42
 
 plume:
-  source_x: 150.0
-  source_y: 150.0
+  source_x: 206.0
+  source_y: 132.0
   source_z: 5.0
   emission_rate: 1000.0
   stability_class: D
@@ -107,15 +107,30 @@ composition:
   vertical_emphasis: false
   threshold_fraction: 0.01
 
+annotations:
+  facility_name: "Highveld Industrial Corridor"
+  region_name: "Mpumalanga — Gauteng"
+
 data_source:
   start_date: "2024-01-15"
   end_date: "2024-01-15"
   domain:
-    origin_lat: -26.52
-    origin_lon: 29.17
+    origin_lat: -26.36
+    origin_lon: 28.61
     extent_x_km: 300.0
     extent_y_km: 300.0
     extent_z_km: 15.0
+  sources:
+    - {name: "Sasol Synfuels", lat: -26.52, lon: 29.17, source_type: industrial}
+    - {name: "Johannesburg", lat: -26.20, lon: 28.04, source_type: urban}
+    - {name: "Kriel", lat: -26.25, lon: 29.20, source_type: point}
+    - {name: "Matla", lat: -26.22, lon: 29.13, source_type: point}
+    - {name: "Duvha", lat: -26.09, lon: 29.31, source_type: point}
+    - {name: "Kendal", lat: -26.08, lon: 28.95, source_type: point}
+    - {name: "Kusile", lat: -25.97, lon: 29.02, source_type: point}
+    - {name: "Lethabo", lat: -26.74, lon: 27.97, source_type: point}
+    - {name: "Tutuka", lat: -26.79, lon: 29.36, source_type: point}
+    - {name: "Hendrina", lat: -26.08, lon: 29.59, source_type: point}
   era5:
     pressure_levels: [1000, 975, 950, 925, 900, 850, 800, 700, 600, 500]
     variables: [u_component_of_wind, v_component_of_wind]

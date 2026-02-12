@@ -7,14 +7,14 @@ import pytest
 from oco_viz.config.schema import DomainConfig, load_config
 
 
-def test_domain_bbox_secunda() -> None:
-    """Default Secunda domain bbox covers expected area."""
+def test_domain_bbox_corridor() -> None:
+    """Default corridor domain bbox covers expected area."""
     domain = DomainConfig()
     bbox = domain.bbox()
     lon_min, lat_min, lon_max, lat_max = bbox
-    # Secunda at -26.52, 29.17, 100km extent
-    assert lat_min < -26.52 < lat_max
-    assert lon_min < 29.17 < lon_max
+    # Corridor midpoint at -26.36, 28.61, 300km extent
+    assert lat_min < -26.36 < lat_max
+    assert lon_min < 28.61 < lon_max
     assert lon_max > lon_min
     assert lat_max > lat_min
 
@@ -42,11 +42,11 @@ def test_load_config_seattle() -> None:
     assert config.plume.stack_height == pytest.approx(50.0)
 
 
-def test_load_config_secunda_default() -> None:
-    """Default config uses Secunda coordinates."""
+def test_load_config_corridor_default() -> None:
+    """Default config uses Highveld corridor coordinates."""
     config = load_config()
-    assert config.data_source.domain.origin_lat == pytest.approx(-26.52)
-    assert config.data_source.domain.origin_lon == pytest.approx(29.17)
+    assert config.data_source.domain.origin_lat == pytest.approx(-26.36)
+    assert config.data_source.domain.origin_lon == pytest.approx(28.61)
 
 
 def test_domain_bbox_symmetric() -> None:

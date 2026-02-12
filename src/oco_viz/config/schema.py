@@ -155,8 +155,8 @@ class OutputConfig(BaseModel):
 class PlumeConfig(BaseModel):
     """Gaussian plume source configuration."""
 
-    source_x: float = 150.0
-    source_y: float = 150.0
+    source_x: float = 206.0
+    source_y: float = 132.0
     source_z: float = 5.0
     emission_rate: float = Field(default=1000.0, gt=0, description="kg/s")
     stability_class: str = Field(default="D")
@@ -174,11 +174,20 @@ class PlumeConfig(BaseModel):
         return v.upper()
 
 
+class PointSource(BaseModel):
+    """A named emission source with geographic coordinates."""
+
+    name: str
+    lat: float
+    lon: float
+    source_type: str = Field(default="point")
+
+
 class DomainConfig(BaseModel):
     """Geographic domain centered on a facility."""
 
-    origin_lat: float = Field(default=-26.52, description="Facility latitude")
-    origin_lon: float = Field(default=29.17, description="Facility longitude")
+    origin_lat: float = Field(default=-26.36, description="Facility latitude")
+    origin_lon: float = Field(default=28.61, description="Facility longitude")
     extent_x_km: float = Field(default=300.0, gt=0, description="East-west extent in km")
     extent_y_km: float = Field(default=300.0, gt=0, description="North-south extent in km")
     extent_z_km: float = Field(default=15.0, gt=0, description="Vertical extent in km")
@@ -304,6 +313,7 @@ class DataSourceConfig(BaseModel):
     domain: DomainConfig = Field(default_factory=DomainConfig)
     era5: ERA5Config = Field(default_factory=ERA5Config)
     oco3: OCO3Config = Field(default_factory=OCO3Config)
+    sources: list[PointSource] = Field(default_factory=list)
 
 
 class AnnotationConfig(BaseModel):
@@ -314,7 +324,8 @@ class AnnotationConfig(BaseModel):
     show_credits: bool = True
     show_scale_bar: bool = True
     font_size: int = Field(default=18, ge=8, le=72)
-    facility_name: str = "Sasol Secunda"
+    facility_name: str = "Highveld Industrial Corridor"
+    region_name: str | None = Field(default=None)
     text_color: tuple[float, float, float] = (0.9, 0.9, 0.9)
     panel_opacity: float = Field(default=0.4, ge=0, le=1)
 
