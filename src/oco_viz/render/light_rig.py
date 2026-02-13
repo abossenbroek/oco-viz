@@ -5,11 +5,11 @@ from __future__ import annotations
 from enum import Enum
 from typing import TYPE_CHECKING
 
+import vtk
+
 from oco_viz.render.lighting import apply_lighting
 
 if TYPE_CHECKING:
-    import vtk
-
     from oco_viz.config.schema import ScatteringConfig
 
 
@@ -24,6 +24,7 @@ class LightingMode(str, Enum):
     none = "none"
     basic = "basic"
     smoldering = "smoldering"
+    smoldering_key = "smoldering_key"
 
 
 def apply_lighting_for_tier(
@@ -62,3 +63,11 @@ def apply_lighting_for_tier(
 
     elif resolved is LightingMode.smoldering:
         renderer.RemoveAllLights()
+
+    elif resolved is LightingMode.smoldering_key:
+        renderer.RemoveAllLights()
+        key = vtk.vtkLight()
+        key.SetPosition(-1.0, -0.8, 0.6)
+        key.SetIntensity(0.8)
+        key.SetColor(0.95, 0.92, 0.85)
+        renderer.AddLight(key)

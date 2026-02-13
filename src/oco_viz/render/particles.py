@@ -131,8 +131,8 @@ _SOOT_SHADER = (
     "//VTK::Color::Impl\n"
     "float dist2 = dot(offsetVCVSOutput.xy, offsetVCVSOutput.xy);\n"
     "if (dist2 > 1.0) { discard; }\n"
-    "float alpha = exp(-dist2 * 3.0);\n"
-    "ambientColor = vec3(0.42, 0.42, 0.42);\n"
+    "float alpha = exp(-dist2 * 0.8);\n"
+    "ambientColor = vec3(0.90, 0.85, 0.72);\n"
     "diffuseColor = vec3(0.0);\n"
     "opacity = opacity * alpha;\n"
 )
@@ -186,7 +186,7 @@ def create_ash_particles(
     mapper = vtk.vtkPointGaussianMapper()
     mapper.SetInputData(polydata)
     mapper.SetScaleFactor(particle_scale)
-    mapper.EmissiveOff()
+    mapper.EmissiveOn()
     mapper.SetSplatShaderCode(_SOOT_SHADER)
 
     actor = vtk.vtkActor()

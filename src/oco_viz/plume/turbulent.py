@@ -22,6 +22,8 @@ def apply_turbulence(
     turb_cfg: TurbulenceConfig,
     grid_cfg: GridConfig,
     time_index: int,
+    *,
+    amplitude_modulator: float = 1.0,
 ) -> NDArray[np.float32]:
     """Apply turbulence displacement and density modulation to a base concentration field.
 
@@ -78,7 +80,8 @@ def apply_turbulence(
     # Modulate density around 1.0 to preserve mean concentration.
     # Range: [1 - amplitude/2, 1 + amplitude/2].  With default amplitude=0.5,
     # modulation spans [0.75, 1.25] — a ±25% density variation.
-    modulation = noise.astype(np.float64) * turb_cfg.amplitude + (1.0 - turb_cfg.amplitude / 2.0)
+    effective_amplitude = min(turb_cfg.amplitude * amplitude_modulator, 2.0)
+    modulation = noise.astype(np.float64) * effective_amplitude + (1.0 - effective_amplitude / 2.0)
     warped *= modulation
 
     # Step 4: distance-from-center falloff (core dense, edges wispy)
