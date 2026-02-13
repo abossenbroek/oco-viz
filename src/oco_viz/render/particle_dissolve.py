@@ -366,9 +366,9 @@ def create_multilayer_dissolution_particles(
 
     # Layer definitions: (conc_lo, conc_hi, grad_thresh, scale, count, opacity, shader)
     layers = [
-        (0.15, 0.40, 0.03, 600.0, 5000, 0.7, _CLUMP_SHADER),
-        (0.05, 0.15, 0.02, 250.0, 15000, 0.5, _FILAMENT_SHADER),
-        (0.01, 0.05, 0.0, 80.0, 25000, 0.3, _DUST_SHADER),
+        (0.15, 0.40, 0.03, 350.0, 5000, 0.7, _CLUMP_SHADER),
+        (0.05, 0.15, 0.02, 150.0, 15000, 0.5, _FILAMENT_SHADER),
+        (0.01, 0.05, 0.0, 50.0, 25000, 0.3, _DUST_SHADER),
     ]
 
     return [

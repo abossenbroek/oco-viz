@@ -5,6 +5,29 @@ Demonstrates:
 - Shallow depth of field (variable Gaussian blur, dual focal-distance strategy)
 - ECD-driven turbulence amplitude modulation
 - Exhibition-tier rendering with all three features combined
+
+Stage 1+ deferrals (Karma XPU, Waves 12-13)
+--------------------------------------------
+The following features are limited or non-functional in VTK Stage 0 pre-viz:
+
+DOF (depth of field):
+    VTK z-buffer for volumetric renders stores "first opacity hit", producing
+    near-uniform depth across the plume. CoC = 0 everywhere = no visible blur.
+    Luminance-based synthetic depth is also too narrow for dark-on-black content.
+    True volumetric DOF requires ray-traced per-sample depth (Karma XPU).
+
+Volumetric scattering / subsurface:
+    VTK Phong shading approximates scattering but cannot produce true multiple-
+    scatter effects (light bleeding through dense regions, caustics, god rays).
+    Exhibition-quality scattering requires path-traced volumes (Karma XPU).
+
+Motion blur:
+    Not implemented in Stage 0. Requires temporal sample accumulation (Karma XPU).
+
+Resolution:
+    Current gallery renders at 512px. Exhibition projection requires 4K (3840px).
+    Particle dissolution granularity and turbulence detail should be re-evaluated
+    at 4K resolution in Stage 1+.
 """
 
 from __future__ import annotations
@@ -38,12 +61,12 @@ log = structlog.get_logger()
 
 OUTPUT_DIR = Path("output/examples/wave8")
 
-_EXPOSURE_DISSOLUTION = 4.0
+_EXPOSURE_DISSOLUTION = 3.0
 _EXPOSURE_DOF = 3.0
 _EXPOSURE_ECD = 3.0
-_EXPOSURE_EXHIBITION = 2.2
+_EXPOSURE_EXHIBITION = 3.0
 _VIEW_ANGLE = 30.0
-_CAMERA_FILL_SCALE = 1.2
+_CAMERA_FILL_SCALE = 0.75
 
 
 def _parse_args() -> argparse.Namespace:
@@ -81,8 +104,14 @@ def _load_exhibition_config(*, dof_enabled: bool = False) -> AppConfig:
                 "enabled": True,
                 "threshold": 0.02,
                 "particle_count_scale": 15.0,
-                "particle_scale": 1500.0,
+                "particle_scale": 800.0,
                 "particle_opacity": 0.95,
+            },
+            "scattering": {"sample_distance": 25.0},
+            "turbulence": {
+                "gain": 0.65,
+                "amplitude": 0.85,
+                "curl_strength": 0.4,
             },
         },
         tier="exhibition",
@@ -146,8 +175,8 @@ def _frame_camera(
         # Extra vertical (Y) margin ensures black edges at top/bottom of frame,
         # since the camera views primarily along X with Y mapping to screen vertical.
         avg_extent = (wx_max - wx_min + wy_max - wy_min + wz_max - wz_min) / 3.0
-        margin_h = avg_extent * 0.25
-        margin_v = avg_extent * 0.45  # larger vertical margin for edge blackness
+        margin_h = avg_extent * 0.10
+        margin_v = avg_extent * 0.10
         wx_min -= margin_h
         wx_max += margin_h
         wy_min -= margin_v
@@ -221,10 +250,7 @@ def _render_dissolution_comparison(
             "rendering": RenderingConfig(mode="max", opacity_gamma=1.8),
             "postprocess": PostProcessConfig(
                 fog_enabled=False,
-                bloom_enabled=True,
-                bloom_threshold=0.3,
-                bloom_intensity=0.6,
-                bloom_passes=4,
+                bloom_enabled=False,
                 exposure=_EXPOSURE_DISSOLUTION,
                 dof=DOFConfig(enabled=False),
                 void_mask_enabled=True,
@@ -305,19 +331,18 @@ def _render_dof_comparison(
 
     base_update = {
         "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-        "rendering": RenderingConfig(mode="max", opacity_gamma=3.0),
+        "rendering": RenderingConfig(mode="max", opacity_gamma=1.5),
     }
 
     # --- Without DOF ---
+    # DOF: limited in VTK pre-viz (uniform volumetric depth).
+    # Deferred to Stage 1+ (Karma XPU).
     cfg_no_dof = config.model_copy(update=base_update)
     cfg_no_dof = cfg_no_dof.model_copy(
         update={
             "postprocess": PostProcessConfig(
                 fog_enabled=False,
-                bloom_enabled=True,
-                bloom_threshold=0.3,
-                bloom_intensity=0.5,
-                bloom_passes=4,
+                bloom_enabled=False,
                 exposure=_EXPOSURE_DOF,
                 dof=DOFConfig(enabled=False),
             )
@@ -339,12 +364,11 @@ def _render_dof_comparison(
     cfg_dof = config.model_copy(update=base_update)
     cfg_dof = cfg_dof.model_copy(
         update={
+            # DOF: limited in VTK pre-viz (uniform volumetric depth).
+            # Deferred to Stage 1+ (Karma XPU).
             "postprocess": PostProcessConfig(
                 fog_enabled=False,
-                bloom_enabled=True,
-                bloom_threshold=0.3,
-                bloom_intensity=0.5,
-                bloom_passes=4,
+                bloom_enabled=False,
                 exposure=_EXPOSURE_DOF,
                 dof=DOFConfig(
                     enabled=True,
@@ -385,27 +409,23 @@ def _render_ecd_turbulence_comparison(
     modulators = [1.0, 2.0, 4.0]
 
     # Scale both turbulence amplitude AND base density for visible difference
-    plumes = {
-        m: _get_standard_plume(config, modulator=m, density_scale=m) for m in modulators
-    }
+    plumes = {m: _get_standard_plume(config, modulator=m, density_scale=m) for m in modulators}
 
-    # Camera frames the densest plume (highest modulator)
-    camera_state = _frame_camera(config, plumes[modulators[-1]])
+    # Camera frames the base plume (lowest modulator) so viewers see the plume
+    # growing with increasing ECD, not shrinking from an oversized frame.
+    camera_state = _frame_camera(config, plumes[modulators[0]])
 
-    # Shared normalization: normalize all plumes to the DENSEST plume's max so
-    # brightness differences between modulator levels are preserved.
-    shared_max = max(float(plumes[modulators[-1]].max()), 1e-8)
+    # Per-frame normalization: each modulator level is normalized to its own max
+    # so all renders are visible. The visual progression comes from increasing
+    # structural complexity and plume extent, not raw brightness.
 
     render_cfg = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
-            "rendering": RenderingConfig(mode="max", opacity_gamma=3.0),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=1.5),
             "postprocess": PostProcessConfig(
                 fog_enabled=False,
-                bloom_enabled=True,
-                bloom_threshold=0.3,
-                bloom_intensity=0.5,
-                bloom_passes=4,
+                bloom_enabled=False,
                 exposure=_EXPOSURE_ECD,
                 dof=DOFConfig(enabled=False),
             ),
@@ -417,17 +437,9 @@ def _render_ecd_turbulence_comparison(
     renderer._renderer.GetActiveCamera().SetViewAngle(_VIEW_ANGLE)  # noqa: SLF001  # pyright: ignore[reportPrivateUsage]
 
     try:
-        gamma = 3.0
         for mod in modulators:
             conc = plumes[mod]
-            # Shared normalization: divide by densest plume's max so brightness
-            # differences between modulator levels are preserved.
-            norm = np.clip(conc / shared_max, 0, 1).astype(np.float32)
-            # Apply gamma manually (pre_normalized=True skips renderer's gamma)
-            norm = np.power(norm, 1.0 / gamma).astype(np.float32)
-            rgb = renderer.render_frame_postprocessed(
-                norm, camera_state, pre_normalized=True
-            )
+            rgb = renderer.render_frame_postprocessed(conc, camera_state, pre_normalized=False)
             _save_rgb(rgb, OUTPUT_DIR / f"ecd_modulator_{mod:.1f}.png")
             n_rendered += 1
             log.info("ecd modulator=%s", mod, max_conc=round(float(conc.max()), 4))
@@ -465,9 +477,11 @@ def _render_combined_exhibition(
         )
         conc = dissolved * max_val
 
-    camera_state = _frame_camera(config, conc)
+    camera_state = _frame_camera(config, conc, fill_scale=0.65)
 
     # Renderer with DOF enabled
+    # DOF: limited in VTK pre-viz (uniform volumetric depth).
+    # Deferred to Stage 1+ (Karma XPU).
     cfg = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot_exhibition"),
@@ -498,7 +512,7 @@ def _render_combined_exhibition(
             enabled=True,
             threshold=0.02,
             particle_count_scale=15.0,
-            particle_scale=1500.0,
+            particle_scale=800.0,
             particle_opacity=0.95,
         )
         norm = conc / max(float(conc.max()), 1e-8)

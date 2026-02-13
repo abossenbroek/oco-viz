@@ -80,7 +80,7 @@ def apply_turbulence(
     # Modulate density around 1.0 to preserve mean concentration.
     # Range: [1 - amplitude/2, 1 + amplitude/2].  With default amplitude=0.5,
     # modulation spans [0.75, 1.25] — a ±25% density variation.
-    effective_amplitude = turb_cfg.amplitude * amplitude_modulator
+    effective_amplitude = min(turb_cfg.amplitude * amplitude_modulator, 2.0)
     modulation = noise.astype(np.float64) * effective_amplitude + (1.0 - effective_amplitude / 2.0)
     warped *= modulation
 

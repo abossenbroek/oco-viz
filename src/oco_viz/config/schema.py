@@ -98,12 +98,12 @@ class CameraConfig(BaseModel):
 class LightingConfig(BaseModel):
     """Tier-conditional lighting configuration."""
 
-    mode: str = Field(default="basic", description="none, basic, or smoldering")
+    mode: str = Field(default="basic", description="none, basic, smoldering, or smoldering_key")
 
     @field_validator("mode")
     @classmethod
     def _valid_mode(cls, v: str) -> str:
-        valid = {"none", "basic", "smoldering"}
+        valid = {"none", "basic", "smoldering", "smoldering_key"}
         if v not in valid:
             msg = f"Lighting mode must be one of {sorted(valid)}, got {v!r}"
             raise ValueError(msg)
@@ -155,8 +155,8 @@ class PostProcessConfig(BaseModel):
     exposure: float = Field(default=0.6, gt=0)
     dof: DOFConfig = Field(default_factory=DOFConfig)
     void_mask_enabled: bool = False
-    void_mask_margin_px: int = Field(default=20, ge=0)
-    void_mask_falloff_px: int = Field(default=5, ge=0)
+    void_mask_margin_px: int = Field(default=30, ge=0)
+    void_mask_falloff_px: int = Field(default=40, ge=0)
 
 
 class OutputConfig(BaseModel):
