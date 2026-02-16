@@ -1,0 +1,6 @@
+[core]
+    remote = storage
+['remote "storage"']
+    url = s3://ocoviz
+    endpointurl = https://d1067de8d0a30313a03d5b04e8fb78a4.r2.cloudflarestorage.com
+    region = auto

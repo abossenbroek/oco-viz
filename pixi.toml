@@ -20,6 +20,9 @@ netcdf4 = ">=1.6"
 requests = ">=2.31"
 openvdb = ">=13"
 structlog = ">=25.5.0,<26"
+dvc = ">=3.55"
+dvc-s3 = ">=3.2"
+tqdm = ">=4"
 
 [pypi-dependencies]
 oco-viz = { path = ".", editable = true }
@@ -45,10 +48,17 @@ commit-lint = "bash -c 'eval \"$(mise activate bash)\" && bun x --bun commitlint
 fix = "ruff format src/ tests/ scripts/ && ruff check --fix src/ tests/"
 check = { depends-on = ["lint", "typecheck", "test"] }
 ci = { depends-on = ["format-check", "import-sort", "lint", "typecheck", "test", "spell", "dead-code", "complexity", "yaml-lint", "dockerfile-lint", "file-size", "future-annotations", "py-typed", "commit-lint"] }
+gallery = "python scripts/render_gallery_all.py"
+gallery-verify = "python scripts/render_gallery_all.py --verify"
 image-stats = "python scripts/image_stats.py"
 find-passes = "python scripts/find_passes.py"
 find-secunda-granule = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/find_secunda_granule.py"
 download-fixtures = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/download_fixtures.py"
+download-multi-pass = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/download_multi_pass.py"
+download-matched-era5 = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/download_matched_era5.py"
+dvc-pull = "dvc pull"
+dvc-push = "dvc push"
+dvc-status = "dvc status"
 
 [feature.dev.dependencies]
 ruff = ">=0.8"

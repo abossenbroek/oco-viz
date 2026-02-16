@@ -110,9 +110,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-        with:
-          lfs: true
       - uses: ./.github/actions/setup-pixi
+      - name: Pull test fixtures from DVC
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+        run: pixi run dvc pull tests/fixtures.dvc --force
       - name: Run tests with coverage
         run: >-
           pixi run pytest tests/ -x
