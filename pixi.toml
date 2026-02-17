@@ -56,8 +56,8 @@ find-secunda-granule = "op run --account jacquin-family.1password.com --env-file
 download-fixtures = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/download_fixtures.py"
 download-multi-pass = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/download_multi_pass.py"
 download-matched-era5 = "op run --account jacquin-family.1password.com --env-file .env.op -- python scripts/download_matched_era5.py"
-dvc-pull = "dvc pull"
-dvc-push = "dvc push"
+dvc-pull = "op run --account jacquin-family.1password.com --env-file .env.1p -- dvc pull"
+dvc-push = "op run --account jacquin-family.1password.com --env-file .env.1p -- dvc push"
 dvc-status = "dvc status"
 
 [feature.dev.dependencies]
