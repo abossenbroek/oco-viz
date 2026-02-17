@@ -1,0 +1,118 @@
+# Compositing Standards — AOV Names, Color Management, Delivery Formats
+#
+# Used by the compositor agent to ensure consistent AOV naming,
+# color management chain, and delivery format specifications.
+# References plan/render_farm_spec.md and plan/finishing_spec.md.
+
+# --- COLOR MANAGEMENT ---
+color_management:
+  working_space: "ACEScg"
+  rendering_space: "ACEScg (AP1 primaries, linear)"
+  display_transform: "ACES 1.0 SDR-video"
+  ocio_config: "aces_1.2"
+  interchange_format: "ACEScg linear EXR"
+  notes:
+    - "All compositing operations in ACEScg linear"
+    - "Display transform applied only at final output / viewer"
+    - "Achromatic content — gamut is irrelevant but pipeline remains color-managed"
+
+# --- AOV NAMING CONVENTION ---
+aov_names:
+  beauty: "Beauty"
+  noisy_beauty: "NoisyBeauty"
+  emission: "emission"
+  scatter: "scatter"
+  density: "density"
+  deep: "deep"
+  velocity: "velocity"
+  temperature: "temperature"
+  cryptomatte: "CryptoObject"
+  depth: "depth"
+  normal: "N"
+  albedo: "albedo"
+
+# --- EXR CHANNEL LAYOUT ---
+exr_layout:
+  multi_layer_exr:
+    - "Beauty.R, Beauty.G, Beauty.B"
+    - "NoisyBeauty.R, NoisyBeauty.G, NoisyBeauty.B"
+    - "emission.R, emission.G, emission.B"
+    - "scatter.R, scatter.G, scatter.B"
+    - "density.Y"
+    - "velocity.X, velocity.Y, velocity.Z"
+    - "temperature.Y"
+  deep_exr:
+    separate_file: true
+    note: "Deep samples stored in separate deep EXR file per frame"
+
+# --- FILE NAMING ---
+file_naming:
+  aov_exr: "{shot}/render/{shot}.{frame:04d}.exr"
+  deep_exr: "{shot}/render/{shot}.{frame:04d}.deep.exr"
+  comp_output: "{shot}/comp/{shot}.{frame:04d}.exr"
+  delivery: "{shot}/delivery/{shot}.{frame:04d}.{format}"
+
+# --- COMPOSITING RULES ---
+compositing_rules:
+  deep_before_flat:
+    description: "Always resolve deep compositing before flattening to 2D"
+    rationale: "Deep compositing preserves per-sample depth for volumetric DOF"
+
+  grain_restoration:
+    method: "Motion-tracked 10-15% blend of NoisyBeauty over denoised Beauty"
+    purpose: "Restore organic grain character after OIDN denoising"
+    parameter: "grain_blend_factor"
+    range: [0.10, 0.15]
+
+  no_comp_fixes:
+    description: "Compositing does not fix lighting, material, or effects issues"
+    rationale: "If it needs fixing, fix it upstream in the render pipeline"
+    exception: "Minor exposure trim (< 0.3 stops) and grain restoration only"
+
+  every_pixel_has_address:
+    description: "Every pixel in the final comp must trace to a specific AOV contribution"
+    rationale: "No magic comp tricks — every visual element comes from a rendered pass"
+
+# --- DELIVERY FORMATS ---
+delivery_formats:
+  exhibition_projection:
+    format: "EXR"
+    bit_depth: "16-bit half-float"
+    resolution: [4096, 2160]
+    color_space: "ACEScg"
+    compression: "ZIP (lossless)"
+    channels: "RGB"
+    note: "Primary exhibition deliverable for digital projection"
+
+  exhibition_print:
+    format: "TIFF"
+    bit_depth: "16-bit"
+    resolution: "300 DPI native at print size"
+    color_space: "sRGB (achromatic, gamut irrelevant)"
+    profile: "ICC matched to printer/paper"
+    paper: "Hahnemuhle Photo Rag Baryta 315 gsm"
+    black_point: "Absolute (no compensation — void must be true black)"
+    note: "For gallery prints at 13x19 inch (A3+)"
+
+  archive_master:
+    format: "EXR"
+    bit_depth: "32-bit float"
+    resolution: [4096, 2160]
+    color_space: "ACEScg"
+    compression: "ZIP"
+    channels: "multi-layer (all AOVs)"
+    note: "Full-fidelity archive with all passes"
+
+  review_proxy:
+    format: "ProRes 4444"
+    resolution: [2048, 1080]
+    color_space: "Rec.709"
+    bit_depth: "12-bit"
+    note: "For dailies review and editorial"
+
+  dpx_film_out:
+    format: "DPX"
+    bit_depth: "10-bit log"
+    resolution: [4096, 2160]
+    color_space: "Cineon/ADX"
+    note: "Film-out deliverable (if required)"

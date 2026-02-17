@@ -149,3 +149,31 @@ Priority mapping:
 - **high**: Category below 5 — fundamental issue
 - **medium**: Category 5-6 — clear improvement needed
 - **low**: Category 7 — refinement opportunity
+
+---
+
+## Heuristic Lenses
+
+Six design heuristics derived from the core artists (see `standing-on-shoulders`
+skill). The art-director uses these as **evaluation lenses** during exhibition-tier
+review — asking which heuristic(s) the shot *engages with*, not which it *satisfies*.
+
+| Heuristic | Review Question |
+|-----------|----------------|
+| **Friction** (Atkins) | Does this shot expose its own artifice, or does seamless immersion risk complicity with spectacle? |
+| **Shepherd** (Cheng / Miao) | Is there emergent behavior the artist did not fully control, held within conceptual guardrails? |
+| **Transcoding** (Evans) | Does any production infrastructure — process, metadata, labor — surface as a formal element? |
+| **Poor Image** (Steyerl) | Does the work resist resolution fetishism, or is technical fidelity mistaken for criticality? |
+| **Ambient** (Cheng) | Does the shot sustain engagement across time scales — rewarding both the glance and the long gaze? |
+| **Counterfeit** (Miao) | Does the work deploy official or institutional aesthetics at full fidelity to expose emptiness beneath? |
+
+### How to Use
+
+The art-director asks: **"Which heuristic(s) does this shot engage with, if any?"**
+
+- The artist may name one or more heuristics and briefly describe the engagement.
+- The artist may declare **"None — this shot operates outside the heuristic framework"**
+  and that is a valid, complete answer.
+- Heuristic engagement is an **evaluation lens**, not a pass/fail criterion. It informs
+  the gallery-context positioning in Phase 4 of the review but does not affect scores
+  or verdicts.

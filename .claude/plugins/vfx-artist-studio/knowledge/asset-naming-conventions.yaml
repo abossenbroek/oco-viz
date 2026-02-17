@@ -1,0 +1,107 @@
+# Asset Naming Conventions — File Path Templates for All Agents
+#
+# Enforced by all file-writing agents. Consistent naming enables
+# automation, prevents path collisions, and makes the pipeline
+# self-documenting. Every artifact has a single canonical path.
+
+# --- PATH TEMPLATES ---
+templates:
+
+  # VDB volumes
+  vdb:
+    pattern: "output/shots/{shot_id}/vdb/{shot_id}.{tier}.{grid_name}.vdb"
+    example: "output/shots/sc010/vdb/sc010.scout.density.vdb"
+    note: "One VDB file per grid per tier. Grid name in filename."
+
+  vdb_sequence:
+    pattern: "output/shots/{shot_id}/vdb/{shot_id}.{tier}.{grid_name}.{frame:04d}.vdb"
+    example: "output/shots/sc010/vdb/sc010.final.density.0001.vdb"
+    note: "Per-frame VDB for animated sequences"
+
+  # USD scene assembly
+  usd_base:
+    pattern: "output/shots/{shot_id}/usd/{shot_id}.{tier}_base.usda"
+    example: "output/shots/sc010/usd/sc010.preview_base.usda"
+
+  usd_override:
+    pattern: "output/shots/{shot_id}/usd/{shot_id}.{tier}_override.usda"
+    example: "output/shots/sc010/usd/sc010.preview_override.usda"
+
+  usd_assembly:
+    pattern: "output/shots/{shot_id}/usd/{shot_id}.{tier}.usda"
+    example: "output/shots/sc010/usd/sc010.final.usda"
+    note: "Top-level stage referencing base + override layers"
+
+  # MaterialX shaders
+  materialx:
+    pattern: "output/shots/{shot_id}/mtlx/{shader_name}.mtlx"
+    example: "output/shots/sc010/mtlx/soot_crust.mtlx"
+    note: "Shader definitions shared across tiers (parameterized per tier)"
+
+  # Rendered frames
+  render_exr:
+    pattern: "output/shots/{shot_id}/render/{shot_id}.{frame:04d}.exr"
+    example: "output/shots/sc010/render/sc010.0001.exr"
+    note: "Multi-layer EXR with all AOVs"
+
+  render_deep:
+    pattern: "output/shots/{shot_id}/render/{shot_id}.{frame:04d}.deep.exr"
+    example: "output/shots/sc010/render/sc010.0001.deep.exr"
+
+  # Compositing
+  comp_script:
+    pattern: "output/shots/{shot_id}/comp/{shot_id}_comp.nk"
+    example: "output/shots/sc010/comp/sc010_comp.nk"
+    note: "Nuke comp script (or Python equivalent)"
+
+  comp_output:
+    pattern: "output/shots/{shot_id}/comp/{shot_id}.{frame:04d}.exr"
+    example: "output/shots/sc010/comp/sc010.0001.exr"
+
+  # Delivery
+  delivery:
+    pattern: "output/shots/{shot_id}/delivery/{shot_id}.{frame:04d}.{ext}"
+    example: "output/shots/sc010/delivery/sc010.0001.tiff"
+
+  # Wedge / contact sheet
+  wedge_frame:
+    pattern: "output/shots/{shot_id}/wedge/wedge_{index:04d}.exr"
+    example: "output/shots/sc010/wedge/wedge_0042.exr"
+
+  contact_sheet:
+    pattern: "output/shots/{shot_id}/wedge/{shot_id}_contact_sheet.png"
+    example: "output/shots/sc010/wedge/sc010_contact_sheet.png"
+
+  # Hython scripts
+  hython_script:
+    pattern: "output/shots/{shot_id}/scripts/{script_name}.py"
+    example: "output/shots/sc010/scripts/upres_density.py"
+    note: "Generated Hython batch scripts — never hand-written .hip"
+
+  # HDA definitions
+  hda:
+    pattern: "output/hda/{hda_name}.{version}.hda"
+    example: "output/hda/soot_crust_shader.1.0.hda"
+    note: "HDAs are shot-independent, versioned"
+
+  # Shot context
+  shot_context:
+    pattern: "output/shots/{shot_id}/shot_context.yaml"
+    example: "output/shots/sc010/shot_context.yaml"
+    note: "Pull-based coordination state for the shot"
+
+  # Collaboration YAML
+  collaboration:
+    pattern: "output/shots/{shot_id}/collab/{from_agent}_to_{to_agent}_{timestamp}.yaml"
+    example: "output/shots/sc010/collab/effects-td_to_vfx-supe_20260215T143000.yaml"
+
+# --- NAMING RULES ---
+rules:
+  - "Shot IDs: lowercase, format sc{NNN} (e.g. sc010, sc020)"
+  - "Tier names: scout | preview | final (lowercase, no abbreviations)"
+  - "Grid names: density | vel | temperature | emission | mask (Houdini standard)"
+  - "Frame numbers: 4-digit zero-padded (0001, not 1)"
+  - "Timestamps: ISO 8601 compact (20260215T143000)"
+  - "No spaces in any path component"
+  - "All paths relative to project root"
+  - "Extensions: .vdb .usda .mtlx .exr .py .hda .yaml .nk .tiff .png"

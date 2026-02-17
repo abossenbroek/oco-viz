@@ -1,0 +1,142 @@
+# Exhibition Delivery Specification — Final Delivery Formats
+#
+# Used by compositor and line-producer to ensure final deliverables
+# meet exhibition requirements. References plan/finishing_spec.md.
+
+# --- EXHIBITION CONTEXT ---
+exhibition:
+  title: "Descent of Carbon"
+  medium: "Volumetric data visualization"
+  source_data: "OCO-3 satellite CO2 observations"
+  shots: 6
+  duration_per_shot_seconds: 30
+  total_frames: 720  # per shot, 24 fps
+  framerate: 24
+
+# --- PRIMARY DELIVERABLES ---
+deliverables:
+
+  digital_projection:
+    format: "16-bit Deep EXR"
+    resolution: [4096, 2160]
+    resolution_label: "4K DCI"
+    color_space: "ACEScg"
+    compression: "ZIP (lossless)"
+    framerate: 24
+    channels: "RGB + deep"
+    metadata_required:
+      - "shot_id"
+      - "frame_number"
+      - "tier: final"
+      - "lookdev_locked: true"
+      - "approved_by: vfx-supe"
+    note: "Primary deliverable for gallery projection on calibrated displays"
+
+  review_proxy:
+    format: "ProRes 4444"
+    resolution: [2048, 1080]
+    resolution_label: "2K"
+    color_space: "Rec.709"
+    bit_depth: "12-bit"
+    framerate: 24
+    codec: "ProRes 4444 XQ"
+    note: "For dailies, editorial review, and client screening"
+
+  film_out:
+    format: "DPX"
+    resolution: [4096, 2160]
+    resolution_label: "4K DCI"
+    color_space: "Cineon/ADX"
+    bit_depth: "10-bit log"
+    framerate: 24
+    note: "Film-out deliverable — contingency format if required"
+
+  archive_master:
+    format: "EXR"
+    resolution: [4096, 2160]
+    bit_depth: "32-bit float"
+    color_space: "ACEScg"
+    compression: "ZIP"
+    channels: "multi-layer (all AOVs)"
+    retention: "permanent"
+    note: "Full-fidelity archive with every rendered pass"
+
+# --- PRINT DELIVERABLES ---
+print:
+  paper:
+    name: "Hahnemuhle Photo Rag Baryta"
+    weight: "315 gsm"
+    finish: "Glossy fiber"
+    archival: true
+
+  sizes:
+    - label: "A3+ / 13x19 inch"
+      dimensions_inch: [13, 19]
+      resolution_dpi: 300
+      pixel_dimensions: [3900, 5700]
+      use: "Contact sheet evaluation, lookdev approval"
+
+    - label: "A1 / 24x36 inch"
+      dimensions_inch: [24, 36]
+      resolution_dpi: 300
+      pixel_dimensions: [7200, 10800]
+      use: "Gallery exhibition prints"
+
+  color_management:
+    color_space: "sRGB"
+    note: "Achromatic content — gamut mapping irrelevant"
+    icc_profile: "Matched to printer/paper combination"
+    black_point: "Absolute (no compensation)"
+    black_point_rationale: "The void must be true black on paper"
+
+  viewing_conditions:
+    illuminant: "D50"
+    viewing_distance_cm: 50
+    ambient: "Controlled gallery lighting"
+
+# --- DELIVERY CHECKLIST ---
+checklist:
+  per_shot:
+    - "All 720 frames rendered at final tier (1024^3, 512 spp, 4K DCI)"
+    - "OIDN 2.3 temporal denoising applied"
+    - "All AOVs present in multi-layer EXR"
+    - "Deep EXR generated for each frame"
+    - "NoisyBeauty grain restoration blend applied (10-15%)"
+    - "No fireflies or banding in 0.0-0.01 luminance range"
+    - "Pure black background verified (zero noise floor)"
+    - "Shot context YAML status: approved"
+    - "All wedge parameters locked by human"
+    - "VFX supe 2% finaling pass complete"
+    - "Critical-eye exhibition review passed"
+
+  per_exhibition:
+    - "All 6 shots delivered in all required formats"
+    - "Cross-shot continuity verified by VFX supe"
+    - "Print proofs approved under D50 illumination"
+    - "Archive master stored with full provenance metadata"
+    - "Delivery manifest generated with checksums"
+
+# --- QUALITY THRESHOLDS ---
+quality_thresholds:
+  black_level:
+    max_luminance: 0.0
+    tolerance: 0.0
+    note: "Background pixels must be exactly (0,0,0)"
+
+  grain_visibility:
+    at_density_01: "visible"
+    at_density_08: "invisible"
+    note: "Paper Grain Manifold technique validation"
+
+  dynamic_range:
+    minimum_stops: 14
+    note: "Must support log-space grading without clipping"
+
+  temporal_stability:
+    max_flicker_variance: 0.005
+    note: "OIDN temporal denoising must eliminate frame-to-frame flicker"
+
+  crust_read:
+    surface: "matte black"
+    interior: "translucent grey"
+    note: "Soot Crust dual-state shader validation"

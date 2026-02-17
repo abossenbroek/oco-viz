@@ -11,10 +11,17 @@ immersive installation. Includes predecessor genealogy, theoretical frameworks,
 curatorial strategies, conservation approaches, ethical frameworks, and actionable
 design heuristics derived from MoMA / Castello di Rivoli-grade practice.
 
-**Source file:** `plan/artist_references.yaml` (LFS-tracked, ~13 000 lines)
+**Source files:**
+- `plan/artist_references.yaml` — canonical YAML (~13 000 lines, LFS-tracked). Use
+  for section-level loading via `yq` or Python `yaml.safe_load()`.
+- `plan/artist_stand_on_shoulder.json` — JSON variant with additional `input`,
+  `outputSchema` keys. Use for programmatic queries via `jq` or Python `json.load()`.
 
-> The file is too large to load wholesale. Use the Section Index below to load only
-> the YAML key-paths relevant to your domain.
+Both files share identical `output.*` and `outputBasis` structure. The YAML is the
+primary reference for agent loading; the JSON adds schema metadata for validation.
+
+> These files are too large to load wholesale. Use the Section Index below to load
+> only the key-paths relevant to your domain.
 
 ---
 

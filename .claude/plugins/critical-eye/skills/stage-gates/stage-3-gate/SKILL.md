@@ -49,3 +49,22 @@ preserved the source data morphology, grid structure, and value ranges.
 - Value clamping (float32 overflow or incorrect normalization)
 - Blocky appearance (voxel size mismatch between source and VDB transform)
 - Empty volume (zero-fill from wrong array shape or dtype mismatch)
+
+---
+
+## Conservation Readiness Check
+
+After all visual QA checks above, verify conservation package status. This is a
+WARNING-level check --- it does not block the stage gate but surfaces visibility
+for the line-producer to track.
+
+| Check | PASS If | WARNING If |
+|-------|---------|------------|
+| Conservation flag | `conservation_complete: true` is set | Flag is missing or false |
+| Checksum manifests | All category manifests exist under `checksums/` | Any manifest missing |
+| Source archive | Git bundle exists at expected path | Bundle missing or not yet created |
+
+**Note:** Conservation is REQUIRED for exhibition delivery (Gate 7) but is not a
+blocking requirement at Stage 3. A WARNING here signals that conservation
+deliverables should be prepared before exhibition promotion. See
+`vfx-artist-studio/skills/finaling/conservation-package` for the full procedure.

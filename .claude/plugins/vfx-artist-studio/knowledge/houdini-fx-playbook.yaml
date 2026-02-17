@@ -1,0 +1,194 @@
+# Houdini FX Playbook — Simulation Recipes, HDA Versions, Tier-Specific Settings
+#
+# Used by houdini-td and effects-td for pre-defined VFX recipes.
+# Encodes DNEG methodology from Dune: Axiom solver, VDB Activate,
+# Volume Noise SOPs, TOPs for parallel wedging.
+
+# --- SIMULATION SOLVER ---
+solver:
+  primary: "axiom"  # Axiom GPU solver for Metal/CUDA acceleration
+  fallback: "pyro"  # Houdini Pyro for CPU-only environments
+  note: "Axiom preferred for GPU sim on RTX 6000 Ada. Pyro as fallback."
+
+# --- PROCEDURAL UPRES RECIPE ---
+upres:
+  description: "VDB Activate + Volume Noise SOPs for procedural detail upres"
+  steps:
+    - name: "load_base_vdb"
+      sop: "File"
+      params:
+        file: "{vdb_path}"
+      note: "Load scout/preview tier VDB as base"
+
+    - name: "activate_topology"
+      sop: "VDB Activate"
+      params:
+        mode: "expand"
+        expand_voxels: 2
+      note: "Expand active topology to accommodate upres detail"
+
+    - name: "resample_to_target"
+      sop: "VDB Resample"
+      params:
+        voxel_size: "{target_voxel_size}"
+        interpolation: "quadratic"
+      note: "Resample to target tier resolution"
+
+    - name: "add_detail_noise"
+      sop: "Volume Noise"
+      params:
+        noise_type: "sparse_convolution"
+        amplitude: 0.15
+        frequency: 4.0
+        octaves: 6
+        lacunarity: 2.1
+        roughness: 0.5
+      note: "Add high-frequency detail that was absent at lower resolution"
+
+    - name: "prune_result"
+      sop: "VDB Prune"
+      params:
+        tolerance: 0.0
+      note: "Ensure sparse topology is maintained after upres"
+
+  tier_specific:
+    scout_to_preview:
+      source_resolution: "128^3"
+      target_resolution: "512^3"
+      detail_octaves: 4
+      detail_amplitude: 0.12
+
+    preview_to_final:
+      source_resolution: "512^3"
+      target_resolution: "1024^3"
+      detail_octaves: 6
+      detail_amplitude: 0.15
+
+# --- APPROVED HDA VERSIONS ---
+hda_versions:
+  soot_crust_shader:
+    version: "1.0"
+    category: "Shop"
+    description: "Dual-state MaterialX shader: matte black crust + translucent interior"
+    inputs:
+      - name: "density_grid"
+        type: "VDB"
+      - name: "crust_threshold"
+        type: "float"
+        default: 0.4
+      - name: "blend_width"
+        type: "float"
+        default: 0.05
+    outputs:
+      - name: "materialx_shader"
+        type: "MaterialX"
+
+  grain_manifold:
+    version: "1.0"
+    category: "Sop"
+    description: "Paper Grain Manifold: static high-frequency noise subtracted from density"
+    inputs:
+      - name: "density_grid"
+        type: "VDB"
+      - name: "grain_amplitude"
+        type: "float"
+        default: 0.05
+      - name: "grain_octaves"
+        type: "int"
+        default: 8
+      - name: "grain_seed"
+        type: "int"
+        default: 7777
+    outputs:
+      - name: "modified_density"
+        type: "VDB"
+
+  ash_culler:
+    version: "1.0"
+    category: "Sop"
+    description: "Stochastic ash culling in the low-density crumble zone"
+    inputs:
+      - name: "density_grid"
+        type: "VDB"
+      - name: "crumble_high"
+        type: "float"
+        default: 0.2
+      - name: "blue_noise_resolution"
+        type: "int"
+        default: 128
+    outputs:
+      - name: "culled_density"
+        type: "VDB"
+
+  emission_driver:
+    version: "1.0"
+    category: "Sop"
+    description: "Curvature-driven emission with arrhythmic pulse"
+    inputs:
+      - name: "density_grid"
+        type: "VDB"
+      - name: "velocity_grid"
+        type: "VDB"
+      - name: "emission_intensity"
+        type: "float"
+        default: 1.5
+      - name: "pulse_amplitude"
+        type: "float"
+        default: 0.2
+    outputs:
+      - name: "emission_grid"
+        type: "VDB"
+
+# --- TOPS WEDGING ---
+tops_wedging:
+  description: "PDG/TOPs network for parallel parameter wedging (Contact Sheet Bible)"
+  standard_wedge:
+    parameters:
+      - name: "grain_amplitude"
+        range: [0.02, 0.10]
+        steps: 5
+      - name: "viscosity_strength"
+        range: [0.2, 0.6]
+        steps: 4
+      - name: "emission_intensity"
+        range: [0.8, 2.5]
+        steps: 5
+    total_variations: 100  # 5 x 4 x 5
+    render_tier: "final"
+    output_format: "contact_sheet_{index:04d}.exr"
+
+  wedge_review:
+    contact_sheet_grid: [10, 10]
+    top_candidates: 10
+    print_candidates: 5
+    time_box_days: 3
+
+# --- VOXEL SIZE TABLE ---
+voxel_sizes:
+  scout:
+    resolution: 128
+    world_size_m: 10.0  # default, override per shot
+    voxel_spacing_m: 0.078125  # 10.0 / 128
+
+  preview:
+    resolution: 512
+    world_size_m: 10.0
+    voxel_spacing_m: 0.01953125  # 10.0 / 512
+
+  final:
+    resolution: 1024
+    world_size_m: 10.0
+    voxel_spacing_m: 0.009765625  # 10.0 / 1024
+
+# --- BATCH MODE REQUIREMENTS ---
+batch_mode:
+  interpreter: "hython"
+  gui_allowed: false
+  reproducible: true
+  note: "All Houdini work runs in hython batch mode, never interactive GUI"
+  template: |
+    #!/usr/bin/env hython
+    """Generated by houdini-td agent. Batch-mode only."""
+    from __future__ import annotations
+    import hou
+    # ... generated network code ...
