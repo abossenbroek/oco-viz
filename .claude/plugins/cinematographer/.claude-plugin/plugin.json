@@ -1,0 +1,26 @@
+{
+  "name": "cinematographer",
+  "version": "1.0.0",
+  "description": "VFX production coding toolkit encoding Blade Runner 2049 and Dune methodology. Agents communicate exclusively through collaboration YAML with shared schema. Storyboarding, look development, color science, and physical validation from creative brief to exhibition-grade delivery.",
+  "author": { "name": "oco-viz team" },
+  "keywords": [
+    "cinematography", "lookdev", "color-science", "VFX",
+    "storyboarding", "Deakins", "Dune", "ACES", "Houdini",
+    "collaboration-yaml"
+  ],
+  "commands": {
+    "storyboard": { "source": "./commands/storyboard.md" },
+    "lookdev": { "source": "./commands/lookdev.md" },
+    "shoot": { "source": "./commands/shoot.md" },
+    "grade": { "source": "./commands/grade.md" },
+    "dailies": { "source": "./commands/dailies.md" },
+    "wrap": { "source": "./commands/wrap.md" }
+  },
+  "agents": [
+    "./agents/dp.md",
+    "./agents/production-designer.md",
+    "./agents/colorist.md",
+    "./agents/groundtruth.md",
+    "./agents/storyboarder.md"
+  ]
+}

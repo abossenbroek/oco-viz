@@ -1,0 +1,156 @@
+# Karma XPU Render Profiles — Standardized Settings Per Tier
+#
+# Used by houdini-td to generate Karma XPU render configurations.
+# Settings reference plan/render_farm_spec.md for hardware targeting.
+# All values are production-validated for RTX 6000 Ada (48GB VRAM).
+
+renderer: "karma_xpu"
+renderer_version: "20.5+"
+
+profiles:
+
+  scout:
+    description: "Fast validation — motion timing, creative direction approval"
+    resolution: [1920, 1080]  # HD
+    resolution_label: "HD"
+    vdb_resolution: "128^3"
+    samples_per_pixel: 64
+    volume_step_size_multiplier: 1.0  # step_size = multiplier * voxel_spacing
+    shadow_step_size_multiplier: 2.0
+    max_volume_bounces: 2
+    scattering_bounces: 1
+    pixel_filter: "box"
+    pixel_filter_width: 1.0
+    denoiser:
+      enabled: false
+    adaptive_sampling:
+      enabled: true
+      threshold: 0.05
+      min_samples: 16
+      max_samples: 64
+    approx_frame_time_seconds: 30
+    file_size_budget_mb: 100
+
+  preview:
+    description: "Quality validation — lighting, materials, technical settings"
+    resolution: [2048, 1080]  # 2K DCI
+    resolution_label: "2K DCI"
+    vdb_resolution: "512^3"
+    samples_per_pixel: 256
+    volume_step_size_multiplier: 0.75
+    shadow_step_size_multiplier: 1.0
+    max_volume_bounces: 4
+    scattering_bounces: 2
+    pixel_filter: "gaussian"
+    pixel_filter_width: 2.0
+    denoiser:
+      enabled: true  # optional
+      type: "oidn"
+      version: "2.3"
+      temporal: false
+      motion_buffer: "vel"
+      guide_albedo: true
+      guide_normal: true
+    adaptive_sampling:
+      enabled: true
+      threshold: 0.02
+      min_samples: 64
+      max_samples: 256
+    approx_frame_time_seconds: 240
+    file_size_budget_mb: 1000
+
+  final:
+    description: "Exhibition quality — maximum detail, no creative surprises"
+    resolution: [4096, 2160]  # 4K DCI
+    resolution_label: "4K DCI"
+    vdb_resolution: "1024^3"
+    samples_per_pixel: 512
+    volume_step_size_multiplier: 0.5
+    shadow_step_size_multiplier: 0.5
+    max_volume_bounces: 8
+    scattering_bounces: 4
+    pixel_filter: "gaussian"
+    pixel_filter_width: 3.0
+    denoiser:
+      enabled: true
+      type: "oidn"
+      version: "2.3"
+      temporal: true
+      motion_buffer: "vel"
+      guide_albedo: true
+      guide_normal: true
+      prefilter: "none"
+      hdr: true
+      clean_aux: false
+    adaptive_sampling:
+      enabled: true
+      threshold: 0.01
+      min_samples: 128
+      max_samples: 512
+      metric: "variance"  # NOT luminance-weighted — dark regions need full samples
+    approx_frame_time_seconds: 1320
+    file_size_budget_mb: 10000
+
+# --- AOV SLATE (all tiers) ---
+aov_slate:
+  - name: "Beauty"
+    lpe: "lpe:C.*"
+    format: "float16"
+    channels: "RGB"
+    purpose: "Final denoised beauty (primary deliverable)"
+
+  - name: "NoisyBeauty"
+    lpe: "lpe:C.* (pre-OIDN)"
+    format: "float16"
+    channels: "RGB"
+    purpose: "Pre-denoiser beauty for grain restoration blend"
+
+  - name: "emission"
+    lpe: "lpe:Ce.*"
+    format: "float16"
+    channels: "RGB"
+    purpose: "Emission LPE — curvature-driven glow isolation"
+
+  - name: "scatter"
+    lpe: "lpe:Cd.*"
+    format: "float16"
+    channels: "RGB"
+    purpose: "Diffuse/scatter LPE — translucent interior light transport"
+
+  - name: "density"
+    lpe: "volume density AOV"
+    format: "float32"
+    channels: "mono"
+    purpose: "Raw density field for comp adjustments"
+
+  - name: "deep"
+    lpe: "deep camera output"
+    format: "deep EXR"
+    channels: "per-sample"
+    purpose: "Per-sample depth for volumetric DOF and deep compositing"
+
+  - name: "velocity"
+    lpe: "velocity AOV"
+    format: "float16"
+    channels: "RGB (xyz)"
+    purpose: "Motion vectors for temporal denoiser and motion blur"
+
+  - name: "temperature"
+    lpe: "temperature AOV"
+    format: "float32"
+    channels: "mono"
+    purpose: "Diagnostic: verify Kelvin values, creative re-grade potential"
+
+# --- BACKGROUND SETTINGS ---
+background:
+  color: [0.0, 0.0, 0.0]
+  emission: 0.0
+  environment_map: null
+  ambient_occlusion: false
+  note: "Pure black void — the Soot visual language demands #000000 background"
+
+# --- PURE BLACK TEST ---
+black_void_test:
+  required: true
+  procedure: "Render single frame with empty scene (no VDB). ALL pixels must be (0,0,0)."
+  failure_action: "Fix light leaks, ambient contribution, or renderer bias before proceeding."

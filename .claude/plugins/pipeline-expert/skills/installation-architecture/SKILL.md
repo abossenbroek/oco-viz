@@ -96,6 +96,47 @@ The boundary between projected content and room wall is the most critical spatia
 
 ---
 
+## Adjacent Practice Note
+
+**Ziyang Wu** uses a LAN-party-based collective viewing model where audiences share
+a networked space in real time, making the installation a social event rather than a
+solitary contemplation. **Cao Fei** (*RMB City*, *Asia One*) builds virtual-physical
+community spaces where online participants and gallery visitors inhabit the same work
+simultaneously. Both are precedents for interactive installation design where the
+viewer is a participant, not a spectator — relevant when considering multi-screen,
+networked, or audience-responsive exhibition configurations.
+
+---
+
+## Visitor Experience Management
+
+### Capacity Limits
+
+- **Immersive projection** (darkened room, single screen): max 15-20 viewers
+- **Gallery screens** (ambient light, multiple works): max 40-50 viewers per screen
+- Overcrowding degrades the void -- bodies reflect stray light and break the blackout
+
+### Dwell Time Targets
+
+Design the loop and pacing to support three viewing modes simultaneously:
+- **Casual** (30 seconds): Immediate visual impact on entry -- the plume must command attention within the first 5 seconds
+- **Engaged** (3 minutes): Temporal layering reveals itself -- drone drift, churn motion, and emission crackle become perceptible as distinct phenomena
+- **Contemplative** (10 minutes): Full loop cycle with phase transitions, breath rhythm, and mood evolution rewards sustained attention
+
+### Flow Choreography
+
+- Reference: Hito Steyerl's wave-shaped ramps that direct viewer movement and control sightlines -- the architecture tells the body where to go and what to see
+- Reference: Miao Ying's seated immersion installations where fixed viewing positions concentrate attention and eliminate wandering gaze
+- Seating or standing positions should be calibrated to the viewing cone (+-30 degrees)
+
+### Entry/Exit Transitions
+
+- 3-5 second black leader at loop points for graceful entry and exit
+- Viewers entering mid-loop should encounter the piece, not a hard cut
+- Phase transitions (building -> chaotic -> dissolving) provide natural entry moments
+
+---
+
 ## Installation Validation Checklist
 
 1. Are room calculations physically correct? (throw ratio, pixel pitch, resolution)

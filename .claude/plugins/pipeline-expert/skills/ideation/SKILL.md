@@ -60,6 +60,13 @@ reference, the specific technical implication for volumetric rendering,
 and the emotional target.
 ```
 
+**Optional Heuristic Starting Points:** The Artist may (but need not) use the
+six design heuristics from `standing-on-shoulders` as creative seeds: Friction,
+Shepherd, Transcoding, Poor Image, Ambient, Counterfeit. For example, a Friction
+thesis might deliberately break visual polish; a Shepherd thesis might cede
+control to simulation emergent behavior. These are springboards for divergence,
+not requirements — theses that ignore the heuristics entirely are equally valid.
+
 ---
 
 ## Phase 3: SYNTHESIS (Auteur — The Director)
@@ -106,6 +113,18 @@ Translates the Director's Brief into concrete parameters and code.
    violates physical constraints — the Auteur decides whether to modify or override.
 6. **Audit trail required.** Every parameter in Phase 4 must trace back through
    synthesis -> thesis -> ground truth -> data source.
+
+---
+
+## Adjacent Practice Note
+
+**Lawrence Lek** (*Geomancer*, *AIDOL*) frames AI-driven simulations as speculative
+fictions — the simulation is not a tool but a narrator with its own subjectivity and
+agenda. This is a precedent for narrative framing of the ideation protocol: rather than
+treating Phase 2 provocations as external suggestions, the artist may frame the entire
+dialectic as a speculative scenario where the data itself has a perspective. Lek's work
+suggests that AI-generated creative direction is most potent when it carries a fictional
+voice, not a neutral advisory tone.
 
 ---
 

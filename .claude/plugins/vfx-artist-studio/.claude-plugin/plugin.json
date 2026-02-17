@@ -1,0 +1,30 @@
+{
+  "name": "vfx-artist-studio",
+  "version": "1.0.0",
+  "description": "DNEG-methodology effects artistry, Houdini/Karma production coding, and human+agent production orchestration for exhibition-grade volumetric CO2 plumes. Covers the full sketch-to-exhibition tier progression: iterative lookdev discovery, effects implementation, Hython/USD/MaterialX authoring, multi-pass compositing, void design, shot finaling, and production planning.",
+  "author": { "name": "oco-viz team" },
+  "keywords": [
+    "VFX", "Houdini", "Karma-XPU", "lookdev", "compositing",
+    "production", "effects", "MaterialX", "USD", "DNEG",
+    "Dune", "Blade-Runner-2049", "collaboration-yaml"
+  ],
+  "commands": {
+    "status": { "source": "./commands/status.md" },
+    "plan": { "source": "./commands/plan.md" },
+    "promote": { "source": "./commands/promote.md" },
+    "houdini": { "source": "./commands/houdini.md" },
+    "wedge": { "source": "./commands/wedge.md" },
+    "effect": { "source": "./commands/effect.md" },
+    "comp": { "source": "./commands/comp.md" },
+    "final": { "source": "./commands/final.md" },
+    "void": { "source": "./commands/void.md" }
+  },
+  "agents": [
+    "./agents/line-producer.md",
+    "./agents/houdini-td.md",
+    "./agents/vfx-supe.md",
+    "./agents/effects-td.md",
+    "./agents/compositor.md",
+    "./agents/matte-artist.md"
+  ]
+}

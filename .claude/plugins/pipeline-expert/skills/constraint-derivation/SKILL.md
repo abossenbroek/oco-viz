@@ -37,6 +37,20 @@ constraint envelope. Five rules:
 
 Violation of any rule is a blocking CONCERN. Violation of rules 1-3 is a blocking FAIL.
 
+### Artistic Freedom Note
+
+Science informs the starting conditions -- plume shape, transport direction, intensity
+distribution -- but artistic interpretation supersedes strict physical compliance at the
+effects level. The five rules above are GUIDELINES for maintaining plausibility, not
+absolute restrictions. This project produces art inspired by CO2 data, not a scientific
+publication. The satellite observations define where the work begins; they do not
+constrain where it ends.
+
+The artist retains full creative authority to emphasize, exaggerate, or transform the
+data in service of the work's emotional and political intent. A plume that communicates
+dread more effectively than the raw data is a better plume, even if it bends the
+constraint envelope. Plausibility, not fidelity, is the standard.
+
 ---
 
 ## Constraint Derivation Workflow

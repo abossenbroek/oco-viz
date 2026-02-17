@@ -32,7 +32,7 @@ trail requirements for the 7-agent pipeline-expert system.
 
 ---
 
-## 6 Approval Gates
+## 7 Approval Gates
 
 ### Gate 1: Data Gate
 **Owner:** Spectralist
@@ -75,6 +75,24 @@ weight of the material.
 mapping correct. Void merges with room. Viewer positioning considered.
 Audio-visual synchronization if applicable.
 **Artifacts:** Installation mockup, spatial diagram, viewing distance analysis.
+
+### Gate 7: Conservation Gate
+**Owner:** Line Producer (presents) | Auteur (final sign-off)
+**Certifies:** Conservation deliverables are prepared per
+`plan/conservation_package_spec.md`. The work can be faithfully re-exhibited,
+re-rendered, or migrated by a future conservator without production knowledge.
+**Required for:** Exhibition delivery only. Not required for scout or preview tiers.
+**Checks:**
+- Source archive exists (git bundle + tar.gz) and checksums verified
+- Dependency manifest current (pixi.lock, Docker image, system packages)
+- Render configuration archive complete (all YAMLs, TF JSONs, continuity ledger)
+- Asset archive complete with per-category SHA-256 manifests verified
+- Artist intent documented (Variable Media Questionnaire, no blanks)
+- Exhibition technical rider complete (no placeholder values)
+- Emulation vs. migration decision documented for all components
+- Master verification passes: all checksum manifests valid, Docker image boots
+**Artifacts:** Conservation package at archive root, checksum manifests,
+`conservation_complete: true` flag.
 
 ---
 

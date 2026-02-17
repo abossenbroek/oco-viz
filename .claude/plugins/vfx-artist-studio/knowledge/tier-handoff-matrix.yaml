@@ -1,0 +1,153 @@
+# Tier Handoff Matrix — Shot Context State Machine
+#
+# Defines default agent routing per (tier, completing_agent, action) triple.
+# The line-producer uses this matrix to determine who receives work next
+# after an agent completes their contribution to a shot.
+#
+# State machine: wip → pending_review → approved | rejected | blocked
+# Tier progression: scout → preview → final (non-negotiable order)
+
+handoff_rules:
+
+  # --- SCOUT TIER ---
+  scout:
+    - completing_agent: effects-td
+      on_action: effects_complete
+      routes_to: vfx-supe
+      gate: visual_check
+      description: "Effects at scout resolution complete, route to VFX supe for visual check"
+
+    - completing_agent: matte-artist
+      on_action: void_design_complete
+      routes_to: vfx-supe
+      gate: composition_check
+      description: "Void/environment design complete, route to VFX supe for composition review"
+
+    - completing_agent: vfx-supe
+      on_action: approved
+      routes_to: line-producer
+      gate: promote_decision
+      description: "Scout tier approved by VFX supe, route to line-producer for tier promotion"
+
+    - completing_agent: vfx-supe
+      on_action: rejected
+      routes_to: effects-td
+      gate: revision_required
+      description: "Scout tier rejected, route back to effects-td with feedback"
+
+    - completing_agent: line-producer
+      on_action: promote_approved
+      routes_to: houdini-td
+      gate: human_creative_direction_approved
+      description: "Human approved creative direction, begin preview tier setup"
+
+  # --- PREVIEW TIER ---
+  preview:
+    - completing_agent: effects-td
+      on_action: effects_complete
+      routes_to: vfx-supe
+      gate: visual_check
+      description: "Full effects stack at preview resolution, route to VFX supe"
+
+    - completing_agent: houdini-td
+      on_action: render_config_complete
+      routes_to: vfx-supe
+      gate: render_quality
+      description: "Karma XPU render config ready, route to VFX supe for quality check"
+
+    - completing_agent: houdini-td
+      on_action: materialx_complete
+      routes_to: vfx-supe
+      gate: shader_quality
+      description: "MaterialX shaders authored, route to VFX supe for shader review"
+
+    - completing_agent: compositor
+      on_action: comp_spec_complete
+      routes_to: vfx-supe
+      gate: comp_integrity
+      description: "AOV specification and comp setup complete, route to VFX supe"
+
+    - completing_agent: vfx-supe
+      on_action: approved
+      routes_to: line-producer
+      gate: promote_decision_with_param_lock
+      description: "Preview approved, route to line-producer for final tier promotion (requires human param lock)"
+
+    - completing_agent: vfx-supe
+      on_action: rejected
+      routes_to: effects-td  # or houdini-td, based on rejection reason
+      gate: revision_required
+      description: "Preview rejected, route back with specific feedback"
+
+    - completing_agent: line-producer
+      on_action: promote_approved
+      routes_to: houdini-td
+      gate: human_params_locked
+      description: "Human locked all wedge parameters, begin final tier"
+
+  # --- FINAL TIER ---
+  final:
+    - completing_agent: houdini-td
+      on_action: upres_complete
+      routes_to: effects-td
+      gate: resolution_check
+      description: "Procedural upres to 1024^3 complete, route to effects-td for exhibition stack"
+
+    - completing_agent: effects-td
+      on_action: exhibition_effects_complete
+      routes_to: compositor
+      gate: effects_quality
+      description: "Exhibition-only effects applied, route to compositor for deep comp"
+
+    - completing_agent: compositor
+      on_action: final_comp_complete
+      routes_to: vfx-supe
+      gate: delivery_check
+      description: "Final deep compositing complete, route to VFX supe for finaling"
+
+    - completing_agent: vfx-supe
+      on_action: finaling_complete
+      routes_to: line-producer
+      gate: exit_criteria
+      description: "2% finaling pass complete, all parameters locked, ready for exhibition review"
+
+    - completing_agent: vfx-supe
+      on_action: rejected
+      routes_to: effects-td  # based on specific note
+      gate: two_percent_fix
+      description: "Finaling identified issues, route back for targeted fix"
+
+    - completing_agent: line-producer
+      on_action: exit_confirmed
+      routes_to: critical-eye  # cross-plugin handoff
+      gate: exhibition_review
+      description: "Exit criteria met, route to critical-eye for curator-level exhibition review"
+
+# --- EXCEPTION STATES ---
+exceptions:
+  stuck_task:
+    trigger: "Agent reports blocked for > 1 sprint cycle"
+    handler: line-producer
+    action: "Evaluate: re-scope, reassign, or escalate to human"
+
+  cross_plugin_conflict:
+    trigger: "Two agents from different plugins disagree on approach"
+    handler: line-producer
+    action: "Surface both positions to human with evidence, do not resolve algorithmically"
+
+  gate_failure_loop:
+    trigger: "Same gate fails 3+ consecutive times"
+    handler: line-producer
+    action: "Pause feature work, root-cause analysis before retry"
+
+# --- SHOT CONTEXT YAML TEMPLATE ---
+shot_context_template:
+  shot_id: ""
+  tier: "scout"  # scout | preview | final
+  status: "wip"  # wip | pending_review | approved | rejected | blocked
+  active_agent: ""
+  assigned_by: "line-producer"
+  next_on_approve: ""
+  locked_params: {}
+  artifacts: []
+  feedback_log: []
