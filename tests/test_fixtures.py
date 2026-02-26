@@ -11,6 +11,7 @@ import xarray as xr
 _FIXTURES = Path(__file__).parent / "fixtures"
 _ERA5_PATH = _FIXTURES / "era5_secunda_2025-10-13.nc"
 _OCO3_PATH = _FIXTURES / "oco3_secunda_2025-10-26.nc4"
+_OCO2_PATH = _FIXTURES / "oco2_secunda_2025-10-13.nc4"
 
 # ---------------------------------------------------------------------------
 # ERA5 fixture
@@ -98,4 +99,41 @@ def test_oco3_fixture_quality_flag_values() -> None:
     valid = qf[~np.isnan(qf)]
     unique = set(np.unique(valid).astype(int))
     assert unique <= {0, 1}, f"Unexpected quality flag values: {unique}"
+    ds.close()
+
+
+# ---------------------------------------------------------------------------
+# OCO-2 fixture
+# ---------------------------------------------------------------------------
+
+_skip_oco2 = pytest.mark.skipif(
+    not _OCO2_PATH.exists(),
+    reason="OCO-2 fixture not found — run scripts/download_fixtures.py",
+)
+
+
+@_skip_oco2
+def test_oco2_fixture_has_expected_dims() -> None:
+    ds = xr.open_dataset(str(_OCO2_PATH))
+    assert "sounding_id" in ds.dims
+    assert ds.sizes["sounding_id"] > 100
+    ds.close()
+
+
+@_skip_oco2
+def test_oco2_fixture_has_required_vars() -> None:
+    ds = xr.open_dataset(str(_OCO2_PATH))
+    for var in ("xco2", "latitude", "longitude", "xco2_quality_flag"):
+        assert var in ds, f"Missing required variable: {var}"
+    ds.close()
+
+
+@_skip_oco2
+def test_oco2_fixture_xco2_physical_range() -> None:
+    ds = xr.open_dataset(str(_OCO2_PATH))
+    xco2 = ds["xco2"].values
+    valid = xco2[~np.isnan(xco2)]
+    assert len(valid) > 0, "No valid XCO2 values"
+    assert np.all(valid >= 350), f"XCO2 below 350 ppm: min={valid.min()}"
+    assert np.all(valid <= 500), f"XCO2 above 500 ppm: max={valid.max()}"
     ds.close()

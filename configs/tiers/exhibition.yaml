@@ -11,12 +11,16 @@ scattering:
   ambient: 0.85
   diffuse: 0.0
   specular: 0.0
-  sample_distance: 125.0
+  sample_distance: 50.0
 
 postprocess:
   fog_enabled: false
-  bloom_enabled: false
-  exposure: 4.0
+  bloom_enabled: true
+  bloom_threshold: 0.55
+  bloom_intensity: 0.12
+  bloom_passes: 3
+  exposure: 8.0
+  grain_strength: 0.04
 
 lighting:
   mode: smoldering

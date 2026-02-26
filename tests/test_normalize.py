@@ -932,3 +932,48 @@ class TestAdaptiveDivisorUnit:
         divisor = _compute_adaptive_divisor(enhancement, 95.0, 0.1)
         # 95th percentile of [1, 1, ..., 1, 100, 100, 100, 100, 100] should be ~1.0
         assert divisor < 10.0  # Definitely not 100
+
+
+class TestAbsoluteAdaptiveNormalization:
+    """Regression tests for absolute mode with adaptive normalization.
+
+    Root cause: Synthetic plumes produce 0-100 ppm values, but the default
+    absolute window [415, 435] maps everything below 415 to 0.0 (black image).
+    Adaptive normalization uses percentile-based range detection to fix this.
+    """
+
+    def test_fixed_window_with_synthetic_plume_is_zeros(self) -> None:
+        """Fixed absolute window [415, 435] produces all zeros for 0-100 ppm data.
+
+        This proves the bug: synthetic plume values are entirely below the
+        default absolute_min_ppm (415), so clip((x-415)/20, 0, 1) = 0.0.
+        """
+        data = np.random.default_rng(42).uniform(0, 100, (10, 20, 20)).astype(np.float32)
+        cfg = RenderingConfig(mode="absolute")  # default: 415-435 ppm window
+        result = normalize_concentration(data, cfg)
+        assert np.all(result == 0.0)  # Bug: everything below window
+
+    def test_adaptive_absolute_produces_visible_output(self) -> None:
+        """With adaptive=True, same data produces non-zero visible output.
+
+        Adaptive normalization uses percentile-based range detection that
+        adapts to the actual data range, producing visible output.
+        """
+        data = np.random.default_rng(42).uniform(0, 100, (10, 20, 20)).astype(np.float32)
+        cfg = RenderingConfig(mode="absolute", adaptive_normalization=True)
+        result = normalize_concentration(data, cfg)
+        assert float(np.max(result)) > 0.5  # Visible output
+        assert float(np.mean(result)) > 0.01  # Not mostly black
+
+    def test_adaptive_absolute_preserves_ordering(self) -> None:
+        """Monotonicity: if conc_a > conc_b then norm_a >= norm_b.
+
+        The adaptive absolute normalization must preserve value ordering
+        since it uses a linear mapping from the detected range.
+        """
+        data = np.linspace(10, 90, 1000).reshape(10, 10, 10).astype(np.float32)
+        cfg = RenderingConfig(mode="absolute", adaptive_normalization=True)
+        result = normalize_concentration(data, cfg)
+        flat = result.flatten()
+        diffs = np.diff(flat)
+        assert np.all(diffs >= -1e-6)  # Monotonic

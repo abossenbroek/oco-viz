@@ -5,9 +5,8 @@ Demonstrates the data pipeline layer:
 - ERA5 wind field visualization (synthetic, matplotlib quiver plot)
 - OCO-3 sounding footprint geometry (matplotlib patches)
 - Coordinate transform grid overlay (matplotlib)
+- Highveld Industrial Corridor source inventory map (matplotlib)
 
-Usage:
-    python scripts/render_wave2_gallery.py
 """
 
 from __future__ import annotations
@@ -20,15 +19,15 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import structlog
-import yaml
-from PIL import Image
 
 from oco_viz.config import load_config
 from oco_viz.config.schema import AppConfig, RenderingConfig, TransferFunctionConfig
 from oco_viz.data.transform import latlon_to_local_km, local_km_to_latlon
 from oco_viz.plume.gaussian import generate_timestep
-from oco_viz.render.camera import CameraState, FixedCamera
+from oco_viz.render.camera import CameraState
+from oco_viz.render.composition import compose_camera_from_plume
 from oco_viz.render.renderer import VolumeRenderer
+from scripts.gallery._common import save_rgb
 
 matplotlib.use("Agg")
 
@@ -36,30 +35,30 @@ log = structlog.get_logger()
 
 OUTPUT_DIR = Path("output/examples/wave2")
 
+IMAGE_MANIFEST: list[str] = [
+    "data_pipeline_gaussian.png",
+    "era5_wind_profile.png",
+    "oco3_footprints.png",
+    "coordinate_transform.png",
+    "corridor_source_inventory.png",
+]
 
-def _load_gallery_config() -> AppConfig:
-    """Load config with small grid for gallery renders (study tier)."""
+
+def _load_gallery_config(*, tier: str = "study") -> AppConfig:
+    """Load config with small grid for gallery renders."""
     return load_config(
         "dev_mac",
         overrides={
             "grid": {"nx": 48, "ny": 48, "nz": 32},
-            "plume": {"source_x": 38.0, "source_y": 38.0, "source_z": 3.0},
+            "plume": {"source_x": 33.0, "source_y": 21.0, "source_z": 3.0},
             "scattering": {"shade": False, "sample_distance": 250.0},
             "output": {"width": 960, "height": 540},
         },
-        tier="study",
+        tier=tier,
     )
 
 
-def _save_rgb(rgb: np.ndarray, out_path: Path) -> None:
-    """Save a float32 [0,1] RGB array as a PNG file."""
-    rgb_uint8 = np.clip(rgb * 255.0, 0, 255).astype(np.uint8)
-    img = Image.fromarray(rgb_uint8)
-    img.save(str(out_path))
-    log.info("saved", path=str(out_path))
-
-
-def render_data_pipeline_gaussian(config: AppConfig) -> None:
+def render_data_pipeline_gaussian(config: AppConfig, output_dir: Path) -> None:
     """Render full pipeline Gaussian plume output using VTK."""
     log.info("=== Data pipeline: Gaussian plume ===")
 
@@ -67,32 +66,37 @@ def render_data_pipeline_gaussian(config: AppConfig) -> None:
     log.info("gaussian plume generated", max_conc=round(float(conc.max()), 6))
 
     grid = config.grid
-    cx = grid.nx * grid.dx / 2.0
-    cy = grid.ny * grid.dy / 2.0
-    cz = grid.nz * grid.dz / 3.0
-    extent = max(grid.nx * grid.dx, grid.ny * grid.dy)
-
-    camera_state = FixedCamera(
-        position=(cx + extent * 1.2, cy - extent * 0.8, cz + extent * 0.3),
-        focal_point=(cx, cy, cz),
-    ).evaluate(0.0)
+    comp_cfg = config.composition.model_copy(
+        update={"enabled": True, "frame_fill": (0.4, 0.6)},
+    )
+    focal, distance, elevation = compose_camera_from_plume(
+        conc, comp_cfg, (grid.dz, grid.dy, grid.dx),
+    )
+    elev_rad = math.radians(elevation)
+    az_rad = math.radians(30.0)
+    pos = (
+        focal[0] + distance * math.cos(elev_rad) * math.cos(az_rad),
+        focal[1] + distance * math.cos(elev_rad) * math.sin(az_rad),
+        focal[2] + distance * math.sin(elev_rad),
+    )
+    camera_state = CameraState(position=pos, focal_point=focal)
 
     render_config = config.model_copy(
         update={
             "transfer_function": TransferFunctionConfig(preset="soot"),
-            "rendering": RenderingConfig(mode="max"),
+            "rendering": RenderingConfig(mode="max", opacity_gamma=2.0),
         },
     )
     renderer = VolumeRenderer(render_config)
     renderer.configure()
     try:
         rgb = renderer.render_frame_postprocessed(conc, camera_state, pre_normalized=False)
-        _save_rgb(rgb, OUTPUT_DIR / "data_pipeline_gaussian.png")
+        save_rgb(rgb, output_dir / "data_pipeline_gaussian.png")
     finally:
         renderer.finalize()
 
 
-def render_era5_wind_profile(config: AppConfig) -> None:
+def render_era5_wind_profile(config: AppConfig, output_dir: Path) -> None:
     """Render synthetic ERA5 wind field as a matplotlib quiver plot."""
     log.info("=== Data pipeline: ERA5 wind profile ===")
 
@@ -117,21 +121,21 @@ def render_era5_wind_profile(config: AppConfig) -> None:
     cbar.ax.tick_params(labelsize=9)
     ax.grid(alpha=0.3)
     fig.tight_layout()
-    out_path = OUTPUT_DIR / "era5_wind_profile.png"
+    out_path = output_dir / "era5_wind_profile.png"
     fig.savefig(str(out_path), dpi=150)
     plt.close(fig)
     log.info("saved", path=str(out_path))
 
 
-def render_oco3_footprints(config: AppConfig) -> None:
+def render_oco3_footprints(config: AppConfig, output_dir: Path) -> None:
     """Render OCO-3 sounding footprint geometry as matplotlib patches."""
     log.info("=== Data pipeline: OCO-3 footprints ===")
 
     domain = config.data_source.domain
     grid = config.grid
 
-    # Synthetic OCO-3 footprints: 8 along-track x 8 across-track
-    n_along, n_across = 8, 8
+    # Synthetic OCO-3 footprints: 10 along-track x 10 across-track (wider for corridor)
+    n_along, n_across = 10, 10
     footprint_size_km = 2.0
     gap_km = 1.0
 
@@ -169,18 +173,40 @@ def render_oco3_footprints(config: AppConfig) -> None:
             patches_list.append(rect)
 
     xco2_arr = np.array(xco2_values)
-    norm = plt.Normalize(vmin=xco2_arr.min(), vmax=xco2_arr.max())
-    cmap = plt.cm.RdYlBu_r
+    norm = plt.Normalize(vmin=xco2_arr.min(), vmax=xco2_arr.max())  # type: ignore[attr-defined]
+    cmap = plt.cm.RdYlBu_r  # type: ignore[attr-defined]
 
     for patch, val in zip(patches_list, xco2_values):
         patch.set_facecolor(cmap(norm(val)))
         patch.set_alpha(0.8)
         ax.add_patch(patch)
 
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)  # type: ignore[attr-defined]
     sm.set_array([])
     cbar = fig.colorbar(sm, ax=ax, label="XCO2 (ppm)")
     cbar.ax.tick_params(labelsize=9)
+
+    # Mark Sasol and Joburg positions
+    for src in config.data_source.sources:
+        if src.name in ("Sasol Synfuels", "Johannesburg"):
+            sx, sy = latlon_to_local_km(
+                src.lat,
+                src.lon,
+                origin_lat=domain.origin_lat,
+                origin_lon=domain.origin_lon,
+            )
+            sx = float(sx)
+            sy = float(sy)
+            if 0 <= sx <= domain_x_km and 0 <= sy <= domain_y_km:
+                ax.plot(sx, sy, "*", color="black", markersize=10, zorder=10)
+                ax.annotate(
+                    src.name,
+                    (sx, sy),
+                    fontsize=8,
+                    fontweight="bold",
+                    xytext=(5, 5),
+                    textcoords="offset points",
+                )
 
     ax.set_xlim(0, domain_x_km)
     ax.set_ylim(0, domain_y_km)
@@ -190,13 +216,13 @@ def render_oco3_footprints(config: AppConfig) -> None:
     ax.set_aspect("equal")
     ax.grid(alpha=0.2)
     fig.tight_layout()
-    out_path = OUTPUT_DIR / "oco3_footprints.png"
+    out_path = output_dir / "oco3_footprints.png"
     fig.savefig(str(out_path), dpi=150)
     plt.close(fig)
     log.info("saved", path=str(out_path))
 
 
-def render_coordinate_transform(config: AppConfig) -> None:
+def render_coordinate_transform(config: AppConfig, output_dir: Path) -> None:
     """Render lat/lon grid overlaid on local coordinate system."""
     log.info("=== Data pipeline: Coordinate transform ===")
 
@@ -247,6 +273,30 @@ def render_coordinate_transform(config: AppConfig) -> None:
         textcoords="offset points",
     )
 
+    # Mark Sasol and Joburg landmarks
+    for src in config.data_source.sources:
+        if src.name in ("Sasol Synfuels", "Johannesburg"):
+            sx, sy = latlon_to_local_km(
+                src.lat,
+                src.lon,
+                origin_lat=domain.origin_lat,
+                origin_lon=domain.origin_lon,
+            )
+            sx = float(sx)
+            sy = float(sy)
+            marker = "^" if src.source_type == "industrial" else "D"
+            color = "orangered" if src.source_type == "industrial" else "royalblue"
+            ax.plot(sx, sy, marker, color=color, markersize=9, zorder=10, label=src.name)
+            ax.annotate(
+                f"{src.name}\n({src.lat:.2f}, {src.lon:.2f})",
+                (sx, sy),
+                fontsize=7,
+                fontweight="bold",
+                color=color,
+                xytext=(8, 5),
+                textcoords="offset points",
+            )
+
     # Draw domain bounding box
     bbox = domain.bbox()
     ax.set_xlabel("East-West (km) — local coordinates", fontsize=11)
@@ -262,44 +312,158 @@ def render_coordinate_transform(config: AppConfig) -> None:
     ax.set_aspect("equal")
     ax.legend(loc="upper right", fontsize=9)
     fig.tight_layout()
-    out_path = OUTPUT_DIR / "coordinate_transform.png"
+    out_path = output_dir / "coordinate_transform.png"
     fig.savefig(str(out_path), dpi=150)
     plt.close(fig)
     log.info("saved", path=str(out_path))
 
 
-def main() -> None:
-    """Generate Wave 2 gallery images."""
+def render_corridor_source_inventory(config: AppConfig, output_dir: Path) -> None:
+    """Render Highveld Industrial Corridor source inventory map."""
+    log.info("=== Data pipeline: Corridor source inventory ===")
 
-    def yaml_renderer(
-        _logger: object,
-        _name: str,
-        event_dict: dict[str, object],
-    ) -> str:
-        return yaml.dump(
-            dict(event_dict),
-            default_flow_style=False,
-            sort_keys=False,
-        ).rstrip()
+    domain = config.data_source.domain
+    sources = config.data_source.sources
 
-    structlog.configure(
-        processors=[structlog.stdlib.add_log_level, yaml_renderer],
-        wrapper_class=structlog.make_filtering_bound_logger(0),
+    if not sources:
+        log.warning("No sources defined in config — skipping corridor inventory")
+        return
+
+    bbox = domain.bbox()
+    lon_min, lat_min, lon_max, lat_max = bbox
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.set_facecolor("#f5f5f0")
+
+    # Domain bounding box outline
+    rect = mpatches.Rectangle(
+        (lon_min, lat_min),
+        lon_max - lon_min,
+        lat_max - lat_min,
+        linewidth=2,
+        edgecolor="steelblue",
+        facecolor="none",
+        linestyle="--",
+        label="Domain extent (300x300 km)",
     )
+    ax.add_patch(rect)
 
-    log.info("wave-2 gallery starting")
+    # Lat/lon grid
+    for lon_tick in np.arange(math.floor(lon_min), math.ceil(lon_max) + 1, 0.5):
+        ax.axvline(lon_tick, color="gray", alpha=0.15, linewidth=0.5)
+    for lat_tick in np.arange(math.floor(lat_min), math.ceil(lat_max) + 1, 0.5):
+        ax.axhline(lat_tick, color="gray", alpha=0.15, linewidth=0.5)
 
-    config = _load_gallery_config()
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    # Source markers color-coded by type
+    color_map = {"industrial": "orangered", "urban": "royalblue", "point": "darkgreen"}
+    marker_map = {"industrial": "^", "urban": "D", "point": "o"}
+    size_map = {"industrial": 120, "urban": 100, "point": 60}
 
-    render_data_pipeline_gaussian(config)
-    render_era5_wind_profile(config)
-    render_oco3_footprints(config)
-    render_coordinate_transform(config)
+    sasol_pos = None
+    joburg_pos = None
 
-    n_files = len(list(OUTPUT_DIR.glob("*.png")))
-    log.info("wave-2 gallery complete", total_images=n_files, output_dir=str(OUTPUT_DIR))
+    for src in sources:
+        c = color_map.get(src.source_type, "gray")
+        m = marker_map.get(src.source_type, "o")
+        s = size_map.get(src.source_type, 60)
+        ax.scatter(src.lon, src.lat, c=c, marker=m, s=s, zorder=5, edgecolors="black",
+                   linewidths=0.5)
+        ax.annotate(
+            src.name,
+            (src.lon, src.lat),
+            fontsize=7,
+            fontweight="bold",
+            color=c,
+            xytext=(6, 4),
+            textcoords="offset points",
+        )
+        if src.name == "Sasol Synfuels":
+            sasol_pos = (src.lon, src.lat)
+        elif src.name == "Johannesburg":
+            joburg_pos = (src.lon, src.lat)
+
+    # Corridor axis line
+    if sasol_pos and joburg_pos:
+        ax.plot(
+            [sasol_pos[0], joburg_pos[0]],
+            [sasol_pos[1], joburg_pos[1]],
+            "--",
+            color="purple",
+            linewidth=1.5,
+            alpha=0.6,
+            label="Sasol-Joburg corridor axis",
+        )
+
+    # Domain center marker
+    ax.plot(domain.origin_lon, domain.origin_lat, "+", color="black", markersize=12,
+            markeredgewidth=2, zorder=10, label="Domain center")
+
+    # Scale bar (50 km)
+    km_per_deg_lon = 111.32 * math.cos(math.radians(domain.origin_lat))
+    bar_deg = 50.0 / km_per_deg_lon
+    bar_y = lat_min + 0.15 * (lat_max - lat_min)
+    bar_x = lon_min + 0.05 * (lon_max - lon_min)
+    ax.plot([bar_x, bar_x + bar_deg], [bar_y, bar_y], "-", color="black", linewidth=3)
+    ax.annotate("50 km", (bar_x + bar_deg / 2, bar_y), fontsize=8, ha="center",
+                va="bottom", xytext=(0, 3), textcoords="offset points")
+
+    # Legend entries for source types
+    from matplotlib.lines import Line2D  # noqa: PLC0415
+
+    legend_elements = [
+        Line2D([0], [0], marker="^", color="w", markerfacecolor="orangered",
+               markersize=10, label="Industrial"),
+        Line2D([0], [0], marker="D", color="w", markerfacecolor="royalblue",
+               markersize=8, label="Urban"),
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="darkgreen",
+               markersize=8, label="Power station"),
+    ]
+    ax.legend(handles=legend_elements, loc="upper right", fontsize=9, framealpha=0.9)
+
+    ax.set_xlabel("Longitude (E)", fontsize=11)
+    ax.set_ylabel("Latitude (S)", fontsize=11)
+    ax.set_title(
+        "Highveld Industrial Corridor — Source Inventory",
+        fontsize=13,
+        fontweight="bold",
+    )
+    margin = 0.1
+    ax.set_xlim(lon_min - margin, lon_max + margin)
+    ax.set_ylim(lat_min - margin, lat_max + margin)
+    ax.set_aspect(1.0 / math.cos(math.radians(domain.origin_lat)))
+    fig.tight_layout()
+    out_path = output_dir / "corridor_source_inventory.png"
+    fig.savefig(str(out_path), dpi=150)
+    plt.close(fig)
+    log.info("saved", path=str(out_path))
 
 
-if __name__ == "__main__":
-    main()
+def render_wave(
+    *,
+    tier_override: str | None = None,
+    progress: object | None = None,
+    output_dir: Path | None = None,
+) -> list[Path]:
+    """Public entry point for unified gallery orchestration."""
+    if progress is not None and hasattr(progress, "begin_wave"):
+        progress.begin_wave("2")
+
+    out = output_dir if output_dir is not None else OUTPUT_DIR
+    out.mkdir(parents=True, exist_ok=True)
+
+    effective_tier = tier_override or "study"
+    config = _load_gallery_config(tier=effective_tier)
+
+    render_data_pipeline_gaussian(config, out)
+    render_era5_wind_profile(config, out)
+    render_oco3_footprints(config, out)
+    render_coordinate_transform(config, out)
+    render_corridor_source_inventory(config, out)
+
+    rendered = [out / name for name in IMAGE_MANIFEST]
+
+    if progress is not None and hasattr(progress, "image_done"):
+        for p in rendered:
+            progress.image_done(p.name)
+
+    return rendered

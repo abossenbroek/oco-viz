@@ -24,9 +24,9 @@ if TYPE_CHECKING:
 
     from oco_viz.config.schema import DomainConfig, OCO3Config
 
-# Default Secunda bounding box (lon_min, lat_min, lon_max, lat_max)
-# Kept as fallback default; prefer DomainConfig.bbox() for new code.
-_DEFAULT_BBOX = (28.8, -26.7, 29.5, -26.2)
+# Legacy fallback bbox matching DomainConfig() defaults.
+# Prefer DomainConfig.bbox() for new code.
+_DEFAULT_BBOX = (27.10, -27.71, 30.12, -25.01)
 
 _COLLECTION_ID = SATELLITE_COLLECTION_IDS["oco3"]
 

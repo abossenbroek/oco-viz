@@ -71,6 +71,8 @@ def render_sequence(
     zarr_path: Path,
     *,
     num_frames: int | None = None,
+    start_frame: int = 0,
+    end_frame: int | None = None,
 ) -> list[Path]:
     """Render all timesteps from a Zarr store to PNG frames.
 
@@ -127,9 +129,11 @@ def render_sequence(
         )
     )
 
+    actual_end = min(end_frame, n) if end_frame is not None else n
+
     output_paths: list[Path] = []
 
-    for i in range(n):
+    for i in range(start_frame, actual_end):
         frame_path = frames_dir / f"frame_{i:06d}.png"
         output_paths.append(frame_path)
 

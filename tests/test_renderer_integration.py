@@ -116,8 +116,8 @@ def test_dev_mac_uses_8bit() -> None:
 
 def test_base_config_has_exposure() -> None:
     config = load_config()
-    # Default tier is study, which overrides base exposure (1.4) to 4.0
-    assert config.postprocess.exposure == pytest.approx(4.0)
+    # Default tier is study, which overrides base exposure to 6.0
+    assert config.postprocess.exposure == pytest.approx(6.0)
 
 
 def test_base_config_has_material_properties() -> None:

@@ -104,11 +104,11 @@ The `output/examples/` directory contains gallery PNGs (tracked via Git LFS) tha
 
 ### 5.1 Gallery Scripts as Living Coverage
 
-The gallery scripts in `scripts/` (`render_*_gallery.py`) must collectively exercise every stage of the rendering pipeline — normalization, transfer functions, volume construction, lighting, camera paths, easing, composition, post-processing, and tier configs. **When a new rendering capability is added, the gallery scripts must be extended to generate images that cover it.** The gallery is not a static snapshot; it grows with the pipeline so that `output/examples/` always provides end-to-end visual proof that the full pipeline works.
+The unified gallery runner (`pixi run gallery`, backed by `scripts/render_gallery_all.py`) is the single entry point for rendering all gallery images. Individual wave scripts still live in `scripts/render_*_gallery.py` but are invoked through the unified runner. Together they must exercise every stage of the rendering pipeline — normalization, transfer functions, volume construction, lighting, camera paths, easing, composition, post-processing, and tier configs. **When a new rendering capability is added, the gallery scripts must be extended to generate images that cover it.** The gallery is not a static snapshot; it grows with the pipeline so that `output/examples/` always provides end-to-end visual proof that the full pipeline works. For selective rendering use `pixi run gallery -- --wave 3 --tier study`.
 
 ### 5.2 Re-render and Inspect
 
-1. Run **all** gallery scripts in `scripts/` to regenerate the full image set.
+1. Run `pixi run gallery` to regenerate the full image set (all waves at native tiers). For automated verification: `pixi run gallery-verify`.
 2. If any image regresses — darker, flatter, clipped, banded, loses structure, or simply looks worse — the PR is not ready. Fix the root cause, re-render, re-inspect.
 
 ### 5.3 Critical Eye Review via Opus Agent
@@ -128,6 +128,16 @@ The agent must return a pass/fail verdict per image with specific critique. A si
 ### 5.4 Gallery Images as PR Evidence
 
 The gallery images are committed to the repo so reviewers can compare before/after visually in the PR diff. **Treat output/examples/ as the definitive proof that the rendering pipeline produces exhibition-quality results.**
+
+### 5.5 Gallery CLI Reference
+
+| Command | Purpose |
+|---------|---------|
+| `pixi run gallery` | Render all waves at native tiers |
+| `pixi run gallery-verify` | Render + automated image_stats verification |
+| `pixi run gallery -- --wave 3,4 --tier exhibition` | Selective wave/tier cross-product |
+| `pixi run gallery -- --dry-run` | List all ~115 images without rendering |
+| `pixi run gallery -- --verify-output report.yaml` | Custom verification output path |
 
 ## 6. Best Practices
 

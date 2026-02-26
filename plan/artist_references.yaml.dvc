@@ -1,0 +1,5 @@
+outs:
+- md5: efa84aac886acf0eb3497ceaba1e54cb
+  size: 1737400
+  hash: md5
+  path: artist_references.yaml

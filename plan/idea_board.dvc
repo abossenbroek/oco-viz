@@ -1,0 +1,6 @@
+outs:
+- md5: 8fd8ab38a6104de8111c892884a147a4.dir
+  size: 10047018
+  nfiles: 5
+  hash: md5
+  path: idea_board

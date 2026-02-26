@@ -8,8 +8,6 @@ Demonstrates volume rendering capabilities:
 - Sky gradient and ground plane scene
 - Post-processing with ACES tonemapping, bloom, and fog
 
-Usage:
-    python scripts/render_wave4_gallery.py
 """
 
 from __future__ import annotations
@@ -18,8 +16,6 @@ from pathlib import Path
 
 import numpy as np
 import structlog
-import yaml
-from PIL import Image
 
 from oco_viz.config import load_config
 from oco_viz.config.schema import AppConfig, RenderingConfig, TransferFunctionConfig
@@ -27,18 +23,23 @@ from oco_viz.plume.gaussian import generate_timestep
 from oco_viz.plume.turbulent import apply_turbulence
 from oco_viz.render.camera import CameraState, FixedCamera
 from oco_viz.render.renderer import VolumeRenderer
+from scripts.gallery._common import save_rgb
 
 log = structlog.get_logger()
 
 OUTPUT_DIR = Path("output/examples/wave4")
 
-
-def _save_rgb(rgb: np.ndarray, out_path: Path) -> None:
-    """Save a float32 [0,1] RGB array as a PNG file."""
-    rgb_uint8 = np.clip(rgb * 255.0, 0, 255).astype(np.uint8)
-    img = Image.fromarray(rgb_uint8)
-    img.save(str(out_path))
-    log.info("saved", path=str(out_path), shape=rgb.shape)
+IMAGE_MANIFEST: list[str] = [
+    "volume_default.png",
+    "tf_storm.png",
+    "tf_ember.png",
+    "tf_atmospheric.png",
+    "tf_absolute.png",
+    "scattering_off.png",
+    "scattering_on.png",
+    "sky_ground.png",
+    "postprocess_aces.png",
+]
 
 
 def _load_gallery_config(**extra_overrides: object) -> AppConfig:
@@ -78,6 +79,7 @@ def _render_with_config(
     conc: np.ndarray,
     camera_state: CameraState,
     name: str,
+    output_dir: Path,
     *,
     preset: str = "soot",
     rendering: RenderingConfig | None = None,
@@ -96,21 +98,21 @@ def _render_with_config(
     renderer.configure()
     try:
         rgb = renderer.render_frame_postprocessed(conc, camera_state, pre_normalized=False)
-        _save_rgb(rgb, OUTPUT_DIR / f"{name}.png")
+        save_rgb(rgb, output_dir / f"{name}.png")
     finally:
         renderer.finalize()
 
 
-def render_volume_default() -> None:
+def render_volume_default(output_dir: Path) -> None:
     """Render with default transfer function."""
     log.info("=== Volume default ===")
     config = _load_gallery_config()
     camera = _build_camera(config)
     conc = _generate_plume(config)
-    _render_with_config(config, conc, camera, "volume_default", preset="default_plume")
+    _render_with_config(config, conc, camera, "volume_default", output_dir, preset="default_plume")
 
 
-def render_transfer_functions() -> None:
+def render_transfer_functions(output_dir: Path) -> None:
     """Render with each cinematic transfer function preset."""
     log.info("=== Transfer function presets ===")
 
@@ -126,10 +128,10 @@ def render_transfer_functions() -> None:
 
     for name, preset in presets.items():
         log.info("rendering TF", preset=preset)
-        _render_with_config(config, conc, camera, name, preset=preset)
+        _render_with_config(config, conc, camera, name, output_dir, preset=preset)
 
 
-def render_absolute_atmospheric() -> None:
+def render_absolute_atmospheric(output_dir: Path) -> None:
     """Render with absolute normalization mode and absolute_atmospheric TF."""
     log.info("=== Absolute atmospheric ===")
     config = _load_gallery_config()
@@ -140,12 +142,13 @@ def render_absolute_atmospheric() -> None:
         conc,
         camera,
         "tf_absolute",
+        output_dir,
         preset="absolute_atmospheric",
-        rendering=RenderingConfig(mode="absolute"),
+        rendering=RenderingConfig(mode="absolute", adaptive_normalization=True),
     )
 
 
-def render_scattering_comparison() -> None:
+def render_scattering_comparison(output_dir: Path) -> None:
     """Compare scattering off vs on."""
     log.info("=== Scattering comparison ===")
 
@@ -155,17 +158,17 @@ def render_scattering_comparison() -> None:
     )
     camera = _build_camera(config_off)
     conc = _generate_plume(config_off)
-    _render_with_config(config_off, conc, camera, "scattering_off")
+    _render_with_config(config_off, conc, camera, "scattering_off", output_dir)
 
     # Scattering on
     config_on = _load_gallery_config(
         scattering={"shade": True, "sample_distance": 250.0},
     )
     conc = _generate_plume(config_on)
-    _render_with_config(config_on, conc, camera, "scattering_on")
+    _render_with_config(config_on, conc, camera, "scattering_on", output_dir)
 
 
-def render_sky_ground() -> None:
+def render_sky_ground(output_dir: Path) -> None:
     """Render full scene with sky gradient and ground plane."""
     log.info("=== Sky + ground plane ===")
     config = _load_gallery_config(
@@ -174,10 +177,10 @@ def render_sky_ground() -> None:
     )
     camera = _build_camera(config)
     conc = _generate_plume(config)
-    _render_with_config(config, conc, camera, "sky_ground")
+    _render_with_config(config, conc, camera, "sky_ground", output_dir)
 
 
-def render_postprocess_aces() -> None:
+def render_postprocess_aces(output_dir: Path) -> None:
     """Render with ACES tonemapping, bloom, and fog post-processing."""
     log.info("=== Post-process: ACES + bloom + fog ===")
     config = _load_gallery_config(
@@ -194,41 +197,33 @@ def render_postprocess_aces() -> None:
     )
     camera = _build_camera(config)
     conc = _generate_plume(config)
-    _render_with_config(config, conc, camera, "postprocess_aces")
+    _render_with_config(config, conc, camera, "postprocess_aces", output_dir)
 
 
-def main() -> None:
-    """Generate Wave 4 gallery images."""
+def render_wave(
+    *,
+    tier_override: str | None = None,  # noqa: ARG001
+    progress: object | None = None,
+    output_dir: Path | None = None,
+) -> list[Path]:
+    """Public entry point for unified gallery orchestration."""
+    if progress is not None and hasattr(progress, "begin_wave"):
+        progress.begin_wave("4")
 
-    def yaml_renderer(
-        _logger: object,
-        _name: str,
-        event_dict: dict[str, object],
-    ) -> str:
-        return yaml.dump(
-            dict(event_dict),
-            default_flow_style=False,
-            sort_keys=False,
-        ).rstrip()
+    out = output_dir if output_dir is not None else OUTPUT_DIR
+    out.mkdir(parents=True, exist_ok=True)
 
-    structlog.configure(
-        processors=[structlog.stdlib.add_log_level, yaml_renderer],
-        wrapper_class=structlog.make_filtering_bound_logger(0),
-    )
+    render_volume_default(out)
+    render_transfer_functions(out)
+    render_absolute_atmospheric(out)
+    render_scattering_comparison(out)
+    render_sky_ground(out)
+    render_postprocess_aces(out)
 
-    log.info("wave-4 gallery starting")
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    rendered = [out / name for name in IMAGE_MANIFEST]
 
-    render_volume_default()
-    render_transfer_functions()
-    render_absolute_atmospheric()
-    render_scattering_comparison()
-    render_sky_ground()
-    render_postprocess_aces()
+    if progress is not None and hasattr(progress, "image_done"):
+        for p in rendered:
+            progress.image_done(p.name)
 
-    n_files = len(list(OUTPUT_DIR.glob("*.png")))
-    log.info("wave-4 gallery complete", total_images=n_files, output_dir=str(OUTPUT_DIR))
-
-
-if __name__ == "__main__":
-    main()
+    return rendered

@@ -129,6 +129,7 @@ class PostProcessConfig(BaseModel):
     bloom_intensity: float = Field(default=0.3, ge=0)
     bloom_passes: int = Field(default=3, ge=1)
     exposure: float = Field(default=0.6, gt=0)
+    grain_strength: float = Field(default=0.0, ge=0, le=0.2)
 
 
 class OutputConfig(BaseModel):
@@ -154,8 +155,8 @@ class OutputConfig(BaseModel):
 class PlumeConfig(BaseModel):
     """Gaussian plume source configuration."""
 
-    source_x: float = 150.0
-    source_y: float = 150.0
+    source_x: float = 206.0
+    source_y: float = 132.0
     source_z: float = 5.0
     emission_rate: float = Field(default=1000.0, gt=0, description="kg/s")
     stability_class: str = Field(default="D")
@@ -173,11 +174,20 @@ class PlumeConfig(BaseModel):
         return v.upper()
 
 
+class PointSource(BaseModel):
+    """A named emission source with geographic coordinates."""
+
+    name: str
+    lat: float
+    lon: float
+    source_type: str = Field(default="point")
+
+
 class DomainConfig(BaseModel):
     """Geographic domain centered on a facility."""
 
-    origin_lat: float = Field(default=-26.52, description="Facility latitude")
-    origin_lon: float = Field(default=29.17, description="Facility longitude")
+    origin_lat: float = Field(default=-26.36, description="Facility latitude")
+    origin_lon: float = Field(default=28.61, description="Facility longitude")
     extent_x_km: float = Field(default=300.0, gt=0, description="East-west extent in km")
     extent_y_km: float = Field(default=300.0, gt=0, description="North-south extent in km")
     extent_z_km: float = Field(default=15.0, gt=0, description="Vertical extent in km")
@@ -213,7 +223,7 @@ class RenderingConfig(BaseModel):
         absolute: Map [absolute_min_ppm, absolute_max_ppm] linearly to [0, 1].
             Shows full atmospheric column including background.
 
-    Adaptive normalization (anomaly mode only):
+    Adaptive normalization (anomaly and absolute modes):
         When adaptive_normalization=True, divides by the adaptive_percentile-th
         percentile of positive enhancement values instead of anomaly_max_ppm.
 
@@ -227,16 +237,31 @@ class RenderingConfig(BaseModel):
     absolute_min_ppm: float = Field(default=415.0)
     absolute_max_ppm: float = Field(default=435.0, gt=0)
 
-    # Adaptive normalization (anomaly mode only)
+    # Adaptive normalization
     adaptive_normalization: bool = Field(
         default=False,
-        description="Use percentile-based max instead of fixed anomaly_max_ppm",
+        description=(
+            "Use percentile-based range instead of fixed max/min values"
+            " (anomaly and absolute modes)"
+        ),
     )
     adaptive_percentile: float = Field(
         default=95.0,
         ge=50.0,
         le=100.0,
-        description="Percentile of positive enhancement values to use as divisor",
+        description="Percentile of positive enhancement values to use as divisor (anomaly mode)",
+    )
+    absolute_low_percentile: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=20.0,
+        description="Low percentile for absolute mode normalization",
+    )
+    absolute_high_percentile: float = Field(
+        default=99.0,
+        ge=80.0,
+        le=100.0,
+        description="High percentile for absolute mode normalization",
     )
     min_enhancement_ppm: float = Field(
         default=1.0,
@@ -288,6 +313,7 @@ class DataSourceConfig(BaseModel):
     domain: DomainConfig = Field(default_factory=DomainConfig)
     era5: ERA5Config = Field(default_factory=ERA5Config)
     oco3: OCO3Config = Field(default_factory=OCO3Config)
+    sources: list[PointSource] = Field(default_factory=list)
 
 
 class AnnotationConfig(BaseModel):
@@ -298,7 +324,8 @@ class AnnotationConfig(BaseModel):
     show_credits: bool = True
     show_scale_bar: bool = True
     font_size: int = Field(default=18, ge=8, le=72)
-    facility_name: str = "Sasol Secunda"
+    facility_name: str = "Highveld Industrial Corridor"
+    region_name: str | None = Field(default=None)
     text_color: tuple[float, float, float] = (0.9, 0.9, 0.9)
     panel_opacity: float = Field(default=0.4, ge=0, le=1)
 
@@ -420,6 +447,25 @@ class VdbExportConfig(BaseModel):
     )
 
 
+class EncodingConfig(BaseModel):
+    """Video encoding configuration."""
+
+    codec: str = Field(default="h264", description="h264 | h265 | prores4444 | dnxhr_hqx | png")
+    crf: int = Field(default=18, ge=0, le=63)
+    pixel_format: str | None = Field(default=None, description="Auto from codec if None")
+    include_slate: bool = True
+    slate_duration_s: float = Field(default=3.0, gt=0, le=10.0)
+
+    @field_validator("codec")
+    @classmethod
+    def _valid_codec(cls, v: str) -> str:
+        valid = {"h264", "h265", "prores4444", "dnxhr_hqx", "png"}
+        if v not in valid:
+            msg = f"Codec must be one of {sorted(valid)}, got {v!r}"
+            raise ValueError(msg)
+        return v
+
+
 class AppConfig(BaseModel):
     """Top-level application configuration."""
 
@@ -433,6 +479,7 @@ class AppConfig(BaseModel):
     transfer_function: TransferFunctionConfig = Field(default_factory=TransferFunctionConfig)
     postprocess: PostProcessConfig = Field(default_factory=PostProcessConfig)
     output: OutputConfig = Field(default_factory=OutputConfig)
+    encoding: EncodingConfig = Field(default_factory=EncodingConfig)
     plume: PlumeConfig = Field(default_factory=PlumeConfig)
     turbulence: TurbulenceConfig = Field(default_factory=TurbulenceConfig)
     advection: AdvectionConfig = Field(default_factory=AdvectionConfig)

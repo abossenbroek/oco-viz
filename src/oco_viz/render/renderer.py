@@ -86,6 +86,7 @@ class VolumeRenderer:
         self._volume: vtk.vtkVolume | None = None
         self._mapper: vtk.vtkSmartVolumeMapper | None = None
         self._pipeline: PostProcessPipeline | None = None
+        self._exposure_multiplier: float = 1.0
 
     def configure(
         self,
@@ -99,6 +100,7 @@ class VolumeRenderer:
             )
 
         self._color_tf, self._opacity_tf = tf.to_vtk()
+        self._exposure_multiplier = tf.exposure_multiplier
 
         self._renderer = vtk.vtkRenderer()
         apply_sky_gradient(self._renderer, self._config.sky)
@@ -202,7 +204,11 @@ class VolumeRenderer:
             pre_normalized=pre_normalized,
         )
         if self._pipeline is not None:
-            return self._pipeline.process(rgb, depth)
+            return self._pipeline.process(
+                rgb,
+                depth,
+                extra_exposure=self._exposure_multiplier,
+            )
         return rgb
 
     def finalize(self) -> None:

@@ -97,3 +97,49 @@ def test_gallery_plume_type_mode_produces_nonzero(plume_type: str, mode: str) ->
         conc[5, 10, 10] = 430.0
     result = normalize_concentration(conc, cfg)
     assert result.max() > 0.5, f"{plume_type}+{mode} should produce visible output"
+
+
+class TestPresetRenderingMode:
+    """Verify each preset uses the correct rendering mode."""
+
+    def test_absolute_atmospheric_needs_absolute_mode(self) -> None:
+        """absolute_atmospheric preset with mode=max on synthetic data works,
+        but mode=absolute+adaptive is correct for real atmospheric data."""
+        # Synthetic background ~420 ppm with enhancement
+        data = np.full((10, 20, 20), 420.0, dtype=np.float32)
+        data[5, 10, 10] = 425.0  # 5 ppm enhancement
+
+        # With absolute+adaptive: should produce visible output
+        cfg = RenderingConfig(mode="absolute", adaptive_normalization=True)
+        result = normalize_concentration(data, cfg)
+        assert float(np.max(result)) > 0.5, "Absolute adaptive should produce visible output"
+
+    def test_composite_anomaly_produces_visible_output(self) -> None:
+        """Composite data (background + plume) with anomaly mode produces visible output."""
+        background = np.full((10, 20, 20), 420.0, dtype=np.float32)
+        # Add vertical gradient (realistic)
+        for z in range(10):
+            background[z, :, :] += z * 0.5
+        plume = np.zeros_like(background)
+        plume[5, 10, 10] = 8.0
+        composite = background + plume
+
+        cfg = RenderingConfig(mode="anomaly", adaptive_normalization=True)
+        result = normalize_concentration(composite, cfg)
+        assert float(np.max(result)) > 0.3, "Anomaly mode should show plume enhancement"
+
+    def test_composite_absolute_adaptive_produces_visible_output(self) -> None:
+        """Composite data with absolute adaptive mode produces visible (not blown-out) output."""
+        background = np.full((10, 20, 20), 420.0, dtype=np.float32)
+        for z in range(10):
+            background[z, :, :] += z * 0.5
+        plume = np.zeros_like(background)
+        plume[5, 10, 10] = 8.0
+        composite = background + plume
+
+        cfg = RenderingConfig(mode="absolute", adaptive_normalization=True)
+        result = normalize_concentration(composite, cfg)
+        # Should NOT be all 1.0 (blown out) — adaptive percentile prevents this
+        mean_val = float(np.mean(result))
+        assert mean_val < 0.95, f"Blown out: mean={mean_val:.3f}, adaptive should prevent this"
+        assert float(np.max(result)) > 0.1, "Should have some visible content"

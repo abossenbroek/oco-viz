@@ -28,13 +28,13 @@ SMALL_GRID = GridConfig(nx=20, ny=20, nz=12, dx=1000.0, dy=1000.0, dz=500.0)
 
 
 def test_study_tier_config_overlay() -> None:
-    """Study tier: soot TF preset, fog on, bloom on, basic lighting, exposure 4.0."""
+    """Study tier: soot TF preset, fog on, bloom on, basic lighting, exposure 6.0."""
     config = load_config(tier="study")
     assert config.transfer_function.preset == "soot"
     assert config.postprocess.fog_enabled is True
     assert config.postprocess.bloom_enabled is True
     assert config.lighting.mode == "basic"
-    assert config.postprocess.exposure == pytest.approx(4.0)
+    assert config.postprocess.exposure == pytest.approx(6.0)
     assert config.postprocess.fog_color == pytest.approx((0.08, 0.08, 0.12))
     assert config.scattering.ambient == pytest.approx(0.65)
     assert config.scattering.diffuse == pytest.approx(0.75)
@@ -51,15 +51,15 @@ def test_exhibition_tier_config_overlay() -> None:
     assert config.scattering.ambient == pytest.approx(0.85)
     assert config.scattering.diffuse == pytest.approx(0.0)
     assert config.scattering.specular == pytest.approx(0.0)
-    assert config.postprocess.exposure == pytest.approx(4.0)
+    assert config.postprocess.exposure == pytest.approx(8.0)
 
 
 def test_sketch_tier_config_overlay() -> None:
-    """Sketch tier: no sky/ground, no lighting, scattering disabled."""
+    """Sketch tier: no sky/ground, basic lighting, scattering disabled."""
     config = load_config(tier="sketch")
     assert config.sky.enabled is False
     assert config.ground_plane.enabled is False
-    assert config.lighting.mode == "none"
+    assert config.lighting.mode == "basic"
     assert config.scattering.volumetric_scattering_blending == pytest.approx(0.0)
     assert config.scattering.global_illumination_reach == pytest.approx(0.0)
 

@@ -16,9 +16,9 @@ if TYPE_CHECKING:
     from oco_viz.config.schema import AppConfig
 
 
-# Default source coordinates (Secunda) — prefer DomainConfig/PlumeConfig for new code.
-_DEFAULT_SOURCE_LAT = -26.52
-_DEFAULT_SOURCE_LON = 29.17
+# Default source coordinates (corridor midpoint) — prefer DomainConfig/PlumeConfig for new code.
+_DEFAULT_SOURCE_LAT = -26.36
+_DEFAULT_SOURCE_LON = 28.61
 _DEFAULT_SOURCE_ALT_M = 200.0  # stack height
 
 

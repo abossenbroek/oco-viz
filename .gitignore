@@ -137,6 +137,7 @@ celerybeat.pid
 # Environments
 .env
 !.env.op
+!.env.1p
 .cdsapirc
 !.cdsapirc
 .envrc
@@ -213,8 +214,8 @@ __marimo__/
 pipelin_roles.json
 pipeline_expertise.json
 
-# Project output (ignore contents but track examples for visual regression)
+# Project output (DVC tracks output/examples via output/examples.dvc)
 output/*
-!output/examples/
-output/examples/.DS_Store
+!output/examples.dvc
+!output/.gitignore
 

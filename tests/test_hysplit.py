@@ -25,8 +25,8 @@ def test_control_file_generated(tmp_path: Path) -> None:
     )
     assert ctrl.exists()
     text = ctrl.read_text()
-    assert "-26.5200" in text
-    assert "29.1700" in text
+    assert "-26.3600" in text
+    assert "28.6100" in text
     assert "CO2" in text
 
 
