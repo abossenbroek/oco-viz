@@ -145,7 +145,7 @@ jobs:
         with:
           name: test-results
       - name: Coverage comment
-        uses: MishaKav/pytest-coverage-comment@v1.2.0
+        uses: MishaKav/pytest-coverage-comment@v1.4.0
         with:
           pytest-xml-coverage-path: coverage.xml
           junitxml-path: pytest-report.xml
